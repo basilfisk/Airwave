@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# Run the following scripts every night
+#
+
+# Executables directory
+BIN=/srv/visualsaas/instances/aa002/bin
+
+# Recreate the inventory reports for each active site
+$BIN/inventory.pl -log
+
+# Recreate all of the marketing sheets
+$BIN/showing.pl -package=all -territory=all -log
+
+# Recreate the site seets for active sites
+$BIN/site-sheet.pl -site=all -log

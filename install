@@ -1,0 +1,75 @@
+#!/bin/bash
+# *********************************************************************************************
+# *********************************************************************************************
+#
+# Install files from Dropbox copy of Airwave development directory to $ROOT
+#
+# *********************************************************************************************
+# *********************************************************************************************
+
+# Set up server name
+SERVER=`hostname`
+
+if [ "$SERVER" == "distro" ]; then
+	# Set up directories
+	SOURCE=/home/airwave/Dropbox/Airwave
+	ROOT=/home/airwave/bin/Airwave
+	
+	# If the root directory does not exist, build the directory tree
+	if [ ! -d $ROOT ]; then
+		mkdir $ROOT
+		mkdir $ROOT/etc
+		mkdir $ROOT/mods
+	fi
+	
+	# Install the configuration files
+	cp $SOURCE/admin/crontab.distro $ROOT/etc
+	cp $SOURCE/etc/servers/* $ROOT/etc
+	
+	# Install the scripts
+	cp $SOURCE/bin/distro/* $ROOT
+	cp $SOURCE/bin/menu.pl $ROOT
+	cp $SOURCE/bin/monitor.pl $ROOT
+	
+	# Install the Perl modules
+	cp $SOURCE/modules/servers/*.pm $ROOT/mods
+	
+	# Change ownership and permissions
+	chown airwave:airwave -R $ROOT
+	chmod 755 $ROOT/*.pl
+	chmod 755 $ROOT/cdsd
+	chmod 644 $ROOT/etc/*
+	chmod 644 $ROOT/mods/*.pm
+fi
+
+if [ "$SERVER" == "prep" ]; then
+	# Set up directories
+	SOURCE=/home/airwave/Dropbox/Airwave
+	ROOT=/home/airwave/bin/Airwave
+	
+	# If the root directory does not exist, build the directory tree
+	if [ ! -d $ROOT ]; then
+		mkdir $ROOT
+		mkdir $ROOT/etc
+		mkdir $ROOT/mods
+	fi
+	
+	# Install the configuration files
+	cp $SOURCE/admin/crontab.prep $ROOT/etc
+	cp $SOURCE/etc/servers/* $ROOT/etc
+	
+	# Install the scripts
+	cp $SOURCE/bin/prep/* $ROOT
+	cp $SOURCE/bin/menu.pl $ROOT
+	cp $SOURCE/bin/monitor.pl $ROOT
+	
+	# Install the Perl modules
+	cp $SOURCE/modules/servers/*.pm $ROOT/mods
+	
+	# Change ownership and permissions
+	chown airwave:airwave -R $ROOT
+	chmod 755 $ROOT/*.pl
+	chmod 755 $ROOT/sync*
+	chmod 644 $ROOT/etc/*
+	chmod 644 $ROOT/mods/*.pm
+fi

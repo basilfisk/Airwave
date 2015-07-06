@@ -1,0 +1,229 @@
+#!/bin/bash -e
+# -----------------------------------------------------------------------------
+# Move the files with a distribution once it has been downloaded by CDS
+#
+# Guest-tek’s naming convention is:
+#	SD Trailer	MovieName_SD_YEAR_Rev#_tr.mp2
+#				WolfOfWallStreet_SD_2014_r1_tr.mp2
+#	SD Movie	MovieName_SD_YEAR_Rev#_vm_mv.mp2 (vm means Verimatrix encrypted)
+#				WolfOfWallStreet_SD_2014_r1_vm_mv.mp2
+#	HD Trailer	MovieName_HD_YEAR_Rev#_tr.mp2
+#				WolfOfWallStreet_HD_2014_r1_tr.mp2
+#	HD Movie	MovieName_HD_YEAR_Rev#_vm_mv.mp2 (vm means Verimatrix encrypted)
+#				WolfOfWallStreet_HD_2014_r1_vm_mv.mp2
+#
+# For Airwave content sent to Guest-tek:
+#	SD Trailer	TrailerName.mpg change to TrailerName_tr.mpg
+#	SD Movie	MovieName.mpg change to MovieName_mv.mpg
+#				nine_de_en_ts.mpg to nine_de_en_ts_mv.mpg
+#				nine_en_ts_trailer.mpg to nine_en_ts_trailer_tr.mpg
+#
+# These arguments are passed into the script by CDS
+#	Argument 1: Fully-qualified path to the content to be processed
+#				eg: /usr/local/fluid/airship/cds_inbox/CDS-TestNode-UIP-131212-150220
+#	Argument 2: Root of the content distribution directory
+#				eg: /cds_inbox/CDS-TestNode-UIP-131212-150220
+#	Argument 3: The name of the CDS account (Test 1)
+#				eg: TestNode
+#	Argument 4: The version of the CDS Transfer Agent
+#				eg: v1.6.0-3
+#
+# Return 0 if successful
+#	1 if problem with arguments
+#	2 if distribution directory cannot be deleted at end of ingestion
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Variables in this section control the behaviour of the script
+# -----------------------------------------------------------------------------
+# Directory where each type of downloaded file is to be moved to
+# If the variable is set to 'remove', the file will be deleted
+DEST_FILM=/usr/local/fluid/content
+DEST_TRAILER=/usr/local/fluid/content
+DEST_IMAGE=remove
+DEST_METADATA=remove
+
+# Access permissions for each file
+PRIVS=666
+
+# Location of log file
+LOG_FILE=/var/log/cds_ingest.log
+
+# Debug logging mode: 'yes' writes debug messages to log, 'no' inhibits debug messages
+DEBUG=yes
+VERSION=1.6.2
+
+
+
+# -----------------------------------------------------------------------------
+# Function to log messages
+#
+# Argument 1 : 'log' to write message to log file
+#              'debug' write to log file ONLY if DEBUG variable is 'yes'
+# Argument 2 : Message to be logged
+# -----------------------------------------------------------------------------
+function logMessage {
+	msgtype=$1
+	msgtext=$2
+	dt=`date '+%b %d %H:%M:%S'`
+	if [[ "$msgtype" == "log" || ( "$msgtype" == "debug" && "$DEBUG" == "yes" ) ]]; then
+		echo "$dt : $msgtext" 1>> $LOG_FILE
+	fi
+}
+
+
+
+# -----------------------------------------------------------------------------
+# Function to move/remove a file
+#
+# Argument 1 : File to be processed (full name and absolute path)
+# Argument 2 : Directory file is to be moved to
+#              Delete file if this argument is set to 'remove'
+# -----------------------------------------------------------------------------
+function fileAction {
+	src=$1
+	tgt=$2
+	if [ "$tgt" == "remove" ]; then
+		logMessage debug "Deleting file [$src]"
+		rm $src
+	else
+		if [ -e $src ]; then
+			logMessage debug "Changing permissions of file [$src] to [$PRIVS]"
+			chmod $PRIVS $src
+			if [ "$src" != "$tgt" ]; then
+				logMessage debug "Moving file [$src] to [$tgt]"
+				mv $src $tgt
+			fi
+		fi
+	fi
+}
+
+
+
+# -----------------------------------------------------------------------------
+# Function to move/remove a file
+#
+# Argument 1 : Type of file being processed (film/trailer)
+# Argument 2 : Full name of film/trailer
+# Argument 3 : Name of file (without extension)
+# Argument 4 : File extension
+# Argument 5 : File suffix
+# -----------------------------------------------------------------------------
+function fileMove {
+	type=$1
+	file=$2
+	name=$3
+	extn=$4
+	sufx=$5
+	
+	source=$DISTRO/$file
+	target=$DISTRO/${name}${sufx}.$extn
+	
+	logMessage debug "Renaming $type file from [$source] to [$target]"
+	if [ "$source" != "$target" ]; then
+		mv $source $target
+	fi
+	
+	if [ -f $target ]; then
+		logMessage log "Successfully moved $type to $target"
+	else
+		logMessage log "Failed to move $type to $target"
+	fi
+	
+	if [ "$type" == "trailer" ]; then
+		fileAction $target $DEST_TRAILER
+	else
+		fileAction $target $DEST_FILM
+	fi
+}
+
+
+
+# -----------------------------------------------------------------------------
+# Start processing
+# -----------------------------------------------------------------------------
+# Make sure a log file exists to record the actions performed by this script
+if [ ! -e $LOG_FILE ]; then
+	touch $LOG_FILE
+fi
+
+# Log the date/time the script started and all the arguments
+logMessage log "================================================================================"
+logMessage log "CDS ingest script started v$VERSION"
+logMessage log "Arguments to script: $*"
+
+# Check the input arguments are not empty - only interested in the first one
+if [ "$1" == "" ]; then
+	logMessage log "Arguments are missing"
+	exit 1
+fi
+
+# Assign the input argument to a variable
+DISTRO=$1
+logMessage debug "Processing files in $DISTRO"
+
+# Process all files in the directory
+for file in `find $DISTRO -type f -name '*'`
+do
+	dir=`echo "$file" | rev | cut -d'/' -f2 | rev`
+	full=`basename $file`
+	name=`echo "$full" | cut -d'.' -f1`
+	extn=`echo "$full" | cut -d'.' -f2`
+#	filename=$dir/$name.$extn
+	filename=$name.$extn
+	logMessage debug "Processing file: $filename"
+	
+	# Move metadata file to destination
+	if [ "$extn" == "xml" ]; then
+		source=$DISTRO/$filename
+		fileAction $source $DEST_METADATA
+	fi
+
+	# Move JPG file to destination
+	if [ "$extn" == "jpg" ]; then
+		source=$DISTRO/$filename
+		fileAction $source $DEST_IMAGE
+	fi
+
+	# Move Airwave film/trailer file to destination
+	if [ "$extn" == "mpg" ]; then
+		case "$name" in
+			*trailer*)
+					fileMove trailer $filename $name $extn '_tr'
+					;;
+			*)
+					fileMove film $filename $name $extn '_mv'
+					;;
+		esac
+	fi
+
+	# Move Guest-tek film/trailer file to destination
+	if [ "$extn" == "mp2" ]; then
+		case "$name" in
+			*trailer*)
+					fileMove trailer $filename $name $extn ''
+					;;
+			*)
+					fileMove film $filename $name $extn ''
+					;;
+		esac
+	fi
+done
+
+# Remove the distribution and content directories, which should be empty
+for dir in `find $DISTRO -type d -name '*' | sort -r`
+do
+	logMessage debug "Deleting directory [$dir]"
+	rmdir $dir
+done
+
+# Check that the directory has been deleted and log appropriate message
+if [ -d $DISTRO ]; then
+	logMessage log "Distribution directory has not been deleted. Please check reason and then remove manually"
+	exit 2
+else
+	logMessage log "Ingest finished successfully"
+	exit 0
+fi
+
+

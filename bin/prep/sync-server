@@ -1,0 +1,271 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------------------
+# Synchronise the content on one server with the content from another server.
+#
+# The following synchronisation combinations are supported (local server first).
+#	Copy new films/metadata from Preparation Server to Distribution Server
+#		distro	<-	prep
+#		prep	-> distro
+#	Back-up new films/metadata from Preparation Server to Archive Server at Evorio
+#		prep	-> evorio
+#	Back-up new films/metadata from Preparation Server to USB drive
+#		prep	-> usb
+#
+# Mandatory arguments:
+#	-r {Name of Remote Server}
+#	-t {Content Type}				(e.g. bbc,uip,pbtv)
+#
+# Optional arguments:
+#	--log		Log the output to file
+#	--test		Dry run for rsync
+# -----------------------------------------------------------------------------------------
+
+# Global variables
+DISTRO_HOST=distro
+DISTRO_PORT=15428
+DISTRO_RSA=id_rsa_distro
+EVORIO_HOST=evorio
+EVORIO_PORT=9122
+EVORIO_RSA=id_rsa_evorio
+PREP_HOST=prep
+PREP_PORT=15428
+PREP_RSA=id_rsa_prep
+LOGFILE=~/Airwave/log/sync-server.log
+LOG=0
+TEST=0
+
+# Read the server name (this is the source server as rsync must be run locally)
+LOCAL=`hostname`
+if [ "$LOCAL" != "distro" -a "$LOCAL" != "prep" ]; then
+	echo "Invalid source server. Script can only be run on distro or prep"
+	exit 1
+fi
+
+
+
+# -----------------------------------------------------------------------------------------
+# Read the arguments
+# -----------------------------------------------------------------------------------------
+while test $# -gt 0; do
+	case "$1" in
+		# Remote server
+		-r)
+			shift
+			if test $# -gt 0; then
+				REMOTE=$1
+				if [ "$REMOTE" != "distro" -a "$REMOTE" != "prep" -a "$REMOTE" != "evorio" -a "$REMOTE" != "usb" ]; then
+					echo "Invalid remote server (distro, prep, evorio or usb)"
+					exit 1
+				fi
+			else
+				echo "No remote server specified"
+				exit 1
+			fi
+			shift
+			;;
+		# Remote server
+		--remote*)
+			REMOTE=`echo $1 | sed -e 's/^[^=]*=//g'`
+			if [ "$REMOTE" != "distro" -a "$REMOTE" != "prep" -a "$REMOTE" != "evorio" -a "$REMOTE" != "usb" ]; then
+				echo "Invalid remote server (distro, prep, evorio or usb)"
+				exit 1
+			fi
+			shift
+			;;
+		# Content type
+		-t)
+			shift
+			if test $# -gt 0; then
+				TYPE=$1
+				if [ "$TYPE" != "bbc" -a "$TYPE" != "pbtv" -a "$TYPE" != "uip" ]; then
+					echo "Invalid type specified (bbc, pbtv or uip)"
+					exit 1
+				fi
+			else
+				echo "No type specified (bbc, pbtv or uip)"
+				exit 1
+			fi
+			shift
+			;;
+		# Content type
+		--type*)
+			TYPE=`echo $1 | sed -e 's/^[^=]*=//g'`
+			if [ "$TYPE" != "bbc" -a "$TYPE" != "pbtv" -a "$TYPE" != "uip" ]; then
+				echo "Invalid type specified (bbc, pbtv or uip)"
+				exit 1
+			fi
+			shift
+			;;
+		# Enable logging
+		--log)
+			LOG=1
+			shift
+			;;
+		# Dry run for rsync
+		--test)
+			TEST=1
+			shift
+			;;
+		# Unknown argument
+		*)
+			echo "Unknown argument [$1]"
+			exit 1
+			;;
+	esac
+done
+
+# Check key arguments have been specified
+if [ "$LOCAL" == "" -o "$REMOTE" == "" -o "$TYPE" == "" ]; then
+	if [ "$LOCAL" == "" ]; then
+		echo "Missing source server"
+	fi
+	if [ "$REMOTE" == "" ]; then
+		echo "Missing remote server"
+	fi
+	if [ "$TYPE" == "" ]; then
+		echo "Missing content type"
+	fi
+	exit 1
+fi
+
+# Set parameters for rsync
+if [ "$TEST" == "1" ]; then
+	PARAMS=-avn
+else
+	PARAMS=-av
+fi
+
+
+
+# -----------------------------------------------------------------------------------------
+# Functions
+# -----------------------------------------------------------------------------------------
+# Function for log messages to file or STDOUT
+function logmsg {
+	# Log file and time stamp
+	TIMESTAMP=`date`
+	if [ "$LOG" == "1" ]; then
+		echo "$TIMESTAMP: $1" >> $LOGFILE
+	else
+		echo $1
+	fi
+}
+
+
+
+# -----------------------------------------------------------------------------------------
+# Validate user and arguments
+# -----------------------------------------------------------------------------------------
+logmsg "================================================================================="
+
+# Must not be run by root, otherwise permissions are wrong
+if [ `whoami` == "root" ]; then
+	logmsg "Script must NOT be run by root"
+	exit
+fi
+
+# Validate the combination of source and target servers
+OK=0
+if [ "$LOCAL" == "distro" -a "$REMOTE" == "prep" ]; then OK=1; fi
+if [ "$LOCAL" == "prep" -a "$REMOTE" == "distro" ]; then OK=1; fi
+if [ "$LOCAL" == "prep" -a "$REMOTE" == "evorio" ]; then OK=1; fi
+if [ "$LOCAL" == "prep" -a "$REMOTE" == "usb" ]; then OK=1; fi
+if [ "$OK" == "0" ]; then
+	logmsg "Invalid combination of servers, must be one of:"
+	logmsg "- distro <- prep"
+	logmsg "- prep   -> distro"
+	logmsg "- prep   -> evorio"
+	logmsg "- prep   -> usb"
+	exit 1
+fi
+
+
+
+# -----------------------------------------------------------------------------------------
+# Work out the directories to be synchronised based on content type
+# -----------------------------------------------------------------------------------------
+case $LOCAL in
+	distro)
+		case $REMOTE in
+			prep)
+				logmsg "Synchronising '$TYPE' from $REMOTE to $LOCAL"
+				PORT=$PREP_PORT
+				RSA=$PREP_RSA
+				TGT=/srv/Content
+				case $TYPE in
+					bbc)  SRC=airwave@$PREP_HOST:/srv/Content/BBC;;
+					pbtv) SRC=airwave@$PREP_HOST:/srv/Content/PBTV;;
+					uip)  SRC=airwave@$PREP_HOST:/srv/Content/UIP;;
+				esac
+				;;
+			*)
+				logmsg "Distro can only replicate from prep"
+				;;
+		esac
+		;;
+	prep)
+		case $REMOTE in
+			distro)
+				logmsg "Synchronising '$TYPE' from $LOCAL to $REMOTE"
+				PORT=$DISTRO_PORT
+				RSA=$DISTRO_RSA
+				TGT=airwave@$DISTRO_HOST:/srv/Content
+				case $TYPE in
+					bbc)  SRC=/srv/Content/BBC;;
+					pbtv) SRC=/srv/Content/PBTV;;
+					uip)  SRC=/srv/Content/UIP;;
+				esac
+				;;
+			evorio)
+				logmsg "Synchronising '$TYPE' from $LOCAL to $REMOTE"
+				PORT=$EVORIO_PORT
+				RSA=$EVORIO_RSA
+				TGT=airwave@$EVORIO_HOST:/home/airwave/Archive
+				case $TYPE in
+					bbc)  SRC=/srv/Content/BBC;;
+					pbtv) SRC=/srv/Content/PBTV;;
+					uip)  SRC=/srv/Content/UIP;;
+				esac
+				;;
+			usb)
+				logmsg "Synchronising '$TYPE' from $LOCAL to $REMOTE"
+				TGT=airwave@$EVORIO_HOST:/home/airwave/Archive
+				case $TYPE in
+					bbc)  SRC=/media/Archive2/BBC;;
+					pbtv) SRC=/media/Archive2/PBTV;;
+					uip)  SRC=/media/Archive2/UIP;;
+				esac
+				;;
+			*)
+				logmsg "Prep can only replicate to evorio and usb"
+				;;
+		esac
+		;;
+esac
+
+
+
+# -----------------------------------------------------------------------------------------
+# Synchronise the content from the source server to the target server
+#    -a        = recurse into directories, copy symlinks as symlinks, preserve permissions,
+#                preserve modification times, preserve owner/group
+#    -n        = dry run
+#    --inplace = update destination files in-place
+# -----------------------------------------------------------------------------------------
+# Write output to log, but don't record progress of the synchronisation
+if [ "$LOG" == "1" ]; then
+	if [ "$PORT" != "" ]; then
+		rsync $PARAMS --delete --inplace --rsh="ssh -p $PORT -i  /home/airwave/.ssh/$RSA" $SRC $TGT &>> $LOGFILE
+	else
+		rsync $PARAMS --delete --inplace $SRC $TGT &>> $LOGFILE
+	fi
+# Show progress of synchronisation on STDOUT
+else
+	if [ "$PORT" != "" ]; then
+		rsync $PARAMS --delete --inplace --progress --rsh="ssh -p $PORT -i  /home/airwave/.ssh/$RSA" $SRC $TGT
+	else
+		rsync $PARAMS --delete --inplace --progress $SRC $TGT
+	fi
+fi
+
+

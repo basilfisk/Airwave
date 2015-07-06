@@ -1,0 +1,240 @@
+#!/usr/bin/perl
+# *********************************************************************************************
+# *********************************************************************************************
+#
+# Administration script for the Airwave CDS Interface daemon
+#
+# *********************************************************************************************
+# *********************************************************************************************
+
+# Establish the root directory
+our $ROOT;
+BEGIN {
+	$ROOT = '/home/airwave/bin/Airwave';
+}
+
+# Declare modules
+use strict;
+use warnings;
+
+# Breato modules
+use lib "$ROOT";
+use mods::Common qw(formatDateTime readConfig);
+
+# Program information
+our $program = "cdsd";
+our $version = "2.0";
+
+# Check there are any arguments
+if($#ARGV == -1) { usage(); }
+
+# Read command line options
+our $ACTION = shift(@ARGV);
+
+# Check the action to be taken
+if($ACTION ne 'restart' && $ACTION ne 'start' && $ACTION ne 'stop' && $ACTION ne 'status') { usage(0); }
+
+# Read the configuration parameters and check that parameters have been read
+our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+
+# Global variables
+our $LOG = 1;
+our $LOGFILE = "$CONFIG{LOGDIR}/cdsd.log";
+our $PID = "/tmp/cdsd.pid";
+our $PRG = "$ROOT/cdsd.pl";
+
+# Start processing
+main();
+
+
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Main processing function
+# ---------------------------------------------------------------------------------------------
+sub main {
+	# Either start, stop or show the status of the Airwave CDS Interface processes
+	if($ACTION eq 'start') {
+		start();
+	}
+	elsif($ACTION eq 'stop') {
+		stop();
+	}
+	elsif($ACTION eq 'restart') {
+		stop();
+		start();
+	}
+	elsif($ACTION eq 'status') {
+		status();
+	}
+	else {
+		usage();
+	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Check whether the named process is running
+# If it is, return the process ID. If not, return NULL
+#
+# Returns a list of process IDs
+# ---------------------------------------------------------------------------------------------
+sub checkProcess {
+	my(@parts,$fh,$rec,$user,$procid,$procids,$junk);
+
+	# Check for the running process
+	@parts = split(/ /,$PRG);
+	system("ps -ef | grep $parts[0] > $PID");
+
+	# Search for the process and extract the PID when found
+	open($fh, "<$PID");
+	while($rec = readline($fh)) {
+		if($rec =~ /perl/) {
+			chomp($rec);
+			($user,$procid,$junk) = split(" ", $rec, 3);
+			$procids .= $procid . " ";
+		}
+	}
+
+	# Remove the last space, then close the file and return the list of processes
+	if($procids) { $procids =~ s/ +$//; }
+	close($fh);
+	return $procids;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Send STDOUT to log file or screen
+# ---------------------------------------------------------------------------------------------
+sub output {
+	my($msg) = @_;
+	my($fh,$stamp);
+	
+	if($LOG) {
+		$stamp = formatDateTime('cczy/zm/zd zh24:mi:ss');
+		
+		# Open the log file in append mode
+		if(!open($fh,">>$LOGFILE")) {
+			# Can't open log file
+			print "[$stamp] Can't open log file [$LOGFILE], however, this message has been reported: $msg\n";
+		}
+		
+		# Log the session ID
+		print $fh "[$stamp] $msg\n";
+		close($fh);
+	}
+	else {
+		print "$msg\n";
+	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Start the daemon process
+# ---------------------------------------------------------------------------------------------
+sub start {
+	my $pids = checkProcess();
+	output("=================================================================================");
+	output("Starting CDSD daemon process");
+	
+	# Inform caller that the process is already running
+	if($pids) {
+		output("Process [$PRG] is already running: [$pids]");
+	}
+	
+	# Start the process in the background
+	else {
+		system("$PRG &");
+		sleep 1;
+		$pids = checkProcess();
+		status($PRG);
+	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Return the status of the named process
+# ---------------------------------------------------------------------------------------------
+sub status {
+	my $pids = checkProcess();
+	output("=================================================================================");
+	output("Checking status of CDSD daemon process");
+	
+	# Report whether the process is running
+	if($pids) {
+		output("Process [$PRG] is running: [$pids]");
+	}
+	# Report that the process is NOT running
+	else {
+		output("Process [$PRG] is NOT running");
+	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Stop the daemon process
+# NB: There may be more than 1 process to kill
+# ---------------------------------------------------------------------------------------------
+sub stop {
+	my $pids = checkProcess();
+	output("=================================================================================");
+	output("Stopping CDSD daemon process");
+	
+	# If PIDs are registered, kill the processes
+	if($pids) {
+		system("kill $pids");
+		sleep 2;
+		output("The [$PRG] processes have been killed: [$pids]");
+	}
+	# No processes to kill
+	else {
+		output("Process [$PRG] is not currently running");
+	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Program usage
+#
+# Argument 1 : Error number
+# Argument 2 : Value for the error message
+# ---------------------------------------------------------------------------------------------
+sub usage {
+	my($err,$value) = @_;
+	$err = ($err) ? $err : 0;
+	$value = ($value) ? $value : '';
+	
+	if($err == 0) {
+		print "\nThe 'action' argument must be one of 'start/stop/restart/status'\n\n";
+	}
+	else {
+		printf("
+Program : $program
+Version : v$version
+Author  : Basil Fisk (c)2013 Airwave Ltd
+
+Summary :
+  Manage the Airwave CDS Interface daemon process
+
+Usage :
+  $program <action>
+  
+  MANDATORY
+    start               Start the Airwave CDS Interface daemon
+    stop                Stop the Airwave CDS Interface daemon
+    restart             Stop then start the Airwave CDS Interface daemon
+    status              Check the current state of the Airwave CDS Interface daemon
+		\n");
+	}
+	
+	# Stop in all cases
+	exit;
+}
+

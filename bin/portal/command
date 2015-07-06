@@ -1,0 +1,177 @@
+#!/bin/bash
+# ***************************************************************************
+# ***************************************************************************
+#
+# Run a command
+#
+# Argument 1 : Directory in which the script is running
+# Argument 2 : Comma separated list of arguments
+#	      command={value},{arg}={value},...
+#
+# ***************************************************************************
+# ***************************************************************************
+
+# Read arguments
+ROOT=$1
+PARAMS=$2
+
+# Name of log file
+LOGFILE=$ROOT/log/command.log
+
+# Logging function
+function msg {
+	TS=`date`
+	echo "[$TS] $1" >> $LOGFILE
+}
+
+# Extract the arguments (name=value,name=value,...)
+# Replace spaces with hashes as converting string to array (below) uses spaces
+PARAMS=(${PARAMS// /#})
+
+# Convert comma separator to space, then create an array of parameters
+PRMS=(${PARAMS//,/ })
+for PRM in "${PRMS[@]}"
+do
+	# Make parameter string into an array using =
+	VALUES=(${PRM//=/ })
+	# Name is first element of array
+	NAME=${VALUES[0]}
+	# Remove first element of array and convert back into a string
+	unset VALUES[0]
+	VALUE=${VALUES[@]}
+	# Make value string into an array using #
+	VALUE=(${VALUE//#/ })
+	# Check that parameter name is valid and convert value array back into a string
+	case "$NAME" in
+		command)	COMMAND=${VALUE[@]};;
+		company)	COMPANY=${VALUE[@]};;
+		package)	PACKAGE=${VALUE[@]};;
+		site)		SITE=${VALUE[@]};;
+		territory)	TERRITORY=${VALUE[@]};;
+		yymm)	 	YYMM=${VALUE[@]};;
+		*)			msg "Unrecognised argument: $NAME"; exit;;
+	esac
+done
+
+# Chack that the command argument is present
+if [ "$COMMAND" == "" ]; then
+	msg "The 'command' argument must be present"
+	exit
+fi
+
+# Check that the arguments are valid for the command
+case "$COMMAND" in
+	# Site inventory
+	inventory)	# Check the arguments are correct
+				if [ "$SITE" == "" ]; then
+					msg "The 'site' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/inventory.pl --site=$SITE --log"
+				$ROOT/inventory.pl --site=$SITE --log
+				;;
+	# Load UIP usage data for Airwave
+	load_aw)	# Check the arguments are correct
+				if [ "$SITE" == "" ]; then
+					msg "The 'site' argument is missing"
+					exit
+				fi
+				if [ "$YYMM" == "" ]; then
+					msg "The 'yymm' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/load-events-airwave.pl --yymm=$YYMM --site=$SITE --log"
+				$ROOT/load-events-airwave.pl --yymm=$YYMM --site=$SITE --log
+				;;
+	# Load UIP usage data for Techlive
+	load_tl)	# Check the arguments are correct
+				if [ "$SITE" == "" ]; then
+					msg "The 'site' argument is missing"
+					exit
+				fi
+				if [ "$YYMM" == "" ]; then
+					msg "The 'yymm' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log"
+				$ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log
+				;;
+	# PBTV returns spreadsheet
+	pbtv_sht)	# Check the arguments are correct
+				if [ "$YYMM" == "" ]; then
+					msg "The 'yymm' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/pbtv.pl --yymm=$YYMM --log"
+				$ROOT/pbtv.pl --yymm=$YYMM --log
+				;;
+	# Marketing sheets
+	showing)	# Check the arguments are correct
+				if [ "$PACKAGE" == "" ]; then
+					msg "The 'package' argument is missing"
+					exit
+				fi
+				if [ "$TERRITORY" == "" ]; then
+					msg "The 'territory' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/showing.pl --package=$PACKAGE --territory=$TERRITORY --log"
+				$ROOT/showing.pl --package=$PACKAGE --territory=$TERRITORY --log
+				;;
+	# Site sheets
+	site_sheet)	# Check the arguments are correct
+				if [ "$SITE" == "" ]; then
+					msg "The 'site' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/site_sheet.pl --site=$SITE --log"
+				$ROOT/site-sheet.pl --site=$SITE --log
+				;;
+	# Smoovie POS sheets
+	smoov_pos)	# Run the script
+				msg "Running command: $ROOT/smoovie-pos.pl --log"
+				$ROOT/smoovie-pos.pl --log
+				;;
+	# Smoovie barker channel images
+	smoov_tmp)	# Run the script
+				msg "Running command: $ROOT/smoovie-barker.pl --log"
+				$ROOT/smoovie-barker.pl --log
+				;;
+	# UIP event data for Airwave
+	uip_evt)	# Check the arguments are correct
+				if [ "$YYMM" == "" ]; then
+					msg "The 'yymm' argument is missing"
+					exit
+				fi
+				if [ "$SITE" == "" ]; then
+					msg "The 'site' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/create-events-airwave.pl --yymm=$YYMM --site=$SITE --log"
+				$ROOT/create-events-airwave.pl --yymm=$YYMM --site=$SITE --log
+				;;
+	# UIP returns spreadsheet
+	uip_sht)	# Check the arguments are correct
+				if [ "$YYMM" == "" ]; then
+					msg "The 'yymm' argument is missing"
+					exit
+				fi
+				if [ "$COMPANY" == "" ]; then
+					msg "The 'company' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log"
+				$ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log
+				;;
+	# Unknown
+	*)			msg "Unrecognised command: $COMMAND"
+				;;
+esac

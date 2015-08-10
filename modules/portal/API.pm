@@ -223,7 +223,7 @@ sub apiStatus {
 	my %error = ();
 
 	# Check whether any data was returned
-	if(!$json ||$json eq '{}') {
+	if(!$json) {
 		$error{STATUS} = 0;
 		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI003';

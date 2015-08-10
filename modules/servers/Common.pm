@@ -10,7 +10,7 @@
 # Establish the root directory
 our $ROOT;
 BEGIN {
-	$ROOT = '/home/airwave/bin/Airwave';
+	$ROOT = '/home/airwave/bin';
 }
 
 # Declare modules

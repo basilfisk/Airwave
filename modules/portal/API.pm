@@ -16,11 +16,12 @@ use JSON::XS;
 package mods::API;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(apiCommand apiData apiDML apiFile apiMessage apiStatus apiSelect);
+our @EXPORT = qw(apiData apiDML apiMessage apiStatus apiSelect);
 
 our %API;
 $API{host}		= 'api.visualsaas.net';
-$API{port}		= 8822;
+$API{port}		= 8922;
+$API{instance}	= 'airwave';
 $API{user}		= 'rexcell@techlive.co.uk'; 
 $API{password}	= 'A1rwav3';
 
@@ -37,23 +38,6 @@ $API{password}	= 'A1rwav3';
 #
 # =============================================================================================
 # =============================================================================================
-
-# ---------------------------------------------------------------------------------------------
-# This is a cover function for the equivalent Gateway function
-#
-# Argument 1 : Server the command is to be run on
-# Argument 2 : Operating system command to be initiated
-# Argument 3 : Array of arguments to the command (name=value)
-#
-# Return an array with (1,JSON response) if successful or (0,message) if error
-# ---------------------------------------------------------------------------------------------
-sub apiCommand {
-	my($server,$call,@params) = @_;
-
-#       return common::Gateway::gwBash(\%LOGIN,$call,@params);
-}
-
-
 
 # ---------------------------------------------------------------------------------------------
 # Parse a response from the Gateway and extract the data or information records
@@ -107,32 +91,6 @@ sub apiDML {
 
 
 # ---------------------------------------------------------------------------------------------
-# This is a cover function for the equivalent Gateway function
-#
-# Argument 1 : Server the transfer is to be run on
-# Argument 2 : Direction of file transfer (upload/download)
-# Argument 3 : Name of source file
-# Argument 4 : Path to source file
-# Argument 5 : Name of target file
-# Argument 6 : Path to target file
-#
-# Return an array with (1,JSON response) if successful or (0,message) if error
-# ---------------------------------------------------------------------------------------------
-sub apiFile {
-	my($server,$direction,$sfile,$sdir,$tfile,$tdir) = @_;
-
-#	my $call = ($direction eq 'upload') ? 'fileUpload' : 'fileDownload';
-#	$sfile = "source-file=$sfile";
-#	$sdir = "source-dir=$sdir";
-#	$tfile = "target-file=$tfile";
-#	$tdir = "target-dir=$tdir";
-
-#	return common::Gateway::gwFile(\%LOGIN,$call,$sfile,$sdir,$tfile,$tdir);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
 # Send and email message or an SMS message
 #
 # Argument 1  : Message command to be initiated (email/sms)
@@ -147,7 +105,7 @@ sub apiMessage {
 	# Email
 	if($call eq 'email') {
 		# Build the command
-		$cmd = "curl -s -X POST -d username=$API{user} -d password=$API{password} -d command=email ";
+		$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=email -F format=object ";
 		
 		# Add the parameters
 		# Strip out special characters, then split out name/value pair and reformat
@@ -155,11 +113,11 @@ sub apiMessage {
 			$param =~ s/'//g;
 			$param =~ s/&/and/g;
 			($name,$value) = split(/=/,$param);
-			$cmd .= "-d $name='$value' ";
+			$cmd .= "-F $name='$value' ";
 		}
 		
 		# Close the command
-		$cmd .= "https://$API{host}:$API{port}/email";
+		$cmd .= "https://$API{host}:$API{port}";
 		
 		# Run the command and check the return code
 		$response = `$cmd`;
@@ -219,15 +177,15 @@ sub apiSQL {
 	my($cmd,$msg,$response);
 
 	# Build the command
-	$cmd = "curl -s -X POST -d username=$API{user} -d password=$API{password} -d command=$call ";
+	$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=$call -F format=object ";
 
 	# Add the parameters
 	foreach my $param (@params) {
-		$cmd .= "-d $param ";
+		$cmd .= "-F $param ";
 	}
 
 	# Close the command
-	$cmd .= "https://$API{host}:$API{port}/data";
+	$cmd .= "https://$API{host}:$API{port}";
 
 	# Run the command and check the return code
 	$response = `$cmd`;
@@ -265,7 +223,7 @@ sub apiStatus {
 	my %error = ();
 
 	# Check whether any data was returned
-	if(!$json) {
+	if(!$json ||$json eq '{}') {
 		$error{STATUS} = 0;
 		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI003';
@@ -318,15 +276,16 @@ sub apiStatus {
 # ---------------------------------------------------------------------------------------------
 sub jsonData {
 	my($string) = @_;
-	my($hash_ref,$msg);
+	my($hash_ref);
 
 	# Remove newlines
-	$string =~ s/\n//g;
+#	$string =~ s/\n//g;
 
 	# Parse the string and trap any errors
 	eval { $hash_ref = JSON::XS->new->latin1->decode($string) or die "error" };
 	if($@) {
 		return (undef,$@);
 	}
+
 	return ($hash_ref,undef);
 }

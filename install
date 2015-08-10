@@ -2,7 +2,7 @@
 # *********************************************************************************************
 # *********************************************************************************************
 #
-# Install files from Dropbox copy of Airwave development directory to $ROOT
+# Install Airwave software packages held on Github
 #
 # *********************************************************************************************
 # *********************************************************************************************
@@ -10,66 +10,80 @@
 # Set up server name
 SERVER=`hostname`
 
+# Set up directories
+ROOT=/home/airwave/install
+SOURCE=$ROOT/Airwave
+INSTALL=/home/airwave/bin
+
+# Make sure we are in the installation root and remove 
+cd $ROOT
+
+# Remove the last download if it is hanging about and the last package installation tree
+rm master.zip
+rm -r Aiwave
+
+# Download the latest package, unzip it and rename
+wget https://github.com/basilfisk/Aiwave/archive/master.zip
+unzip master.zip
+mv Aiwave-master Aiwave
+
 if [ "$SERVER" == "distro" ]; then
-	# Set up directories
-	SOURCE=/home/airwave/Dropbox/Airwave
-	ROOT=/home/airwave/bin/Airwave
 	
 	# If the root directory does not exist, build the directory tree
-	if [ ! -d $ROOT ]; then
-		mkdir $ROOT
-		mkdir $ROOT/etc
-		mkdir $ROOT/mods
+	if [ ! -d $INSTALL ]; then
+		mkdir $INSTALL
+		mkdir $INSTALL/etc
+		mkdir $INSTALL/mods
 	fi
 	
-	# Install the configuration files
-	cp $SOURCE/admin/crontab.distro $ROOT/etc
-	cp $SOURCE/etc/servers/* $ROOT/etc
+	# Install the configuration file
+	cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc
 	
 	# Install the scripts
-	cp $SOURCE/bin/distro/* $ROOT
-	cp $SOURCE/bin/menu.pl $ROOT
-	cp $SOURCE/bin/monitor.pl $ROOT
+	cp $SOURCE/bin/distro/cdsd $INSTALL
+	cp $SOURCE/bin/distro/cdsd.pl $INSTALL
+	cp $SOURCE/bin/distro/cds.pl $INSTALL
+	cp $SOURCE/bin/distro/encrypt.pl $INSTALL
+	cp $SOURCE/bin/menu.pl $INSTALL
+	cp $SOURCE/bin/monitor.pl $INSTALL
 	
 	# Install the Perl modules
-	cp $SOURCE/modules/servers/*.pm $ROOT/mods
+	cp $SOURCE/modules/servers/API.pm $INSTALL/mods
+	cp $SOURCE/modules/servers/Common.pm $INSTALL/mods
+	cp $SOURCE/modules/servers/TK.pm $INSTALL/mods
 	
 	# Change ownership and permissions
-	chown airwave:airwave -R $ROOT
-	chmod 755 $ROOT/*.pl
-	chmod 755 $ROOT/cdsd
-	chmod 644 $ROOT/etc/*
-	chmod 644 $ROOT/mods/*.pm
+	chown airwave:airwave -R $INSTALL
+	chmod 755 $INSTALL/*.pl
+	chmod 755 $INSTALL/cdsd
+	chmod 644 $INSTALL/etc/*
+	chmod 644 $INSTALL/mods/*
 fi
 
 if [ "$SERVER" == "prep" ]; then
-	# Set up directories
-	SOURCE=/home/airwave/Dropbox/Airwave
-	ROOT=/home/airwave/bin/Airwave
-	
 	# If the root directory does not exist, build the directory tree
-	if [ ! -d $ROOT ]; then
-		mkdir $ROOT
-		mkdir $ROOT/etc
-		mkdir $ROOT/mods
+	if [ ! -d $INSTALL ]; then
+		mkdir $INSTALL
+		mkdir $INSTALL/etc
+		mkdir $INSTALL/mods
 	fi
 	
 	# Install the configuration files
-	cp $SOURCE/admin/crontab.prep $ROOT/etc
-	cp $SOURCE/etc/servers/* $ROOT/etc
+	cp $SOURCE/admin/crontab.prep $INSTALL/etc
+	cp $SOURCE/etc/servers/* $INSTALL/etc
 	
 	# Install the scripts
-	cp $SOURCE/bin/prep/* $ROOT
-	cp $SOURCE/bin/menu.pl $ROOT
-	cp $SOURCE/bin/monitor.pl $ROOT
+	cp $SOURCE/bin/prep/* $INSTALL
+	cp $SOURCE/bin/menu.pl $INSTALL
+	cp $SOURCE/bin/monitor.pl $INSTALL
 	
 	# Install the Perl modules
-	cp $SOURCE/modules/servers/*.pm $ROOT/mods
+	cp $SOURCE/modules/servers/*.pm $INSTALL/mods
 	
 	# Change ownership and permissions
-	chown airwave:airwave -R $ROOT
-	chmod 755 $ROOT/*.pl
-	chmod 755 $ROOT/sync*
-	chmod 644 $ROOT/etc/*
-	chmod 644 $ROOT/mods/*.pm
+	chown airwave:airwave -R $INSTALL
+	chmod 755 $INSTALL/*.pl
+	chmod 755 $INSTALL/sync*
+	chmod 644 $INSTALL/etc/*
+	chmod 644 $INSTALL/mods/*.pm
 fi

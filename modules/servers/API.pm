@@ -160,7 +160,7 @@ sub apiMessage {
 		}
 		
 		# Close the command
-		$cmd .= "https://$API{host}:$API{port}/email";
+		$cmd .= "https://$API{host}:$API{port}";
 		
 		# Run the command and check the return code
 		$response = `$cmd`;
@@ -228,7 +228,7 @@ sub apiSQL {
 	}
 
 	# Close the command
-	$cmd .= "https://$API{host}:$API{port}/data";
+	$cmd .= "https://$API{host}:$API{port}";
 
 	# Run the command and check the return code
 	$response = `$cmd`;
@@ -266,7 +266,7 @@ sub apiStatus {
 	my %error = ();
 
 	# Check whether any data was returned
-	if(!$json ||$json eq '{}') {
+	if(!$json) {
 		$error{STATUS} = 0;
 		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI003';

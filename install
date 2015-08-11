@@ -32,7 +32,9 @@ if [ "$SERVER" == "distro" ]; then
 	# If the root directory does not exist, build the directory tree
 	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
 	if [ ! -d $INSTALL/etc ]; then mkdir $INSTALL/etc; fi
+	if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
 	if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
+	if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
 	
 	# Install the configuration file
 	cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc

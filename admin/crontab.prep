@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 # Log server load and CDS processes every 5 minutes
-1,6,11,16,21,26,31,36,41,46,51,56 * * * * /home/airwave/bin/Airwave/monitor.pl
+1,6,11,16,21,26,31,36,41,46,51,56 * * * * /home/airwave/bin/Airwave/monitor.pl -log
 
 # Synchronise content from prep server to distro server daily at 8pm
 0 20 * * * /home/airwave/bin/Airwave/sync-all

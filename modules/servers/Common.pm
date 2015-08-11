@@ -508,7 +508,7 @@ sub logMsgPortal {
 		$msg =~ s/\"//g;
 		
 		# Write the message to the Portal
-		($result) = mods::API::apiDML('logMessage',"type=$type","prog=$prog","stamp=$stamp","msg=$msg");
+		($result) = mods::API::apiDML('logMessage',"type=$type","prog=$prog","stamp='$stamp'","msg='$msg'");
 		($status,%error) = mods::API::apiStatus($result);
 		if(!$status) {
 			# Any problems writing to Portal should be logged

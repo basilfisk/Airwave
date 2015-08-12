@@ -27,7 +27,7 @@ use Getopt::Long;
 # Breato modules
 use lib "$ROOT";
 use mods::API qw(apiData apiStatus apiSelect);
-use mods::Common qw(logMsg);
+use mods::Common qw(logMsg logMsgPortal);
 
 # Program information
 our $PROGRAM = "showing.pl";
@@ -88,8 +88,7 @@ sub main {
 
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No territories returned from database [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No territories returned from database [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No territories returned from database [$error{CODE}] $error{MESSAGE}");
 		exit;
 	}
 	%territories = apiData($msg);

@@ -11,11 +11,17 @@
 SERVER=`hostname`
 
 # Set up directories
-ROOT=/home/airwave/install
-SOURCE=$ROOT/Airwave
-INSTALL=/home/airwave/bin
+if [ "$SERVER" == "distro" ] || [ "$SERVER" == "prep" ]; then
+	ROOT=/home/airwave/install
+	SOURCE=$ROOT/Airwave
+	INSTALL=/home/airwave/bin
+else
+	ROOT=/srv/visualsaas/instances/aa002/install
+	SOURCE=$ROOT/Airwave
+	INSTALL=/srv/visualsaas/instances/aa002/bin
+fi
 
-# Make sure we are in the installation root and remove 
+# Make sure we are in the installation directory
 cd $ROOT
 
 # Remove the last download if it is hanging about and the last package installation tree
@@ -28,8 +34,7 @@ unzip master.zip
 mv Airwave-master Airwave
 
 if [ "$SERVER" == "distro" ]; then
-	
-	# If the root directory does not exist, build the directory tree
+	# Build the directory tree
 	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
 	if [ ! -d $INSTALL/etc ]; then mkdir $INSTALL/etc; fi
 	if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
@@ -37,12 +42,13 @@ if [ "$SERVER" == "distro" ]; then
 	if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
 	
 	# Install the configuration file
+	cp $SOURCE/admin/crontab.distro $INSTALL/etc
 	cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc
 	
 	# Install the scripts
+	cp $SOURCE/bin/distro/cds.pl $INSTALL
 	cp $SOURCE/bin/distro/cdsd $INSTALL
 	cp $SOURCE/bin/distro/cdsd.pl $INSTALL
-	cp $SOURCE/bin/distro/cds.pl $INSTALL
 	cp $SOURCE/bin/distro/encrypt.pl $INSTALL
 	cp $SOURCE/bin/menu.pl $INSTALL
 	cp $SOURCE/bin/monitor.pl $INSTALL
@@ -61,29 +67,84 @@ if [ "$SERVER" == "distro" ]; then
 fi
 
 if [ "$SERVER" == "prep" ]; then
-	# If the root directory does not exist, build the directory tree
-	if [ ! -d $INSTALL ]; then
-		mkdir $INSTALL
-		mkdir $INSTALL/etc
-		mkdir $INSTALL/mods
-	fi
+	# Build the directory tree
+	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
+	if [ ! -d $INSTALL/etc ]; then mkdir $INSTALL/etc; fi
+	if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
+	if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
+	if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
 	
 	# Install the configuration files
 	cp $SOURCE/admin/crontab.prep $INSTALL/etc
-	cp $SOURCE/etc/servers/* $INSTALL/etc
+	cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc
 	
 	# Install the scripts
-	cp $SOURCE/bin/prep/* $INSTALL
+	cp $SOURCE/bin/prep/archive.pl $INSTALL
+	cp $SOURCE/bin/prep/films.pl $INSTALL
+	cp $SOURCE/bin/prep/ingest_film.pl $INSTALL
+	cp $SOURCE/bin/prep/load_disk.pl $INSTALL
+	cp $SOURCE/bin/prep/sync-all $INSTALL
+	cp $SOURCE/bin/prep/sync-server $INSTALL
 	cp $SOURCE/bin/menu.pl $INSTALL
 	cp $SOURCE/bin/monitor.pl $INSTALL
 	
 	# Install the Perl modules
-	cp $SOURCE/modules/servers/*.pm $INSTALL/mods
+	cp $SOURCE/modules/servers/API.pm $INSTALL/mods
+	cp $SOURCE/modules/servers/Common.pm $INSTALL/mods
+	cp $SOURCE/modules/servers/TK.pm $INSTALL/mods
 	
 	# Change ownership and permissions
 	chown airwave:airwave -R $INSTALL
 	chmod 755 $INSTALL/*.pl
 	chmod 755 $INSTALL/sync*
 	chmod 644 $INSTALL/etc/*
-	chmod 644 $INSTALL/mods/*.pm
+	chmod 644 $INSTALL/mods/*
+fi
+
+if [ "$SERVER" == "s2" ]; then
+	# Build the directory tree
+	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
+	if [ ! -d $INSTALL/etc ]; then mkdir $INSTALL/etc; fi
+	if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
+	if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
+	if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
+	
+	# Install the configuration files
+	cp $SOURCE/etc/portal/airwave-portal.conf $INSTALL/etc
+	cp $SOURCE/etc/portal/inventory.conf $INSTALL/etc
+	cp $SOURCE/etc/portal/showing.conf $INSTALL/etc
+	cp $SOURCE/etc/portal/site_sheet.conf $INSTALL/etc
+	cp $SOURCE/etc/portal/smoovie-barker.conf $INSTALL/etc
+	cp $SOURCE/etc/portal/smoovie-pos.conf $INSTALL/etc
+	
+	# Install the scripts
+	cp $SOURCE/bin/portal/command $INSTALL
+	cp $SOURCE/bin/portal/create-events-airwave.pl $INSTALL
+	cp $SOURCE/bin/portal/inventory.pl $INSTALL
+	cp $SOURCE/bin/portal/load_disk.pl $INSTALL
+	cp $SOURCE/bin/portal/load-events-airwave.pl $INSTALL
+	cp $SOURCE/bin/portal/load-events-techlive.pl $INSTALL
+	cp $SOURCE/bin/portal/inventory.pl $INSTALL
+	cp $SOURCE/bin/portal/nightly-scripts $INSTALL
+	cp $SOURCE/bin/portal/pbtv.pl $INSTALL
+	cp $SOURCE/bin/portal/showing-child.pl $INSTALL
+	cp $SOURCE/bin/portal/showing.pl $INSTALL
+	cp $SOURCE/bin/portal/site-sheet.pl $INSTALL
+	cp $SOURCE/bin/portal/smoovie-barker.pl $INSTALL
+	cp $SOURCE/bin/portal/smoovie-pos.pl $INSTALL
+	cp $SOURCE/bin/portal/uip.pl $INSTALL
+
+	# Install the Perl modules
+	cp $SOURCE/modules/portal/API.pm $INSTALL/mods
+	cp $SOURCE/modules/portal/Common.pm $INSTALL/mods
+	cp $SOURCE/modules/portal/MSXML.pm $INSTALL/mods
+	cp $SOURCE/modules/portal/PDF.pm $INSTALL/mods
+	
+	# Change ownership and permissions
+	chown airwave:airwave -R $INSTALL
+	chmod 755 $INSTALL/*.pl
+	chmod 755 $INSTALL/command
+	chmod 755 $INSTALL/nightly-scripts
+	chmod 644 $INSTALL/etc/*
+	chmod 644 $INSTALL/mods/*
 fi

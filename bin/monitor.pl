@@ -99,7 +99,7 @@ sub main {
 # Return the number of CDS processes running or 0 if problem connecting to CDS
 # ---------------------------------------------------------------------------------------------
 sub cds_stats {
-	my($sql,$dbh,$sth,$ref,$id,%data);
+	my($sql,$dsn,$dbh,$sth,$ref,$id,%data);
 	
 	# Running distributions
 	$sql = <<SQL_RUNNING;
@@ -122,8 +122,13 @@ AND		0<(
 SQL_RUNNING
 	
 	# Connect to the database
-	$dbh = DBI->connect("DBI:mysql:database=$CONFIG{CDS_SQL_DATABASE};host=$CONFIG{CDS_SQL_HOST}",$CONFIG{CDS_SQL_USERNAME},$CONFIG{CDS_SQL_PASSWORD});
-	if(!$dbh) {
+	$dsn = "DBI:mysql:database=$CONFIG{CDS_SQL_DATABASE};host=$CONFIG{CDS_SQL_HOST};mysql_connect_timeout=5";
+	eval {
+		$dbh = DBI->connect($dsn,$CONFIG{CDS_SQL_USERNAME},$CONFIG{CDS_SQL_PASSWORD},{RaiseError => 1});
+	};
+	
+	# Error raised during connection
+	if ($@) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Can't connect to CDS Portal: ".$DBI::errstr);
 		return 0;
 	}
@@ -146,6 +151,7 @@ SQL_RUNNING
 	# Disconnect from the database
 	$dbh->disconnect();
 	
+	# Return number of CDS processes
 	return keys(%data);
 }
 

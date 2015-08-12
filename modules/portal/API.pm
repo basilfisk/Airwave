@@ -105,14 +105,21 @@ sub apiMessage {
 	# Email
 	if($call eq 'email') {
 		# Build the command
-		$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=email -F format=object ";
+		$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=msgEmail -F format=object ";
 		
 		# Add the parameters
 		# Strip out special characters, then split out name/value pair and reformat
 		foreach my $param (@params) {
+			# Strip out special characters
 			$param =~ s/'//g;
 			$param =~ s/&/and/g;
+			# Split out name/value pair
 			($name,$value) = split(/=/,$param);
+			# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
+			if(substr($value,0,1) eq '<') {
+				$value = ' '.$value;
+			}
+			# Add to command string
 			$cmd .= "-F $name='$value' ";
 		}
 		

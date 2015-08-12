@@ -1719,8 +1719,15 @@ COMMAND_START
 # Return database handle or undef if any errors
 # ---------------------------------------------------------------------------------------------
 sub cds_db_connect {
-	my $dbh = DBI->connect("DBI:mysql:database=$CONFIG{CDS_SQL_DATABASE};host=$CONFIG{CDS_SQL_HOST}",$CONFIG{CDS_SQL_USERNAME},$CONFIG{CDS_SQL_PASSWORD});
-	if(!$dbh) {
+	my($dsn,$dbh);
+	
+	$dsn = "DBI:mysql:database=$CONFIG{CDS_SQL_DATABASE};host=$CONFIG{CDS_SQL_HOST};mysql_connect_timeout=5";
+	eval {
+		$dbh = DBI->connect($dsn,$CONFIG{CDS_SQL_USERNAME},$CONFIG{CDS_SQL_PASSWORD},{RaiseError => 1});
+	};
+	
+	# Error raised during connection
+	if ($@) {
 		logMsg($LOG,$PROGRAM,"Can't connect to CDS Portal: ".$DBI::errstr);
 		return;
 	}

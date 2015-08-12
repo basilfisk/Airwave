@@ -118,7 +118,7 @@ sub main {
 		}
 		# For anything else, throw a warning and stop
 		else {
-			logMsgPortal($LOG,$PROGRAM,'W',"'$encryption' is an unsupported method of encryption ");
+			logMsgPortal($LOG,$PROGRAM,'W',"[$encryption] is an unsupported method of encryption ");
 		}
 	}
 }

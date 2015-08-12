@@ -99,8 +99,7 @@ sub main {
 		`mkdir -p $EVENT_DIR`;
 	}
 	if(!-d $EVENT_DIR) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"Cannot create directory '$EVENT_DIR'");
-		logMsg($LOG,$PROGRAM,"Cannot create directory '$EVENT_DIR'");
+		logMsgPortal($LOG,$PROGRAM,'E',"Cannot create directory '$EVENT_DIR'");
 		return;
 	}
 
@@ -108,14 +107,12 @@ sub main {
 	($msg) = apiSelect('createEventAirwaveSites',"month=$YYMM".'01',"site=$SITECODE");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"Can't read sites from database [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"Can't read sites from database [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"Can't read sites from database [$error{CODE}] $error{MESSAGE}");
 		return;
 	}
 	%sites = apiData($msg);
 	if(!%sites) {
-#	       logMsgPortal($LOG,$PROGRAM,'W',"No sites returned from database for period $YYMM");
-		logMsg($LOG,$PROGRAM,"No sites returned from database for period $YYMM");
+		logMsgPortal($LOG,$PROGRAM,'W',"No sites returned from database for period $YYMM");
 	}
 
 	# For each site, process the event and asset records
@@ -129,8 +126,7 @@ sub main {
 		($msg) = apiSelect('createEventSiteFilms',"month=$YYMM".'01',"site=$site");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"Site '$site': Error reading films from Portal [$error{CODE}] $error{MESSAGE}");
-			logMsg($LOG,$PROGRAM,"Site '$site': Error reading films from Portal [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'E',"Site '$site': Error reading films from Portal [$error{CODE}] $error{MESSAGE}");
 			next SITE;
 		}
 		%films = apiData($msg);
@@ -143,8 +139,7 @@ sub main {
 			$site_file = "$site.xml";
 			open($FILE,">$EVENT_DIR/$site_file");
 			if(!$FILE) {
-#			       logMsgPortal($LOG,$PROGRAM,'E',"Cannot open file $EVENT_DIR/$site_file: $!");
-				logMsg($LOG,$PROGRAM,"Cannot open file $EVENT_DIR/$site_file: $!");
+				logMsgPortal($LOG,$PROGRAM,'E',"Cannot open file $EVENT_DIR/$site_file: $!");
 				exit;
 			}
 
@@ -225,14 +220,12 @@ sub main {
 
 			# If file not created
 			if(!-f "$EVENT_DIR/$site_file") {
-#			       logMsgPortal($LOG,$PROGRAM,'W',"Stats file NOT created $EVENT_DIR/$site_file");
-				logMsg($LOG,$PROGRAM,"Stats file NOT created $EVENT_DIR/$site_file");
+				logMsgPortal($LOG,$PROGRAM,'W',"Stats file NOT created $EVENT_DIR/$site_file");
 			}
 		}
 		# If no films returned, don't create a usage file
 		else {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"Site '$site': No films returned, so no usage data file created");
-			logMsg($LOG,$PROGRAM,"Site '$site': No films returned, so no usage data file created");
+			logMsgPortal($LOG,$PROGRAM,'W',"Site '$site': No films returned, so no usage data file created");
 		}
 	}
 }

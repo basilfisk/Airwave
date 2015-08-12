@@ -29,9 +29,8 @@ use IO::File;
 
 # Breato modules
 use lib "$ROOT";
-#use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::API qw(apiData apiStatus apiSelect);
-use mods::Common qw(cleanNonUTF8 formatDateTime logMsg readConfig);
+use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
 # Program information
@@ -130,11 +129,9 @@ sub film_package {
 	($msg) = apiSelect($REPORT{$pack}{sql},"territory=$ref",$cond);
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"Cannot read $REPORT{$pack}{title} for $terr [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"Cannot read $REPORT{$pack}{title} for $terr [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"Cannot read $REPORT{$pack}{title} for $terr [$error{CODE}] $error{MESSAGE}");
 		if($error{SEVERITY} eq 'FATAL') {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"Fatal error trapped. Stopping report");
-			logMsg($LOG,$PROGRAM,"Fatal error trapped. Stopping report");
+			logMsgPortal($LOG,$PROGRAM,'E',"Fatal error trapped. Stopping report");
 			exit;
 		}
 		else { return; }
@@ -187,8 +184,7 @@ sub film_image_resize {
 		$h = $settings{ImageHeight};
 		$w = $settings{ImageWidth};
 		if(!($h && $w)) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"Error reading image height or width");
-			logMsg($LOG,$PROGRAM,"Error reading image height or width");
+			logMsgPortal($LOG,$PROGRAM,'E',"Error reading image height or width");
 			return;
 		}
 		$ratio = $h/$w;
@@ -198,8 +194,7 @@ sub film_image_resize {
 		$size = "$wide"."x$high";
 		$result = `convert $file -resize $size $TEMP/$image`;
 		if($result) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"Error resizing image to $size: $result");
-			logMsg($LOG,$PROGRAM,"Error resizing image to $size: $result");
+			logMsgPortal($LOG,$PROGRAM,'E',"Error resizing image to $size: $result");
 			return;
 		}
 	}
@@ -244,7 +239,7 @@ sub film_page {
 	$xml->startTag('static');
 	$xml->dataElement('page-title1',$packname);
 	$xml->dataElement('page-title2',$territory);
-	$xml->dataElement('airwave-logo',"$ROOT/../$CONFIG{PORTAL_IMAGES}/$LOGO");
+	$xml->dataElement('airwave-logo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/$LOGO");
 	$xml->dataElement('timestamp',formatDateTime('zm/cczy'));
 	$xml->endTag('static');
 
@@ -284,32 +279,27 @@ sub film_page {
 		$credits =~ s/\n/\@nl\@/g;
 
 		# Read the poster image from the Portal into the temporary directory
-		$image = film_image_resize($film,"$ROOT/../$CONFIG{PORTAL_IMAGE}/$provider/$film.jpg");
+		$image = film_image_resize($film,"$ROOT/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg");
 		if(!$image) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"Cannot find image for $title");
-			logMsg($LOG,$PROGRAM,"Cannot find image for $title");
+			logMsgPortal($LOG,$PROGRAM,'E',"Cannot find image for $title");
 		}
 
 		# Clean up invalid characters in text fields
 		($ok,$title) = cleanNonUTF8($title);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in title: $title");
-			logMsg($LOG,$PROGRAM,"$film: Invalid character in title: $title");
+			logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in title: $title");
 		}
 		($ok,$short) = cleanNonUTF8($short);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in summary: $short");
-			logMsg($LOG,$PROGRAM,"$film: Invalid character in summary: $short");
+			logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in summary: $short");
 		}
 		($ok,$full) = cleanNonUTF8($full);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in synopsis: $full");
-			logMsg($LOG,$PROGRAM,"$film: Invalid character in synopsis: $full");
+			logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in synopsis: $full");
 		}
 		($ok,$credits) = cleanNonUTF8($credits);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in cast list: $credits");
-			logMsg($LOG,$PROGRAM,"$film: Invalid character in cast list: $credits");
+			logMsgPortal($LOG,$PROGRAM,'W',"$film: Invalid character in cast list: $credits");
 		}
 
 		# Write the data record
@@ -317,12 +307,12 @@ sub film_page {
 		$xml->dataElement('title',$title);
 		$xml->dataElement('duration',$duration);
 		if($hdlogo eq 'HD') {
-			$xml->dataElement('hdlogo',"$ROOT/../$CONFIG{PORTAL_IMAGES}/HD_Logo.jpg");
+			$xml->dataElement('hdlogo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/HD_Logo.jpg");
 		}
 		else {
-			$xml->dataElement('hdlogo',"$ROOT/../$CONFIG{PORTAL_IMAGES}/Blank.jpg");
+			$xml->dataElement('hdlogo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/Blank.jpg");
 		}
-		$xml->dataElement('certificate',"$ROOT/../$CONFIG{PORTAL_IMAGES}/BBFC_$cert.jpg");
+		$xml->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 		$xml->dataElement('summary',$short);
 		$xml->dataElement('synopsis',$full);
 		$xml->dataElement('soundtracks',$soundtracks);
@@ -348,8 +338,7 @@ sub film_page {
 	$lang =~ tr/a-z/A-Z/;
 	$pdffile = "$territory - $packname ($lang).pdf";
 	if(!-w $TEMP) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"Cannot open directory [$TEMP] for writing");
-		logMsg($LOG,$PROGRAM,"Cannot open directory [$TEMP] for writing");
+		logMsgPortal($LOG,$PROGRAM,'E',"Cannot open directory [$TEMP] for writing");
 		exit;
 	}
 

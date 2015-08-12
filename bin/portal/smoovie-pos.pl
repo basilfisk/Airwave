@@ -37,7 +37,7 @@ our $VERSION = "2.0";
 # Read command line options
 our $LOG	= 0;
 GetOptions (
-	'log	=> \$LOG,
+	'log'	=> \$LOG,
 	'help'	=> sub { usage(); } );
 
 # Read the configuration parameters
@@ -71,8 +71,7 @@ sub main {
 	($msg) = apiSelect('smoovieSites');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No sites returned from database [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
 		exit;
 	}
 	%sites = apiData($msg);
@@ -87,8 +86,7 @@ sub main {
 		($msg) = apiSelect('smoovieSiteFilms',"site=$id");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"No films returned for site '$id' [$error{CODE}] $error{MESSAGE}");
-			logMsg($LOG,$PROGRAM,"No films returned for site '$id' [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'W',"No films returned for site '$id' [$error{CODE}] $error{MESSAGE}");
 		}
 		%films = apiData($msg);
 
@@ -136,7 +134,7 @@ sub sheet_7_UIP {
 	$xml->startTag('static');
 	$xml->dataElement('title1',"Films Showing This Month");
 	$xml->dataElement('title2','All Films are Free');
-	$xml->dataElement('logo',"$ROOT/../$CONFIG{PORTAL_IMAGES}/$sitecode.gif");
+	$xml->dataElement('logo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/$sitecode.gif");
 	$xml->endTag('static');
 
 	# Generate dynamic section of the document
@@ -159,8 +157,7 @@ sub sheet_7_UIP {
 		($msg) = apiSelect('smoovieGenres',"assetcode=$assetcode");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"No genre defined for '$assetcode' [$error{CODE}] $error{MESSAGE}");
-			logMsg($LOG,$PROGRAM,"No genre defined for '$assetcode' [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'E',"No genre defined for '$assetcode' [$error{CODE}] $error{MESSAGE}");
 		}
 		%genre = apiData($msg);
 
@@ -183,7 +180,7 @@ sub sheet_7_UIP {
 		$xml->dataElement('title',$title);
 		$xml->dataElement('duration',$duration);
 		$xml->dataElement('poster',"$ROOT/../$CONFIG{PORTAL_META}/$provider/$assetcode/$assetcode-small.jpg");
-		$xml->dataElement('certificate',"$ROOT/../$CONFIG{PORTAL_IMAGES}/BBFC_$cert.jpg");
+		$xml->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 		$xml->dataElement('summary',$short);
 		$xml->dataElement('synopsis',$full);
 		$xml->dataElement('cast',$cast_list);

@@ -164,7 +164,7 @@ sub asset_id {
 	
 	# Directories on Portal holding metadata and images are based on content provider of film
 	$meta = "$CONFIG{PORTAL_META}/$provider";
-	$image = "$CONFIG{PORTAL_IMAGE}/$provider";
+	$image = "$CONFIG{IMAGE_JACKET}/$provider";
 	
 	# Check content provider's directory exists
 	if(!-d "$CONFIG{CS_ROOT}/$provider") {
@@ -214,7 +214,7 @@ sub film_id {
 	
 	# Directories on Portal holding metadata and images are based on content provider of film
 	$meta = "$CONFIG{PORTAL_META}/$provider";
-	$image = "$CONFIG{PORTAL_IMAGE}/$provider";
+	$image = "$CONFIG{IMAGE_JACKET}/$provider";
 	
 	# Check content provider's directory exists
 	if(!-d "$CONFIG{CS_ROOT}/$provider") {

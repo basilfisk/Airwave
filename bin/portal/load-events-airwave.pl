@@ -84,8 +84,7 @@ sub main {
 
 	# Stop if directory does not exist on server
 	if(!-d $EVENT_DIR) {
-#	      logMsgPortal($LOG,$PROGRAM,'E',"Invalid month requested. Directory does not exist");
-		logMsg($LOG,$PROGRAM,"Invalid month requested. Directory does not exist");
+		logMsgPortal($LOG,$PROGRAM,'E',"Invalid month requested. Directory does not exist");
 		return;
 	}
 
@@ -100,8 +99,7 @@ sub main {
 			push(@files,$file);
 		}
 		else {
-#	      logMsgPortal($LOG,$PROGRAM,'E',"No data file for [$SITECODE] found");
-			logMsg($LOG,$PROGRAM,"No data file for [$SITECODE] found");
+			logMsgPortal($LOG,$PROGRAM,'E',"No data file for [$SITECODE] found");
 			return;
 		}
 	}
@@ -143,8 +141,7 @@ sub main {
 			($msg) = apiDML('createEventAirwave',"site=$site","asset=$asset","start='$start'","charge=$charge","currency=$curr");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
-#			       logMsgPortal($LOG,$PROGRAM,'E',"Event record not added: [$site][$asset][$start][$charge][$curr] [$error{CODE}] $error{MESSAGE}");
-				logMsg($LOG,$PROGRAM,"Event record not added: [$site][$asset][$start][$charge][$curr] [$error{CODE}] $error{MESSAGE}");
+				logMsgPortal($LOG,$PROGRAM,'E',"Event record not added: [$site][$asset][$start][$charge][$curr] [$error{CODE}] $error{MESSAGE}");
 			}
 		}
 	}

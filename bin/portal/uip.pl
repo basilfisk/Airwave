@@ -114,8 +114,7 @@ sub main {
 	# Create the spreadsheet
 	$msg = msxmlCreate();
 	if($msg) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',$msg);
-		logMsg($LOG,$PROGRAM,$msg);
+		logMsgPortal($LOG,$PROGRAM,'E',$msg);
 		return;
 	}
 
@@ -157,8 +156,7 @@ sub main {
 	# Close the spreadsheet
 	$msg = msxmlClose();
 	if($msg) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',$msg);
-		logMsg($LOG,$PROGRAM,$msg);
+		logMsgPortal($LOG,$PROGRAM,'E',$msg);
 		return;
 	}
 }
@@ -191,8 +189,7 @@ sub schedule_a {
 	}
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No sites returned from database [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
 		exit;
 	}
 	%sites = apiData($msg);
@@ -356,8 +353,7 @@ sub schedule_a_data {
 	}
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No usage data for $sitename '$site' [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No usage data for $sitename '$site' [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No usage data for $sitename '$site' [$error{CODE}] $error{MESSAGE}");
 		return;
 	}
 	%events = apiData($msg);
@@ -397,8 +393,7 @@ sub schedule_a_header {
 	# Create the spreadsheet
 	$msg = msxmlWorkbook('open',$SHEET_SCHED_A);
 	if($msg) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',$msg);
-		logMsg($LOG,$PROGRAM,$msg);
+		logMsgPortal($LOG,$PROGRAM,'E',$msg);
 		return;
 	}
 	msxmlColumn('open');
@@ -456,8 +451,7 @@ sub schedule_a_row {
 	# Clean up and log invalid characters found in the film title
 	($ok,$title) = cleanNonUTF8($title);
 	if(!$ok) {
-#	       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $title");
-		logMsg($LOG,$PROGRAM,"Invalid character found in film name: $title");
+		logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $title");
 	}
 
 	# Print the first film for the site.  This record shows both site and film data
@@ -608,8 +602,7 @@ sub schedule_e_header {
 	# Create the spreadsheet
 	$msg = msxmlWorkbook('open',$SHEET_SCHED_E);
 	if($msg) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',$msg);
-		logMsg($LOG,$PROGRAM,$msg);
+		logMsgPortal($LOG,$PROGRAM,'E',$msg);
 		return;
 	}
 	msxmlColumn('open');
@@ -677,8 +670,7 @@ sub schedule_e_row {
 	# Clean up and log invalid characters found in the film title
 	($ok,$title) = cleanNonUTF8($title);
 	if(!$ok) {
-#	       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $title");
-		logMsg($LOG,$PROGRAM,"Invalid character found in film name: $title");
+		logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $title");
 	}
 
 	# Open the container

@@ -74,8 +74,7 @@ sub main {
 	($msg) = apiSelect('smoovieSites');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database: $msg");
-		logMsg($LOG,$PROGRAM,"No sites returned from database: $msg");
+		logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database: $msg");
 		exit;
 	}
 	%sites = apiData($msg);
@@ -91,8 +90,7 @@ sub main {
 		($msg) = apiSelect('smoovieSiteFilms',"site=$id");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"No films returned for site '$id': $msg");
-			logMsg($LOG,$PROGRAM,"No films returned for site '$id': $msg");
+			logMsgPortal($LOG,$PROGRAM,'W',"No films returned for site '$id': $msg");
 		}
 		%films = apiData($msg);
 
@@ -134,7 +132,7 @@ sub main {
 			$XML->dataElement('jacket',"$ROOT/../$CONFIG{PORTAL_META}/$provider/$assetcode/$assetcode-large.jpg");
 
 			# Read the Certificate logo from the portal into the temporary directory, then add to the document
-			$XML->dataElement('certificate',"$ROOT/../$CONFIG{PORTAL_IMAGES}/BBFC_$cert.jpg");
+			$XML->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 
 			# Close the container for the summary data
 			$XML->endTag('record');

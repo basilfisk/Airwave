@@ -100,8 +100,7 @@ sub main {
 	($msg) = apiSelect('pbtvSites',"month=$YYMM".'01');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No sites returned from database [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
 		exit;
 	}
 	%sites = apiData($msg);

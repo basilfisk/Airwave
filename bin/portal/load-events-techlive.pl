@@ -87,8 +87,7 @@ sub main {
 	
 	# Stop if directory does not exist on server
 	if(!-d $EVENT_DIR) {
-#	      logMsgPortal($LOG,$PROGRAM,'E',"Invalid month requested. Directory does not exist");
-		logMsg($LOG,$PROGRAM,"Invalid month requested. Directory does not exist");
+		logMsgPortal($LOG,$PROGRAM,'E',"Invalid month requested. Directory does not exist");
 		return;
 	}
 
@@ -103,8 +102,7 @@ sub main {
 			push(@files,$file);
 		}
 		else {
-#	      logMsgPortal($LOG,$PROGRAM,'E',"No data file for [$SITECODE] found");
-			logMsg($LOG,$PROGRAM,"No data file for [$SITECODE] found");
+			logMsgPortal($LOG,$PROGRAM,'E',"No data file for [$SITECODE] found");
 			return;
 		}
 	}

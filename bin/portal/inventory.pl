@@ -27,9 +27,8 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-#use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::API qw(apiData apiStatus apiSelect);
-use mods::Common qw(cleanNonUTF8 formatDateTime logMsg readConfig);
+use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
 # Program information
@@ -80,8 +79,7 @@ sub main {
 	($msg) = apiSelect('inventorySites',"site=$SITE","period=$period");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No sites returned from database [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
 		exit;
 	}
 	%sites = apiData($msg);
@@ -98,8 +96,7 @@ sub main {
 		$sitename =~ s/&amp;/&/g;
 		($ok,$sitename) = cleanNonUTF8($sitename);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in site name: $sitename");
-			logMsg($LOG,$PROGRAM,"Invalid character found in site name: $sitename");
+			logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in site name: $sitename");
 		}
 		logMsg($LOG,$PROGRAM,"Site: $sitename");
 
@@ -210,69 +207,67 @@ sub summary_page {
 		($msg) = apiSelect('inventoryAdditions',"site=$sitecode");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"No new films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
-			logMsg($LOG,$PROGRAM,"No new films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'E',"No 'added' films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
 		}
-		%films = apiData($msg);
-
 		# Print each added film
-		foreach my $film (sort keys %films) {
-			# Read the film record
-			$package = $films{$film}{'package'};
-			$filmname = $films{$film}{'title'};
-			$certificate = $films{$film}{'certificate'};
-			$languages = $films{$film}{'languages'};
-			$installed = $films{$film}{'licence_start'};
-			$filmname =~ s/&amp;/&/g;
-			($ok,$filmname) = cleanNonUTF8($filmname);
-			if(!$ok) {
-#			       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
-				logMsg($LOG,$PROGRAM,"Invalid character found in film name: $filmname");
+		else {
+			%films = apiData($msg);
+			foreach my $film (sort keys %films) {
+				# Read the film record
+				$package = $films{$film}{'package'};
+				$filmname = $films{$film}{'title'};
+				$certificate = $films{$film}{'certificate'};
+				$languages = $films{$film}{'languages'};
+				$installed = $films{$film}{'licence_start'};
+				$filmname =~ s/&amp;/&/g;
+				($ok,$filmname) = cleanNonUTF8($filmname);
+				if(!$ok) {
+					logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
+				}
+	
+				# Create the film record
+				$XML->startTag('record','id'=>'new');
+				$XML->dataElement('package',$package);
+				$XML->dataElement('filmname',$filmname);
+				$XML->dataElement('certificate',$certificate);
+				$XML->dataElement('languages',$languages);
+				$XML->dataElement('installed',$installed);
+				$XML->endTag('record');
 			}
-
-			# Create the film record
-			$XML->startTag('record','id'=>'new');
-			$XML->dataElement('package',$package);
-			$XML->dataElement('filmname',$filmname);
-			$XML->dataElement('certificate',$certificate);
-			$XML->dataElement('languages',$languages);
-			$XML->dataElement('installed',$installed);
-			$XML->endTag('record');
 		}
 
 		# Read the list of retired films
 		($msg) = apiSelect('inventoryRemovals',"site=$sitecode");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-#		       logMsgPortal($LOG,$PROGRAM,'E',"No old films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
-			logMsg($LOG,$PROGRAM,"No old films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'E',"No 'retired' films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
 		}
-		%films = apiData($msg);
-
 		# Print each retired film
-		foreach my $film (sort keys %films) {
-			# Read the film record
-			$package = $films{$film}{'package'};
-			$filmname = $films{$film}{'title'};
-			$certificate = $films{$film}{'certificate'};
-			$languages = $films{$film}{'languages'};
-			$deleted = $films{$film}{'licence_end'};
-
-			$filmname =~ s/&amp;/&/g;
-			($ok,$filmname) = cleanNonUTF8($filmname);
-			if(!$ok) {
-#			       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
-				logMsg($LOG,$PROGRAM,"Invalid character found in film name: $filmname");
+		else {
+			%films = apiData($msg);
+			foreach my $film (sort keys %films) {
+				# Read the film record
+				$package = $films{$film}{'package'};
+				$filmname = $films{$film}{'title'};
+				$certificate = $films{$film}{'certificate'};
+				$languages = $films{$film}{'languages'};
+				$deleted = $films{$film}{'licence_end'};
+	
+				$filmname =~ s/&amp;/&/g;
+				($ok,$filmname) = cleanNonUTF8($filmname);
+				if(!$ok) {
+					logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
+				}
+	
+				# Create the film record
+				$XML->startTag('record','id'=>'old');
+				$XML->dataElement('package',$package);
+				$XML->dataElement('filmname',$filmname);
+				$XML->dataElement('certificate',$certificate);
+				$XML->dataElement('languages',$languages);
+				$XML->dataElement('deleted',$deleted);
+				$XML->endTag('record');
 			}
-
-			# Create the film record
-			$XML->startTag('record','id'=>'old');
-			$XML->dataElement('package',$package);
-			$XML->dataElement('filmname',$filmname);
-			$XML->dataElement('certificate',$certificate);
-			$XML->dataElement('languages',$languages);
-			$XML->dataElement('deleted',$deleted);
-			$XML->endTag('record');
 		}
 	}
 }
@@ -294,8 +289,7 @@ sub current_films {
 	($msg) = apiSelect('inventoryInstalled',"site=$sitecode");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No 'installed' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No 'installed' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No 'installed' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
 	}
 	%films = apiData($msg);
 
@@ -315,8 +309,7 @@ sub current_films {
 		$filmname =~ s/&amp;/&/g;
 		($ok,$filmname) = cleanNonUTF8($filmname);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
-			logMsg($LOG,$PROGRAM,"Invalid character found in film name: $filmname");
+			logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
 		}
 
 		# Increment the counter for packages
@@ -357,8 +350,7 @@ sub obsolete_films {
 	($msg) = apiSelect('inventoryObsolete',"site=$sitecode");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-#	       logMsgPortal($LOG,$PROGRAM,'E',"No 'obsolete' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"No 'obsolete' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"No 'obsolete' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
 	}
 	%films = apiData($msg);
 
@@ -378,8 +370,7 @@ sub obsolete_films {
 		$filmname =~ s/&amp;/&/g;
 		($ok,$filmname) = cleanNonUTF8($filmname);
 		if(!$ok) {
-#		       logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
-			logMsg($LOG,$PROGRAM,"Invalid character found in film name: $filmname");
+			logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
 		}
 
 		# Increment the counter for packages

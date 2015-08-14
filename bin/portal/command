@@ -61,6 +61,16 @@ fi
 
 # Check that the arguments are valid for the command
 case "$COMMAND" in
+	# Ingest images
+	inventory)	# Check the arguments are correct
+				if [ "$FILM" == "" ]; then
+					msg "The 'film' argument is missing"
+					exit
+				fi
+				# Run the script
+				msg "Running command: $ROOT/ingest_images.pl --film=$FILM --log"
+				$ROOT/ingest_images.pl --film=$FILM --log
+				;;
 	# Site inventory
 	inventory)	# Check the arguments are correct
 				if [ "$SITE" == "" ]; then

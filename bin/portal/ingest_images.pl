@@ -38,11 +38,9 @@ our $VERSION = "1.0";
 if($#ARGV == -1) { usage(); }
 
 # Read command line options
-our $ALLFILMS	= 0;
 our $FILM		= 'empty';
 our $LOG		= 0;
 if(!GetOptions(
-	'allfilms'		=> \$ALLFILMS,
 	'film=s'		=> \$FILM,
 	'log'			=> \$LOG,
 	'help'			=> sub { usage(); } ))
@@ -68,12 +66,10 @@ sub main {
 	my($msg,$status,%error,%films);
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	
-	# If the 'allfilms' option hasn't been chosen, check that a film has been selected
-	if(!$ALLFILMS) {
-		if($FILM =~ m/empty/) {
-			logMsgPortal($LOG,$PROGRAM,'E',"ERROR: 'film' argument must have a value or use 'allfilms'");
-			return;
-		}
+	# Check that a film has been selected
+	if($FILM =~ m/empty/) {
+		logMsgPortal($LOG,$PROGRAM,'E',"ERROR: 'film' argument must have a value");
+		return;
 	}
 	
 	# Load a hash containing list values
@@ -81,8 +77,8 @@ sub main {
 		return;
 	}
 	
-	# Start processing a batch of assets if a content provider has been specified
-	if($ALLFILMS) {
+	# Start processing all films if a content provider has been specified
+	if($FILM eq 'bbc' || $FILM eq 'pbtv' || $FILM eq 'uip') {
 		# Read all active and delivered assets for selected provider
 		($msg) = apiSelect('ingestFilmsProvider',"provider=$FILM");
 		($status,%error) = apiStatus($msg);

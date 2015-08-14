@@ -16,7 +16,7 @@ use JSON::XS;
 package mods::API;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(apiCommand apiData apiDML apiFile apiMessage apiStatus apiSelect);
+our @EXPORT = qw(apiCommand apiData apiDML apiFileDownload apiMessage apiMetadata apiStatus apiSelect);
 
 our %API;
 $API{host}		= 'api.visualsaas.net';
@@ -108,27 +108,40 @@ sub apiDML {
 
 
 # ---------------------------------------------------------------------------------------------
-# This is a cover function for the equivalent Gateway function
+# Download a file from the Portal
 #
-# Argument 1 : Server the transfer is to be run on
-# Argument 2 : Direction of file transfer (upload/download)
-# Argument 3 : Name of source file
-# Argument 4 : Path to source file
-# Argument 5 : Name of target file
-# Argument 6 : Path to target file
+# Argument 1 : Name of source file
+# Argument 2 : Path to source file
+# Argument 3 : Name of target file
+# Argument 4 : Path to target file
 #
-# Return an array with (1,JSON response) if successful or (0,message) if error
+# Return the JSON response
 # ---------------------------------------------------------------------------------------------
-sub apiFile {
-	my($server,$direction,$sfile,$sdir,$tfile,$tdir) = @_;
+sub apiFileDownload {
+	my($sfile,$sdir,$tfile,$tdir) = @_;
+	my($cmd,$response,$msg);
+	
+	# Build the command
+	$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=fileDownload -F format=object ";
+	$cmd .= "-F source=$sdir/$sfile -o $tdir/$tfile ";
+	$cmd .= "https://$API{host}:$API{port}";
+	
+	# Run the command and check the return code
+	$response = `$cmd`;
+	if($? == -1) {
+		$msg = 'Failed to execute: '.$!;
+		$response = '{"status":"0", "severity":"FATAL", "code":"CLI007", "text": "'.$msg.'"}';
+	}
+	elsif($? & 127) {
+		$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
+		$response = '{"status":"0", "severity":"FATAL", "code":"CLI008", "text": "'.$msg.'"}';
+	}
+	else {
+		# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
+	}
 
-#	my $call = ($direction eq 'upload') ? 'fileUpload' : 'fileDownload';
-#	$sfile = "source-file=$sfile";
-#	$sdir = "source-dir=$sdir";
-#	$tfile = "target-file=$tfile";
-#	$tdir = "target-dir=$tdir";
-
-#	return common::Gateway::gwFile(\%LOGIN,$call,$sfile,$sdir,$tfile,$tdir);
+	# Return the JSON response
+	return $response;
 }
 
 
@@ -188,6 +201,43 @@ sub apiMessage {
 	else {
 		# SMS
 	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Run a query to retrieve metadata
+#
+# Argument 1 : Function to be called
+# Argument 2 : Array of arguments to the function (name=value)
+#
+# Return the JSON response
+# ---------------------------------------------------------------------------------------------
+sub apiMetadata {
+	my($call,$assetcode,$format) = @_;
+	my($cmd,$response,$msg);
+
+	# Build the command
+	$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=$call ";
+	$cmd .= "-F assetcode=$assetcode -F format=$format ";
+	$cmd .= "https://$API{host}:$API{port}";
+
+	# Run the command and check the return code
+	$response = `$cmd`;
+	if($? == -1) {
+		$msg = 'Failed to execute: '.$!;
+		$response = '{"status":"0", "severity":"FATAL", "code":"CLI001", "text": "'.$msg.'"}';
+	}
+	elsif($? & 127) {
+		$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
+		$response = '{"status":"0", "severity":"FATAL", "code":"CLI002", "text": "'.$msg.'"}';
+	}
+	else {
+		# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
+	}
+
+	# Return the JSON response
+	return $response;
 }
 
 

@@ -110,7 +110,7 @@ sub main {
 # ---------------------------------------------------------------------------------------------
 sub film_details {
 	my($film) = @_;
-	my($status,$msg,%error,%film,$cid,$provider,$meta,$jacket,$landscape);
+	my($status,$msg,%error,%films,$cid,$provider,$meta,$jacket,$landscape);
 	
 	# Read the film ID from the Portal
 	($msg) = apiSelect('ingestFilm',"assetcode=$film");
@@ -119,14 +119,14 @@ sub film_details {
 		logMsgPortal($LOG,$PROGRAM,'E',"Error reading details for [$film] from database: $error{MESSAGE}");
 		return;
 	}
-	%film = apiData($msg);
-	if(!%film) {
+	%films = apiData($msg);
+	if(!%films) {
 		# No film found on Portal
 		logMsgPortal($LOG,$PROGRAM,'E',"No film matching [$film] - film must be active and delivered");
 		return;
 	}
-	$cid = $film{$film}{'film_id'};
-	$provider = $film{$film}{'provider'};
+	$cid = $films{$film}{'content_id'};
+	$provider = $films{$film}{'provider'};
 	
 	# If requested film was found
 	if($cid) {
@@ -160,7 +160,7 @@ sub jacket_images {
 	# Check jacket image available for this film
 	$name = "$jacket/$film.jpg";
 	if(!-f $name) {
-		logMsgPortal($LOG,$PROGRAM,'E',"There is no jacket image for '$film'");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: There is no jacket image");
 		return;
 	}
 	
@@ -204,7 +204,7 @@ sub jacket_image_create {
 	$h = $settings{ImageHeight};
 	$w = $settings{ImageWidth};
 	if(!($h && $w)) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Error reading image height or width");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image height or width");
 		return;
 	}
 	$ratio = $h/$w;
@@ -215,12 +215,12 @@ sub jacket_image_create {
 	$name = "$film-$type.jpg";
 	$result = `convert $jacket -resize $size $meta/$name`;
 	if($result) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Error resizing image to $size: $result");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error resizing image to $size: $result");
 		return;
 	}
 	
 	# Add image details to the Portal
-	image_save($cid,$type,$name,$meta);
+	image_save($cid,$film,$type,$name,$meta);
 }
 
 
@@ -240,7 +240,7 @@ sub landscape_images {
 	# Check landscape image available for this film
 	$name = "$landscape/$film.jpg";
 	if(!-f $name) {
-		logMsgPortal($LOG,$PROGRAM,'E',"There is no landscape image for '$film'");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: There is no landscape image");
 		return;
 	}
 	
@@ -249,8 +249,8 @@ sub landscape_images {
 	`cp $name $meta/$film-landscape.jpg`;
 	
 	# Add image details to the Portal
-	image_save($cid,'hero',"$film-hero.jpg",$meta);
-	image_save($cid,'landscape',"$film-landscape.jpg",$meta);
+	image_save($cid,$film,'hero',"$film-hero.jpg",$meta);
+	image_save($cid,$film,'landscape',"$film-landscape.jpg",$meta);
 }
 
 
@@ -259,12 +259,13 @@ sub landscape_images {
 # Save the details of an image to the Portal
 #
 # Argument 1 : ID of the film
-# Argument 2 : Type of image (full/large/small)
-# Argument 3 : Name of image
-# Argument 4 : Directory on the Portal where the metadata is held
+# Argument 2 : Asset code of the film
+# Argument 3 : Type of image (full/large/small)
+# Argument 4 : Name of image
+# Argument 5 : Directory on the Portal where the metadata is held
 # ---------------------------------------------------------------------------------------------
 sub image_save {
-	my($cid,$type,$name,$meta) = @_;
+	my($cid,$film,$type,$name,$meta) = @_;
 	my($ref,@tags,$info,$value,%settings,$high,$wide,$mime,$typeid,$msg,$status,%error,%data,$id);
 	my $file = "$meta/$name";
 	
@@ -287,7 +288,7 @@ sub image_save {
 	$wide = $settings{ImageWidth};
 	$mime = $settings{MIMEType};
 	if(!($high && $wide && $mime)) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Error reading image height, width or MIME type");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image height, width or MIME type");
 		return;
 	}
 	
@@ -298,7 +299,7 @@ sub image_save {
 	($msg) = apiDML('ingestImageSearch',"cid=$cid","type=$typeid");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Error reading details of '$type' image for '$name': $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading details of '$type' image for '$name': $error{MESSAGE}");
 		return;
 	}
 	
@@ -313,10 +314,10 @@ sub image_save {
 		($msg) = apiDML('ingestImageInsert',"cid=$cid","name=$name","type=$typeid","height=$high","width=$wide","mimetype=$mime");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Could not add the '$type' image: $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'E',"$film: Could not add the '$type' image: $error{MESSAGE}");
 		}
 		else {
-			logMsg($LOG,$PROGRAM,"Image '$type' has been added");
+			logMsg($LOG,$PROGRAM,"$film: Image '$type' has been added");
 		}
 	}
 	# If image already exists, update the image attributes on the Portal
@@ -324,10 +325,10 @@ sub image_save {
 		($msg) = apiDML('ingestImageUpdate',"id=$id","name=$name","type=$typeid","height=$high","width=$wide","mimetype=$mime");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Could not update the '$type' image: $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'E',"$film: Could not update the '$type' image: $error{MESSAGE}");
 		}
 		else {
-			logMsg($LOG,$PROGRAM,"Image '$type' has been updated");
+			logMsg($LOG,$PROGRAM,"$film: Image '$type' has been updated");
 		}
 	}
 }

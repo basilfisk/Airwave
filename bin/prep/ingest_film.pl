@@ -1378,7 +1378,7 @@ sub read_listvalues {
 	my($status,$msg,%error,%data,$group,$item);
 	
 	# Read PIDs
-	($msg) = apiSelect(,'ingestListValues');
+	($msg) = apiSelect('ingestListValues');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		error("No list values returned: $error{MESSAGE}");

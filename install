@@ -16,7 +16,7 @@ if [ "$SERVER" == "distro" ] || [ "$SERVER" == "prep" ]; then
 	SOURCE=$ROOT/Airwave
 	INSTALL=/home/airwave/bin
 else
-	ROOT=/srv/visualsaas/instances/aa002/install
+	ROOT=/root/install
 	SOURCE=$ROOT/Airwave
 	INSTALL=/srv/visualsaas/instances/aa002/bin
 fi
@@ -24,15 +24,7 @@ fi
 # Make sure we are in the installation directory
 cd $ROOT
 
-# Remove the last download if it is hanging about and the last package installation tree
-rm master.zip
-rm -r Aiwave
-
-# Download the latest package, unzip it and rename
-wget https://github.com/basilfisk/Airwave/archive/master.zip
-unzip master.zip
-mv Airwave-master Airwave
-
+# Install software on Airwave's distro server
 if [ "$SERVER" == "distro" ]; then
 	# Build the directory tree
 	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
@@ -66,6 +58,7 @@ if [ "$SERVER" == "distro" ]; then
 	chmod 644 $INSTALL/mods/*
 fi
 
+# Install software on Airwave's prep server
 if [ "$SERVER" == "prep" ]; then
 	# Build the directory tree
 	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
@@ -101,6 +94,7 @@ if [ "$SERVER" == "prep" ]; then
 	chmod 644 $INSTALL/mods/*
 fi
 
+# Install software on the Portal
 if [ "$SERVER" == "s2" ]; then
 	# Build the directory tree
 	if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
@@ -113,15 +107,15 @@ if [ "$SERVER" == "s2" ]; then
 	cp $SOURCE/etc/portal/airwave-portal.conf $INSTALL/etc
 	cp $SOURCE/etc/portal/inventory.conf $INSTALL/etc
 	cp $SOURCE/etc/portal/showing.conf $INSTALL/etc
-	cp $SOURCE/etc/portal/site_sheet.conf $INSTALL/etc
+	cp $SOURCE/etc/portal/site-sheet.conf $INSTALL/etc
 	cp $SOURCE/etc/portal/smoovie-barker.conf $INSTALL/etc
 	cp $SOURCE/etc/portal/smoovie-pos.conf $INSTALL/etc
 	
 	# Install the scripts
 	cp $SOURCE/bin/portal/command $INSTALL
 	cp $SOURCE/bin/portal/create-events-airwave.pl $INSTALL
+	cp $SOURCE/bin/portal/ingest_images.pl $INSTALL
 	cp $SOURCE/bin/portal/inventory.pl $INSTALL
-	cp $SOURCE/bin/portal/load_disk.pl $INSTALL
 	cp $SOURCE/bin/portal/load-events-airwave.pl $INSTALL
 	cp $SOURCE/bin/portal/load-events-techlive.pl $INSTALL
 	cp $SOURCE/bin/portal/inventory.pl $INSTALL
@@ -140,8 +134,7 @@ if [ "$SERVER" == "s2" ]; then
 	cp $SOURCE/modules/portal/MSXML.pm $INSTALL/mods
 	cp $SOURCE/modules/portal/PDF.pm $INSTALL/mods
 	
-	# Change ownership and permissions
-	chown airwave:airwave -R $INSTALL
+	# Change permissions
 	chmod 755 $INSTALL/*.pl
 	chmod 755 $INSTALL/command
 	chmod 755 $INSTALL/nightly-scripts

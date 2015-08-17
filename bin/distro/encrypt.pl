@@ -214,7 +214,7 @@ sub securemedia_encrypt {
 	my $smlog = "$CONFIG{LOGDIR}/$CONFIG{SM_LOG_ENCRYPT}";
 	
 	# Output directory for the encrypted film (remove spaces from server name)
-	$encdir = "$CONFIG{CS_PROC}/$provider/$server/$filmcode";
+	$encdir = "$CONFIG{DIST_PROC}/$provider/$server/$filmcode";
 	$encdir =~ s/ //g;
 	
 	# Add an extension to output file name and remove white space and quotes from film name

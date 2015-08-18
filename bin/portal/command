@@ -47,6 +47,7 @@ do
 		company)	COMPANY=${VALUE[@]};;
 		film)		FILM=${VALUE[@]};;
 		package)	PACKAGE=${VALUE[@]};;
+		provider)	PROVIDER=${VALUE[@]};;
 		site)		SITE=${VALUE[@]};;
 		territory)	TERRITORY=${VALUE[@]};;
 		yymm)	 	YYMM=${VALUE[@]};;
@@ -113,6 +114,21 @@ case "$COMMAND" in
 		# Run the script
 		msg "Running command: $ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log"
 		$ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log
+		;;
+	# Generate metadata
+	metadata)
+		# Check the arguments are correct
+		if [ "$FILM" == "" ]; then
+			msg "The 'film' argument is missing"
+			exit
+		fi
+		if [ "$PROVIDER" == "" ]; then
+			msg "The 'provider' argument is missing"
+			exit
+		fi
+		# Run the script
+		msg "Running command: $ROOT/metadata.pl --film=$FILM --provider=$PROVIDER --log"
+		$ROOT/metadata.pl --film=$FILM --log
 		;;
 	# PBTV returns spreadsheet
 	pbtv_sht)

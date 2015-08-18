@@ -86,8 +86,6 @@ sub main {
 		# Film processing options
 		tkMenu('Preparation');
 		tkMenuOption('Preparation','Ingest Film','ingest_film','ask');
-		tkMenuOption('Preparation','Refresh Metadata','refresh_metadata','ask');
-		tkMenuSeparator('Preparation');
 		tkMenuOption('Preparation','Play Downloaded Films','play_film','ask');
 		
 		# Data transfer
@@ -98,12 +96,8 @@ sub main {
 		tkMenu('Logs');
 		$name = 'Menu Warnings/Errors';
 		tkMenuOption('Logs',$name,'view_log',$name,'menu.log');
-		tkMenuSeparator('Logs');
 		$name = 'Ingest Log';
 		tkMenuOption('Logs',$name,'view_log',$name,'ingest_film.log');
-		$name = 'Refresh Metadata Log';
-		tkMenuOption('Logs',$name,'view_log',$name,'ingest_film.log');
-		tkMenuSeparator('Logs');
 		$name = 'Load USB Disk Log';
 		tkMenuOption('Logs',$name,'view_log',$name,'load_disk.log');
 	}
@@ -553,223 +547,6 @@ sub ingest_film {
 
 
 # ---------------------------------------------------------------------------------------------
-# Display the 'Play Downloaded Films' parameters form and run the command
-#
-# Argument 1 : 'ask' will display the parameters form, undef will run the command
-# ---------------------------------------------------------------------------------------------
-sub play_film {
-	my($action) = @_;
-	my($dh,$dir,@dirfiles,@batches,@films,$idx);
-	my $x2 = $TOPLEFT{x}+$TOPLEFT{xinc};
-	my $y = $TOPLEFT{y};
-	
-	# Read the list of batch directories
-	$dir = $CONFIG{CS_DOWNLOAD};
-	if(!opendir($dh,$dir)) {
-		tkOption('Airwave','View Films',"Can't read directory [$dir]",'OK');
-		return;
-	}
-	@dirfiles = readdir($dh);
-	closedir($dh);
-	push(@batches,grep { !/^\./ } sort @dirfiles);
-	
-	# Read the list of film files
-	foreach my $batch (@batches) {
-		if(!opendir($dh,"$dir/$batch")) {
-			tkOption('Airwave','View Films',"Can't read directory [$dir/$batch]",'OK');
-			return;
-		}
-		@dirfiles = readdir($dh);
-		closedir($dh);
-		@dirfiles = grep { !/^\./ } @dirfiles;
-		@dirfiles = grep { /\.mpg$/i || /\.m2t$/i || /\.ts$/i } @dirfiles;
-		foreach my $file (@dirfiles) {
-			push(@films,"$batch/$file");
-		}
-	}
-	
-	# Quit if there aren't any films
-	if(!@films) {
-		tkOption('Airwave','View Films','There are no films available for viewing','OK');
-		return;
-	}
-	
-	# Display the parameters dialog
-	if($action eq 'ask') {
-		# Create the dialog box
-		tkDialogOpen('Airwave','localfilms',100,300,550,310,"Play Downloaded Films");
-		
-		# Film list
-		tkLabel('localfilms',$TOPLEFT{x},$y,'Films');
-		$y += $TOPLEFT{yinc}-10;
-		tkDropdown('localfilms','lf_films',$TOPLEFT{x},$y,80,'',@films);
-		
-		# OK and Cancel buttons
-		my($y,$b1x,$b2x) = button_coords(550,310,2,8);
-		tkButton('localfilms',$b1x,$y,8,'OK','play_film');
-		tkButton('localfilms',$b2x,$y,8,'Cancel');
-	}
-	# Run the command
-	else {
-		# Read the period selected by the user
-		$idx = tkDropdownAction('lf_films','value');
-		system("vlc $dir/$idx");
-		
-		# Close the parameter dialog
-		tkClose('localfilms');
-	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Display the film metadata refresh parameters form and run the command
-#
-# Argument 1 : 'ask' will display the parameters form, undef will run the command
-# ---------------------------------------------------------------------------------------------
-sub refresh_metadata {
-	my($action) = @_;
-	my(%films,@filmlist,$asset,$provider,$allfilms,$filmname);
-	my $x2 = $TOPLEFT{x}+$TOPLEFT{xinc};
-	my $y = $TOPLEFT{y};
-	
-	# Read list of films from database for the default content provider
-	%films = read_films($PROVIDER[0]);
-	@filmlist = sort keys %films;
-#	foreach my $film (sort keys %films) {
-#		push(@filmlist,$film);
-#	}
-	
-	# Display the parameters dialog
-	if($action eq 'ask') {
-		# Create the dialog box
-		tkDialogOpen('Airwave','refresh_md',100,300,550,430,'Refresh Metadata for Film(s) in the Content Server');
-		
-		# List of content providers
-		tkLabel('refresh_md',$TOPLEFT{x},$y,'Provider');
-		tkDropdown('refresh_md','rm_provider',$x2,$y,20,'update_films(rm_filmlist)',@PROVIDER);
-		
-		# List of films from the content provider (empty to start with)
-		$y += $TOPLEFT{yinc};
-		tkLabel('refresh_md',$TOPLEFT{x},$y,'Films');
-		tkDropdown('refresh_md','rm_filmlist',$x2,$y,50,'',@filmlist);
-		
-		# Check box to ask whether to regenerate metadata for all films owned by Content Provider
-		$y += $TOPLEFT{yinc};
-		tkLabel('refresh_md',$TOPLEFT{x},$y,'Refresh All Films?');
-		tkCheckBox('refresh_md','rm_allfilms',$x2,$y);
-		
-		# OK and Cancel buttons
-		my($y,$b1x,$b2x) = button_coords(500,430,2,8);
-		tkButton('refresh_md',$b1x,$y,8,'OK','refresh_metadata');
-		tkButton('refresh_md',$b2x,$y,8,'Cancel');
-	}
-	# Run the film ingestion script
-	else {
-		# Read the content provider selected by the user
-		$provider = tkDropdownAction('rm_provider','value');
-		
-		# Read the test flag
-		$allfilms = tkCheckBoxValue('rm_allfilms');
-		
-		# If All Films not selected, read the film selected by the user
-		if(!$allfilms) {
-			# Read the film selected by the user
-			$filmname = tkDropdownAction('rm_filmlist','value');
-			
-			# Read the asset code of the selected film
-			%films = read_films($provider);
-			$asset = $films{$filmname}{asset_code};
-#			foreach my $f (sort keys %films) {
-#				if($filmname eq $f) {
-#					$asset = @{$films{$f}}[0];
-#				}
-#			}
-			if(!$asset) {
-				tkOption('refresh_md','Refresh Metadata','The selected film does not have an asset code','OK');
-				return;
-			}
-		}
-		
-		# Run the ingestion
-		if($allfilms) {
-			$provider =~ tr[A-Z][a-z];
-			system("$ROOT/ingest_film.pl -action=refresh -asset=$provider -allfilms -log");
-		}
-		else {
-			system("$ROOT/ingest_film.pl -action=refresh -asset=$asset -log");
-		}
-		
-		# Close the parameter dialog
-		tkClose('refresh_md');
-		
-		# Show log file
-		view_log('Film Ingestion Log','ingest_film.log');
-	}
-}
-
-
-
-
-
-# *********************************************************************************************
-# *********************************************************************************************
-#
-# Run on DISTRIBUTION Server
-#
-# *********************************************************************************************
-# *********************************************************************************************
-
-# ---------------------------------------------------------------------------------------------
-# Start the CDS daemon processes
-# ---------------------------------------------------------------------------------------------
-sub cds_start {
-	system("$ROOT/cdsd start");
-	view_log("Log for the CDS Daemon processes",'cdsd.log');
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Status of the CDS daemon processes
-# ---------------------------------------------------------------------------------------------
-sub cds_status {
-	system("$ROOT/cdsd status");
-	view_log("Log for the CDS Daemon processes",'cdsd.log');
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Stop the CDS daemon processes
-# ---------------------------------------------------------------------------------------------
-sub cds_stop {
-	system("$ROOT/cdsd stop");
-	view_log("Log for the CDS Daemon processes",'cdsd.log');
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Status of the CDS Transfer Agent daemon processes
-# ---------------------------------------------------------------------------------------------
-sub cds_ta_restart  {
-	my $log = "/tmp/airship-test";
-	
-	system("sudo airship -t");
-	system("sudo airship");
-	system("ps -ef | grep /usr/bin/airship | grep -v grep | grep -v update > $log");
-	if(-z $log) {
-		tkOption('Airwave','CDS Transfer Agent',"The CDS Transfer Agent is NOT running",'OK');
-	}
-	else {
-		tkOption('Airwave','CDS Transfer Agent',"The CDS Transfer Agent is running",'OK');
-	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
 # Display the parameters form for loading a USB disk with films, then run the command
 #
 # Argument 1 : 'ask' will display the parameters form, undef will run the command
@@ -868,5 +645,135 @@ sub load_disk {
 		view_log("Log for Load a USB Disk with Films",'load_disk.log');
 	}
 }
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Display the 'Play Downloaded Films' parameters form and run the command
+#
+# Argument 1 : 'ask' will display the parameters form, undef will run the command
+# ---------------------------------------------------------------------------------------------
+sub play_film {
+	my($action) = @_;
+	my($dh,$dir,@dirfiles,@batches,@films,$idx);
+	my $x2 = $TOPLEFT{x}+$TOPLEFT{xinc};
+	my $y = $TOPLEFT{y};
+	
+	# Read the list of batch directories
+	$dir = $CONFIG{CS_DOWNLOAD};
+	if(!opendir($dh,$dir)) {
+		tkOption('Airwave','View Films',"Can't read directory [$dir]",'OK');
+		return;
+	}
+	@dirfiles = readdir($dh);
+	closedir($dh);
+	push(@batches,grep { !/^\./ } sort @dirfiles);
+	
+	# Read the list of film files
+	foreach my $batch (@batches) {
+		if(!opendir($dh,"$dir/$batch")) {
+			tkOption('Airwave','View Films',"Can't read directory [$dir/$batch]",'OK');
+			return;
+		}
+		@dirfiles = readdir($dh);
+		closedir($dh);
+		@dirfiles = grep { !/^\./ } @dirfiles;
+		@dirfiles = grep { /\.mpg$/i || /\.m2t$/i || /\.ts$/i } @dirfiles;
+		foreach my $file (@dirfiles) {
+			push(@films,"$batch/$file");
+		}
+	}
+	
+	# Quit if there aren't any films
+	if(!@films) {
+		tkOption('Airwave','View Films','There are no films available for viewing','OK');
+		return;
+	}
+	
+	# Display the parameters dialog
+	if($action eq 'ask') {
+		# Create the dialog box
+		tkDialogOpen('Airwave','localfilms',100,300,550,310,"Play Downloaded Films");
+		
+		# Film list
+		tkLabel('localfilms',$TOPLEFT{x},$y,'Films');
+		$y += $TOPLEFT{yinc}-10;
+		tkDropdown('localfilms','lf_films',$TOPLEFT{x},$y,80,'',@films);
+		
+		# OK and Cancel buttons
+		my($y,$b1x,$b2x) = button_coords(550,310,2,8);
+		tkButton('localfilms',$b1x,$y,8,'OK','play_film');
+		tkButton('localfilms',$b2x,$y,8,'Cancel');
+	}
+	# Run the command
+	else {
+		# Read the period selected by the user
+		$idx = tkDropdownAction('lf_films','value');
+		system("vlc $dir/$idx");
+		
+		# Close the parameter dialog
+		tkClose('localfilms');
+	}
+}
+
+
+
+
+
+# *********************************************************************************************
+# *********************************************************************************************
+#
+# Run on DISTRIBUTION Server
+#
+# *********************************************************************************************
+# *********************************************************************************************
+
+# ---------------------------------------------------------------------------------------------
+# Start the CDS daemon processes
+# ---------------------------------------------------------------------------------------------
+sub cds_start {
+	system("$ROOT/cdsd start");
+	view_log("Log for the CDS Daemon processes",'cdsd.log');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Status of the CDS daemon processes
+# ---------------------------------------------------------------------------------------------
+sub cds_status {
+	system("$ROOT/cdsd status");
+	view_log("Log for the CDS Daemon processes",'cdsd.log');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Stop the CDS daemon processes
+# ---------------------------------------------------------------------------------------------
+sub cds_stop {
+	system("$ROOT/cdsd stop");
+	view_log("Log for the CDS Daemon processes",'cdsd.log');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Status of the CDS Transfer Agent daemon processes
+# ---------------------------------------------------------------------------------------------
+sub cds_ta_restart  {
+	my $log = "/tmp/airship-test";
+	
+	system("sudo airship -t");
+	system("sudo airship");
+	system("ps -ef | grep /usr/bin/airship | grep -v grep | grep -v update > $log");
+	if(-z $log) {
+		tkOption('Airwave','CDS Transfer Agent',"The CDS Transfer Agent is NOT running",'OK');
+	}
+	else {
+		tkOption('Airwave','CDS Transfer Agent',"The CDS Transfer Agent is running",'OK');
+	}
+}
+
 
 

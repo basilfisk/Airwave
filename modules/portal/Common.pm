@@ -33,7 +33,7 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime 
 				 formatNumber logMsg logMsgPortal md5Generate msgCache msgLog parseDocument portalDownload 
-				 portalUpload processInfo readConfig readConfigXML validFormat validNumber wrapText);
+				 portalUpload processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
 				 
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
@@ -1033,4 +1033,27 @@ sub wrapText {
 	if($lines < $max) {
 		$new .= $str;
 	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Write a string to a file
+#
+# Argument 1: File name
+# Argument 2: Text
+#
+# Return 1 if the string is written to the file, 0 if error
+# ---------------------------------------------------------------------------------------------
+sub writeFile {
+	my($file,$text) = @_;
+	my($fh);
+	
+	if(!open($fh,">$file")) {
+		print "Can't open file [$file]\n";
+		return 0;
+	}
+	print $fh $text;
+	close($fh);
+	return 1;
 }

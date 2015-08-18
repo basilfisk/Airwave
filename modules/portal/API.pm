@@ -16,7 +16,7 @@ use JSON::XS;
 package mods::API;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(apiData apiDML apiMessage apiStatus apiSelect);
+our @EXPORT = qw(apiData apiDML apiMessage apiMetadata apiStatus apiSelect);
 
 our %API;
 $API{host}		= 'api.visualsaas.net';
@@ -146,6 +146,43 @@ sub apiMessage {
 	else {
 		# SMS
 	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Run a query to retrieve metadata
+#
+# Argument 1 : Function to be called
+# Argument 2 : Array of arguments to the function (name=value)
+#
+# Return the JSON response
+# ---------------------------------------------------------------------------------------------
+sub apiMetadata {
+	my($call,$assetcode,$format) = @_;
+	my($cmd,$response,$msg);
+
+	# Build the command
+	$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=$call ";
+	$cmd .= "-F assetcode=$assetcode -F format=$format ";
+	$cmd .= "https://$API{host}:$API{port}";
+
+	# Run the command and check the return code
+	$response = `$cmd`;
+	if($? == -1) {
+		$msg = 'Failed to execute: '.$!;
+		$response = '{"status":"0", "severity":"FATAL", "code":"CLI001", "text": "'.$msg.'"}';
+	}
+	elsif($? & 127) {
+		$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
+		$response = '{"status":"0", "severity":"FATAL", "code":"CLI002", "text": "'.$msg.'"}';
+	}
+	else {
+		# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
+	}
+
+	# Return the JSON response
+	return $response;
 }
 
 

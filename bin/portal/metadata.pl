@@ -70,7 +70,7 @@ sub main {
 	# Read the JSON metadata from the Portal and create a file
 	$text = apiMetadata('apMetadata',$FILM,'json');
 	if(!$text) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal: [code] text");
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read JSON metadata from the Portal: [code] text");
 		return;
 	}
 	writeFile("$dir/$FILM.json",$text);
@@ -78,7 +78,7 @@ sub main {
 	# Read the XML metadata from the Portal and create a file
 	$text = apiMetadata('apMetadata',$FILM,'xml');
 	if(!$text) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal: [code] text");
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read XML metadata from the Portal: [code] text");
 		return;
 	}
 	writeFile("$dir/$FILM.xml",$text);

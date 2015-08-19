@@ -186,14 +186,15 @@ sub film_image_resize {
 		if(!($h && $w)) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Error reading image height or width for '$assetcode'");
 		}
-		$ratio = $h/$w;
-
-		# Create the image
-		$wide = int($high/$ratio);
-		$size = "$wide"."x$high";
-		$result = `convert $file -resize $size $TEMP/$image`;
-		if($result) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Error resizing image to '$size' for '$assetcode': $result");
+		# Resize the image
+		else {
+			$ratio = $h/$w;
+			$wide = int($high/$ratio);
+			$size = "$wide"."x$high";
+			$result = `convert $file -resize $size $TEMP/$image`;
+			if($result) {
+				logMsgPortal($LOG,$PROGRAM,'E',"Error resizing image to '$size' for '$assetcode': $result");
+			}
 		}
 	}
 

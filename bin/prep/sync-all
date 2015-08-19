@@ -7,7 +7,7 @@
 #
 # -----------------------------------------------------------------------------------------
 
-cd ~/bin/Airwave
+cd ~/bin
 
 if [ `hostname` == "prep" ]; then
 	# From the Preparation server, synchronise content to the Distribution server

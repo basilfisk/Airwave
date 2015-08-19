@@ -32,7 +32,7 @@ use XML::Writer;
 # Breato modules
 use lib "$ROOT";
 use mods::API qw(apiData apiDML apiSelect apiStatus);
-use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal md5Generate parseDocument portalDownload portalUpload readConfig);
+use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal md5Generate parseDocument readConfig);
 
 # Program information
 our $PROGRAM = "ingest_film.pl";

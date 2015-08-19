@@ -118,7 +118,7 @@ if [ "$SERVER" == "s2" ]; then
 	cp $SOURCE/bin/portal/inventory.pl $INSTALL
 	cp $SOURCE/bin/portal/load-events-airwave.pl $INSTALL
 	cp $SOURCE/bin/portal/load-events-techlive.pl $INSTALL
-	cp $SOURCE/bin/portal/inventory.pl $INSTALL
+	cp $SOURCE/bin/portal/metadata.pl $INSTALL
 	cp $SOURCE/bin/portal/nightly-scripts $INSTALL
 	cp $SOURCE/bin/portal/pbtv.pl $INSTALL
 	cp $SOURCE/bin/portal/showing-child.pl $INSTALL

@@ -32,8 +32,8 @@ package mods::Common;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime 
-				 formatNumber logMsg logMsgPortal md5Generate msgCache msgLog parseDocument portalDownload 
-				 portalUpload processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
+				 formatNumber logMsg logMsgPortal md5Generate msgCache msgLog parseDocument processInfo
+				 readConfig readConfigXML validFormat validNumber wrapText writeFile);
 				 
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
@@ -763,71 +763,6 @@ sub parseDocument {
 
 	# Return OK (null error message) and the XPath context handle
 	return ("",$xpc);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Download a file from the Portal
-#
-# Argument 1 : Source file name
-# Argument 2 : Source directory
-# Argument 3 : Target file name
-# Argument 4 : Target directory
-#
-# Return status of download and message as an array:
-#	Success: (1,msg)
-#	Failure: (0,msg)
-# ---------------------------------------------------------------------------------------------
-sub portalDownload {
-	my($sfile,$sdir,$tfile,$tdir) = @_;
-	my($status,$msg,%error);
-	
-	# Skip if file already downloaded
-	if(!-e "$tdir/$tfile") {
-		# Read the file from the Portal
-		($msg) = mods::API::apiFile('download',$sfile,$sdir,$tfile,$tdir);
-		($status,%error) = mods::API::apiStatus($msg);
-		
-		# Downloaded OK
-		if($status) {
-			return (1,"Downloaded '$sdir/$sfile' to '$tdir/$tfile'");
-		}
-		# Error while downloading
-		else {
-			return (0,"[$error{CODE}] $error{MESSAGE}");
-		}
-	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Upload a file to the Portal
-#
-# Argument 1 : Source file name
-# Argument 2 : Source directory
-# Argument 3 : Target file name
-# Argument 4 : Target directory
-#
-# Return status of upload and message as an array:
-#	Success: (1,msg)
-#	Failure: (0,msg)
-# ---------------------------------------------------------------------------------------------
-sub portalUpload {
-	my($sfile,$sdir,$tfile,$tdir) = @_;
-	my($status,$msg,%error);
-	
-	# Upload the file to the Portal
-	($msg) = mods::API::apiFile('upload',$sfile,$sdir,$tfile,$tdir);
-	($status,%error) = mods::API::apiStatus($msg);
-	if($status) {
-		return (1,"Uploaded '$sdir/$sfile' to '$tdir/$tfile'");
-	}
-	# Error while uploading
-	else {
-		return (0,"[$error{CODE}] $error{MESSAGE}");
-	}
 }
 
 

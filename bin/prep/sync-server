@@ -30,7 +30,7 @@ EVORIO_RSA=id_rsa_evorio
 PREP_HOST=prep
 PREP_PORT=15428
 PREP_RSA=id_rsa_prep
-LOGFILE=~/log/sync-server.log
+LOGFILE=~/bin/log/sync-server.log
 LOG=0
 TEST=0
 

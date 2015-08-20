@@ -73,13 +73,11 @@ if [ "$SERVER" == "prep" ]; then
 	
 	# Install the scripts
 	cp $SOURCE/bin/prep/archive.pl $INSTALL
-	cp $SOURCE/bin/prep/films.pl $INSTALL
 	cp $SOURCE/bin/prep/ingest_film.pl $INSTALL
 	cp $SOURCE/bin/prep/load_disk.pl $INSTALL
 	cp $SOURCE/bin/prep/sync-all $INSTALL
 	cp $SOURCE/bin/prep/sync-server $INSTALL
 	cp $SOURCE/bin/menu.pl $INSTALL
-	cp $SOURCE/bin/monitor.pl $INSTALL
 	
 	# Install the Perl modules
 	cp $SOURCE/modules/servers/API.pm $INSTALL/mods

@@ -207,7 +207,7 @@ sub summary_page {
 		($msg) = apiSelect('inventoryAdditions',"site=$sitecode");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-			logMsgPortal($LOG,$PROGRAM,'E',"No 'added' films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'W',"No 'added' films found for '$sitename'");
 		}
 		# Print each added film
 		else {
@@ -240,7 +240,7 @@ sub summary_page {
 		($msg) = apiSelect('inventoryRemovals',"site=$sitecode");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
-			logMsgPortal($LOG,$PROGRAM,'E',"No 'retired' films found for '$sitename' [$error{CODE}] $error{MESSAGE}");
+			logMsgPortal($LOG,$PROGRAM,'W',"No 'retired' films found for '$sitename'");
 		}
 		# Print each retired film
 		else {
@@ -289,7 +289,7 @@ sub current_films {
 	($msg) = apiSelect('inventoryInstalled',"site=$sitecode");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'E',"No 'installed' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'W',"No 'installed' films for site '$sitename'");
 	}
 	%films = apiData($msg);
 
@@ -350,7 +350,7 @@ sub obsolete_films {
 	($msg) = apiSelect('inventoryObsolete',"site=$sitecode");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'E',"No 'obsolete' films for site '$sitename' [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'W',"No 'obsolete' films for site '$sitename'");
 	}
 	%films = apiData($msg);
 

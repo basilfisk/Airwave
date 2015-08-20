@@ -129,12 +129,8 @@ sub film_package {
 	($msg) = apiSelect($REPORT{$pack}{sql},"territory=$ref",$cond);
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Cannot read $REPORT{$pack}{title} for $terr [$error{CODE}] $error{MESSAGE}");
-		if($error{SEVERITY} eq 'FATAL') {
-			logMsgPortal($LOG,$PROGRAM,'E',"Fatal error trapped. Stopping report");
-			exit;
-		}
-		else { return; }
+		logMsgPortal($LOG,$PROGRAM,'W',"There are no $REPORT{$pack}{title} for $terr");
+		return;
 	}
 
 	# Print the package or stop if there is no data
@@ -184,7 +180,7 @@ sub film_image_resize {
 		$h = $settings{ImageHeight};
 		$w = $settings{ImageWidth};
 		if(!($h && $w)) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Error reading image height or width for '$assetcode'");
+			logMsgPortal($LOG,$PROGRAM,'W',"Can't read image height or width for '$assetcode'");
 		}
 		# Resize the image
 		else {
@@ -193,7 +189,7 @@ sub film_image_resize {
 			$size = "$wide"."x$high";
 			$result = `convert $file -resize $size $TEMP/$image`;
 			if($result) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Error resizing image to '$size' for '$assetcode': $result");
+				logMsgPortal($LOG,$PROGRAM,'W',"Can't resize image to '$size' for '$assetcode': $result");
 			}
 		}
 	}
@@ -280,7 +276,7 @@ sub film_page {
 		# Read the poster image from the Portal into the temporary directory
 		$image = film_image_resize($film,"$ROOT/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg");
 		if(!$image) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Cannot find image for $title");
+			logMsgPortal($LOG,$PROGRAM,'W',"Can't find image for $title");
 		}
 
 		# Clean up invalid characters in text fields
@@ -337,7 +333,7 @@ sub film_page {
 	$lang =~ tr/a-z/A-Z/;
 	$pdffile = "$territory - $packname ($lang).pdf";
 	if(!-w $TEMP) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Cannot open directory [$TEMP] for writing");
+		logMsgPortal($LOG,$PROGRAM,'E',"Can't open directory [$TEMP] for writing");
 		exit;
 	}
 

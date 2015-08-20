@@ -246,12 +246,6 @@ sub dist_ended {
 	# Retrieve the list of running distributions
 	%cds = cds_sql_running();
 	
-	# Stop if no running distributions are found (or maybe unable to connect to CDS)
-	if(!%cds) {
-		logMsg($LOG,$PROGRAM,"Can't read any running distributions from the CDS Portal");
-		return;
-	}
-	
 	# Loop through each batch from the Portal and check if still running on CDS
 	DISTENDED: foreach my $cmsid (sort keys %cms) {
 		$distname = $cms{$cmsid}{dist_name};
@@ -909,7 +903,7 @@ sub dist_start {
 	
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
-		logMsg($LOG,$PROGRAM,"Can't read any running distributions from the CDS Portal");
+		logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 		return;
 	}
 	
@@ -1085,7 +1079,7 @@ sub dist_start_new {
 		
 		# Stop if no running distributions are found (or maybe unable to connect to CDS)
 		if(!%cds) {
-			logMsg($LOG,$PROGRAM,"Can't read any running distributions from the CDS Portal");
+			logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 			return;
 		}
 		
@@ -1204,7 +1198,7 @@ sub dist_stop {
 	
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
-		logMsg($LOG,$PROGRAM,"Can't read any running distributions from the CDS Portal");
+		logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 		return;
 	}
 	
@@ -1269,7 +1263,7 @@ sub dist_status {
 	
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
-		logMsg($LOG,$PROGRAM,"Can't read any running distributions from the CDS Portal");
+		logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 		return;
 	}
 	
@@ -1788,7 +1782,7 @@ sub cds_db_connect {
 	
 	# Error raised during connection
 	if ($@) {
-		logMsg($LOG,$PROGRAM,"Can't connect to CDS Portal: ".$DBI::errstr);
+		logMsg($LOG,$PROGRAM,"Can't connect to CDS Portal: ".$@);
 		return;
 	}
 	return $dbh;

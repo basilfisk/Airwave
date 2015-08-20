@@ -38,8 +38,8 @@ $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME}=0;
 
 # Airwave modules
 use lib "$ROOT";
-use mods::API qw(apiData apiDML apiMessage apiSelect apiStatus);
-use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal parseDocument readConfig);
+use mods::API qw(apiData apiDML apiFileDownload apiMessage apiMetadata apiSelect apiStatus);
+use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
 
 # Program information
 our $PROGRAM = "cds.pl";
@@ -555,9 +555,8 @@ sub dist_notify_update_notified {
 # This is done through links from the Content Repository
 # ---------------------------------------------------------------------------------------------
 sub dist_prepare {
-	my($status,$msg,%error,%distros,$errorfound,$metadir,$filmdir,$distdir,$rc,$fullname,%distribution,$pending);
-	my($distid,$distname,$filmcode,$package);
-	my($res,$file,$dir,$dh,@files);
+	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,$text,$file,%distribution,$pending);
+	my($distid,$distname,$filmcode,$package,$provider);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
@@ -591,18 +590,25 @@ sub dist_prepare {
 		$distname = $distros{$key}{dist_name};
 		$filmcode = $distros{$key}{asset_code};
 		$package = $distros{$key}{package};
+		$provider = $distros{$key}{provider};
 		logMsg($LOG,$PROGRAM,"Preparing [$filmcode] using package [$package]");
 		
 		# Clear the error flag
 		$errorfound = 0;
+		
+		# Check the package for the distribution
+		if (!$package) {
+			$errorfound = 1;
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Invalid package for distribution [$distname]");
+		}
 		
 		# ----------------------------------------------------------------------------
 		# Determine location of the distribution directory
 		# If sub-directory specified, add to root directory and substitute asset name
 		# ----------------------------------------------------------------------------
 		$distdir = "$CONFIG{DIST_ACTIVE}/$distname";
-		if($PACKAGES{$package}{directory}{output}) {
-			$distdir .= "/$PACKAGES{$package}{directory}{output}";
+		if($PACKAGES{$package}{distribution}{directory}) {
+			$distdir .= "/$PACKAGES{$package}{distribution}{directory}";
 			$distdir =~ s/\[asset\]/$filmcode/g;
 		}
 		
@@ -619,44 +625,149 @@ sub dist_prepare {
 		}
 		
 		# ----------------------------------------------------------------------------
-		# Prepare the metadata files
+		# Read the metadata from the Portal and create a file (JSON or XML)
 		# ----------------------------------------------------------------------------
-		# Process each metadata file referenced in the package
-		foreach my $type (sort keys %{$PACKAGES{$package}{meta}}) {
-			# Determine metadata directory and substitute asset name
-			if(!$PACKAGES{$package}{directory}{meta}) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read metadata directory for package '$package'");
-				next DISTRO;
+		foreach my $type (sort keys %{$PACKAGES{$package}{metadata}}) {
+			if ($type eq 'json' || $type eq 'xml') {
+				$text = apiMetadata('apMetadata',$filmcode,$type);
+#				if ($text) {
+#					 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER
+#					$errorfound = 1;
+#					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal: [code] text");
+#				}
+				writeFile("$distdir/$filmcode.$type",$text);
 			}
-			$metadir = "$PACKAGES{$package}{directory}{meta}";
-			$metadir =~ s/\[asset\]/$filmcode/g;
-			
-			# Link to metadata file
-			$rc = dist_prepare_link_file('meta',$type,$package,$filmcode,$metadir,$distdir);
-			if($rc) { $errorfound = 1; }
+			else {
+				$errorfound = 1;
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unrecognised type of metadata [$type]");
+			}
 		}
 		
 		# ----------------------------------------------------------------------------
-		# Prepare the film files
+		# Download the images from the Portal
 		# ----------------------------------------------------------------------------
-		# Process each film file referenced in the package
-		foreach my $type (sort keys %{$PACKAGES{$package}{film}}) {
-			# Determine film directory and substitute asset name
-			if(!$PACKAGES{$package}{directory}{film}) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read film directory for package '$package'");
-				next DISTRO;
+		foreach my $type (sort keys %{$PACKAGES{$package}{image}}) {
+			if ($type eq 'small' || $type eq 'large' || $type eq 'full' || $type eq 'hero' || $type eq 'landscape') {
+				$text = apiFileDownload("$filmcode-$type.jpg","$CONFIG{PORTAL_IMAGES}/$provider/$filmcode","$filmcode-$type.jpg",$distdir);
+#				if ($text) {
+#					 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER
+#					$errorfound = 1;
+#					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal: [code] text");
+#				}
 			}
-			$filmdir = "$PACKAGES{$package}{directory}{film}";
-			$filmdir =~ s/\[asset\]/$filmcode/g;
+			else {
+				$errorfound = 1;
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unrecognised type of image [$type]");
+			}
+		}
+		
+		# ----------------------------------------------------------------------------
+		# Prepare the film file
+		# ----------------------------------------------------------------------------
+		# Read film source directory, substitute asset name, then check it exists
+		$source = "$PACKAGES{$package}{film}{source}";
+		$source =~ s/\[asset\]/$filmcode/g;
+		if(!-d $source) {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read film directory '$source' for package '$package'");
+			$errorfound = 1;
+			# Skip remaining checks as they will all fail
+			next DISTRO;
+		}
+		
+		# Find the name of the most recent film file
+		if($PACKAGES{$package}{film}{clear}) {
+			$file = dist_prepare_file_name($source,$PACKAGES{$package}{film}{clear});
+		}
+		elsif($PACKAGES{$package}{film}{securemedia}) {
+			$file = dist_prepare_file_name($source,$PACKAGES{$package}{film}{securemedia});
+		}
+		elsif($PACKAGES{$package}{film}{verimatrix}) {
+			$file = dist_prepare_file_name($source,$PACKAGES{$package}{film}{verimatrix});
+		}
+		else {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film type for package '$package' can only be: clear, securemedia or verimatrix");
+			$errorfound = 1;
+			# Skip remaining checks as they will all fail
+			next DISTRO;
+		}
+		
+		# Check whether film file exists
+		if(-f "$source/$file") {
+			# Drop existing link to film file
+			if(-l "$distdir/$file") {
+				$res = `rm $distdir/$file 2>&1`;
+				if($res) {
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to drop existing link to film file '$distdir/$file': $res");
+					$errorfound = 1;
+				}
+			}
 			
-			# Link to film file
-			$rc = dist_prepare_link_file('film',$type,$package,$filmcode,$filmdir,$distdir);
-			if($rc) { $errorfound = 1; }
+			# Create link
+			$res = `ln -s $source/$file $distdir/$file 2>&1`;
+			if($res) {
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to film file '$source/$file': $res");
+				$errorfound = 1;
+			}
+			else {
+				logMsg($LOG,$PROGRAM,"Link created to film file '$source/$file'");
+				# If link created successfully to securemedia file, link the SMA and MDM files as well
+				# Don't need to check for errors as these files will exist if the main securemedia file exists
+				if($PACKAGES{$package}{film}{securemedia}) {
+					$res = `ln -s $source/$file.mdm $distdir/$file.mdm 2>&1`;
+					$res = `ln -s $source/$file.sma $distdir/$file.sma 2>&1`;
+				}
+			}
+		}
+		# Can't find film file in repository
+		else {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film file not found '$source/$file'");
+			$errorfound = 1;
+		}
+		
+		# ----------------------------------------------------------------------------
+		# Prepare the trailer file
+		# ----------------------------------------------------------------------------
+		# Read trailer source directory, substitute asset name, then check it exists
+		$source = "$PACKAGES{$package}{trailer}{source}";
+		$source =~ s/\[asset\]/$filmcode/g;
+		if(!-d $source) {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read trailer directory '$source' for package '$package'");
+			$errorfound = 1;
+			# Skip remaining checks as they will all fail
+			next DISTRO;
+		}
+		
+		# Substitute the asset name
+		# TODO Does not cater for encrypted trailers
+		$file = $PACKAGES{$package}{trailer}{clear};
+		$file =~ s/\[asset\]/$filmcode/g;
+		
+		# Check whether trailer file exists
+		if(-f "$source/$file") {
+			# Check whether file already linked
+			if(!-l "$distdir/$file") {
+				$res = `ln -s $source/$file $distdir/$file 2>&1`;
+				if($res) {
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
+					$errorfound = 1;
+				}
+				else {
+					logMsg($LOG,$PROGRAM,"Creating link to trailer file '$source/$file'");
+				}
+			}
+			else {
+				logMsg($LOG,$PROGRAM,"Link to trailer file exists '$distdir/$file'");
+			}
+		}
+		# Can't find trailer file
+		else {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Trailer file not found $source/$file");
+			$errorfound = 1;
 		}
 		
 		# ----------------------------------------------------------------------------
 		# If the error count has already been initialised, add the current status,
-		# otherwise nitialise the error count with the current status
+		# otherwise initialise the error count with the current status
 		# ----------------------------------------------------------------------------
 		if(defined($distribution{$distid})) {
 			$distribution{$distid} = [($distname,(@{$distribution{$distid}})[1]+$errorfound)];
@@ -747,71 +858,6 @@ sub dist_prepare_file_name {
 		# Return the name of the newest film
 		return $newest;
 	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Create links for an asset file
-#
-# Argument 1 : Class of file (film,meta)
-# Argument 2 : Type of file
-# Argument 3 : Reference of package
-# Argument 4 : Reference code of asset
-# Argument 5 : Repository directory
-# Argument 6 : Distribution directory
-#
-# Return 1 if an error is trapped, 0 otherwise
-# ---------------------------------------------------------------------------------------------
-sub dist_prepare_link_file {
-	my($class,$type,$package,$filmcode,$repodir,$distdir) = @_;
-	my($file,$res);
-	
-	# Don't do anything if the file is not referenced in the package
-	if($PACKAGES{$package}{$class}{$type}) {
-		# Determine file name from pattern for film files
-		if($class eq 'film') {
-			$file = dist_prepare_file_name($repodir,$PACKAGES{$package}{$class}{$type});
-		}
-		# Substitute asset name for metadata and trailer files
-		else {
-			$file = $PACKAGES{$package}{$class}{$type};
-			$file =~ s/\[asset\]/$filmcode/g;
-		}
-		
-		# Stop if problem determining file name
-		if(!$file) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: File type '$type' not found in '$repodir'");
-			return 1;
-		}
-		
-		# Check whether file exists
-		if(-f "$repodir/$file") {
-			# Check whether file already linked
-			if(!-l "$distdir/$file") {
-				$res = `ln -s $repodir/$file $distdir/$file 2>&1`;
-				if($res) {
-					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to file $repodir/$file: $res");
-					return 1;
-				}
-				else {
-					logMsg($LOG,$PROGRAM,"Creating link to file [$repodir/$file]");
-				}
-			}
-			else {
-				logMsg($LOG,$PROGRAM,"Link to file exists [$distdir/$file]");
-			}
-		}
-		# Can't find file (don't raise error for missing trailer)
-		else {
-			if($type ne 'trailer') {
-				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: File not found $repodir/$file");
-				return 1;
-			}
-		}
-	}
-	
-	return 0;
 }
 
 

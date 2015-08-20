@@ -86,11 +86,8 @@ sub main {
 		# Film processing options
 		tkMenu('Preparation');
 		tkMenuOption('Preparation','Ingest Film','ingest_film','ask');
-		tkMenuOption('Preparation','Play Downloaded Films','play_film','ask');
-		
-		# Data transfer
-		tkMenu('Transfer');
-		tkMenuOption('Transfer','Load USB Disk','load_disk','ask');
+		tkMenuSeparator('Preparation');
+		tkMenuOption('Preparation','Load USB Disk','load_disk','ask');
 		
 		# Log files
 		tkMenu('Logs');
@@ -105,12 +102,10 @@ sub main {
 	# Functions available on the Distribution Server
 	if($SERVER eq 'distro' || $SERVER eq 'bf') {
 		# Daemon process options
-		tkMenu('Processes');
-		tkMenuOption('Processes','Start CDS Processes','cds_start','ask');
-		tkMenuOption('Processes','Stop CDS Processes','cds_stop','ask');
-		tkMenuOption('Processes','Status of CDS Processes','cds_status','ask');
-		tkMenuSeparator('Processes');
-		tkMenuOption('Processes','Restart CDS Transfer Agent','cds_ta_restart','ask');
+		tkMenu('Distribution');
+		tkMenuOption('Distribution','Start CDS Processes','cds_start','ask');
+		tkMenuOption('Distribution','Stop CDS Processes','cds_stop','ask');
+		tkMenuOption('Distribution','Status of CDS Processes','cds_status','ask');
 		
 		# Log files
 		tkMenu('Logs');
@@ -266,7 +261,6 @@ sub read_listvalues {
 	
 	# Create hash
 	foreach my $id (keys %data) {
-#		($group,$item) = @{$data{$id}};
 		$group = $data{$id}{type};
 		$item = $data{$id}{value};
 		$LISTVALUES{$group}{$item} = $id;
@@ -292,26 +286,6 @@ sub read_sites {
 	}
 	return apiData($msg);
 }
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Read a list of territories from the Portal
-#
-# Return a hash keyed by territory name with the territory code as the value
-# ---------------------------------------------------------------------------------------------
-#sub read_territories {
-#	my($status,$msg,%error);
-#	
-#	($msg) = apiSelect('menuTerritories');
-#	($status,%error) = apiStatus($msg);
-#	if(!$status) {
-#		logMsg($LOG,$PROGRAM,"No territories returned from database");
-#		logMsg($LOG,$PROGRAM,$msg);
-#		return;
-#	}
-#	return apiData($msg);
-#}
 
 
 
@@ -420,9 +394,6 @@ sub ingest_film {
 	# Read list of films from database for the default content provider
 	%films = read_films($PROVIDER[0]);
 	@filmlist = sort keys %films;
-#	foreach my $film (sort keys %films) {
-#		push(@filmlist,$film);
-#	}
 	
 	# Display the parameters dialog
 	if($action eq 'ask') {
@@ -458,7 +429,7 @@ sub ingest_film {
 		tkDropdown('ingest_film','di_file',$x2,$y,50,'',@files);
 		
 		# Asset type
-		foreach my $value (sort keys $LISTVALUES{'Asset Type'}) {
+		foreach my $value (sort keys %{$LISTVALUES{'Asset Type'}}) {
 			push(@types,$value);
 		}
 		$y += $TOPLEFT{yinc};
@@ -466,7 +437,7 @@ sub ingest_film {
 		tkDropdown('ingest_film','di_type',$x2,$y,15,'',@types);
 		
 		# Asset quality
-		foreach my $value (sort keys $LISTVALUES{'Content Quality'}) {
+		foreach my $value (sort keys %{$LISTVALUES{'Content Quality'}}) {
 			push(@qualities,$value);
 		}
 		$y += $TOPLEFT{yinc};
@@ -520,11 +491,6 @@ sub ingest_film {
 		# Read the asset code of the selected film
 		%films = read_films($prov);
 		$asset = $films{$filmname}{asset_code};
-#		foreach my $f (sort keys %films) {
-#			if($filmname eq $f) {
-#				$asset = @{$films{$f}}[0];
-#			}
-#		}
 		if(!$asset) {
 			tkOption('ingest_film','Film Ingestion','The selected film does not have an asset code','OK');
 			return;
@@ -534,7 +500,7 @@ sub ingest_film {
 		$test = (tkCheckBoxValue('di_test')) ? '-test' : '';
 		
 		# Run the ingestion
-		system("$ROOT/ingest_film.pl -action=ingest -asset=$asset -batch=$batch -file=$file -type=$type -quality=$quality $test -log");
+		system("$ROOT/ingest_film.pl -asset=$asset -batch=$batch -file=$file -type=$type -quality=$quality $test -log");
 		
 		# Close the parameter dialog
 		tkClose('ingest_film');
@@ -613,7 +579,6 @@ sub load_disk {
 	else {
 		# Read the parameters
 		$site = tkDropdownAction('ld_site','value');
-#		$site = pop(@{$sites{$site}});
 		$site = $sites{$site}{site_code};
 		$args = "-site=$site";
 		$todo = (tkRadioButtonValue('ld_todo') eq 'Copy') ? 'copy' : 'show';
@@ -643,76 +608,6 @@ sub load_disk {
 		
 		# Show log file
 		view_log("Log for Load a USB Disk with Films",'load_disk.log');
-	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Display the 'Play Downloaded Films' parameters form and run the command
-#
-# Argument 1 : 'ask' will display the parameters form, undef will run the command
-# ---------------------------------------------------------------------------------------------
-sub play_film {
-	my($action) = @_;
-	my($dh,$dir,@dirfiles,@batches,@films,$idx);
-	my $x2 = $TOPLEFT{x}+$TOPLEFT{xinc};
-	my $y = $TOPLEFT{y};
-	
-	# Read the list of batch directories
-	$dir = $CONFIG{CS_DOWNLOAD};
-	if(!opendir($dh,$dir)) {
-		tkOption('Airwave','View Films',"Can't read directory [$dir]",'OK');
-		return;
-	}
-	@dirfiles = readdir($dh);
-	closedir($dh);
-	push(@batches,grep { !/^\./ } sort @dirfiles);
-	
-	# Read the list of film files
-	foreach my $batch (@batches) {
-		if(!opendir($dh,"$dir/$batch")) {
-			tkOption('Airwave','View Films',"Can't read directory [$dir/$batch]",'OK');
-			return;
-		}
-		@dirfiles = readdir($dh);
-		closedir($dh);
-		@dirfiles = grep { !/^\./ } @dirfiles;
-		@dirfiles = grep { /\.mpg$/i || /\.m2t$/i || /\.ts$/i } @dirfiles;
-		foreach my $file (@dirfiles) {
-			push(@films,"$batch/$file");
-		}
-	}
-	
-	# Quit if there aren't any films
-	if(!@films) {
-		tkOption('Airwave','View Films','There are no films available for viewing','OK');
-		return;
-	}
-	
-	# Display the parameters dialog
-	if($action eq 'ask') {
-		# Create the dialog box
-		tkDialogOpen('Airwave','localfilms',100,300,550,310,"Play Downloaded Films");
-		
-		# Film list
-		tkLabel('localfilms',$TOPLEFT{x},$y,'Films');
-		$y += $TOPLEFT{yinc}-10;
-		tkDropdown('localfilms','lf_films',$TOPLEFT{x},$y,80,'',@films);
-		
-		# OK and Cancel buttons
-		my($y,$b1x,$b2x) = button_coords(550,310,2,8);
-		tkButton('localfilms',$b1x,$y,8,'OK','play_film');
-		tkButton('localfilms',$b2x,$y,8,'Cancel');
-	}
-	# Run the command
-	else {
-		# Read the period selected by the user
-		$idx = tkDropdownAction('lf_films','value');
-		system("vlc $dir/$idx");
-		
-		# Close the parameter dialog
-		tkClose('localfilms');
 	}
 }
 
@@ -755,25 +650,5 @@ sub cds_stop {
 	system("$ROOT/cdsd stop");
 	view_log("Log for the CDS Daemon processes",'cdsd.log');
 }
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Status of the CDS Transfer Agent daemon processes
-# ---------------------------------------------------------------------------------------------
-sub cds_ta_restart  {
-	my $log = "/tmp/airship-test";
-	
-	system("sudo airship -t");
-	system("sudo airship");
-	system("ps -ef | grep /usr/bin/airship | grep -v grep | grep -v update > $log");
-	if(-z $log) {
-		tkOption('Airwave','CDS Transfer Agent',"The CDS Transfer Agent is NOT running",'OK');
-	}
-	else {
-		tkOption('Airwave','CDS Transfer Agent',"The CDS Transfer Agent is running",'OK');
-	}
-}
-
 
 

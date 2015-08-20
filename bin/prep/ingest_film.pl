@@ -23,11 +23,8 @@ use strict;
 use warnings;
 
 # System modules
-use Digest::MD5;
 use Getopt::Long;
-use IO::File;
-use Image::ExifTool qw(:Public);
-use XML::Writer;
+use Data::Dumper;
 
 # Breato modules
 use lib "$ROOT";
@@ -86,8 +83,7 @@ main();
 # Ingest the asset
 # ---------------------------------------------------------------------------------------------
 sub main {
-	my($status,$msg,%error,%film,$cid,$aid,$provider,$filename,$assetid);
-	my($new,$msg,$type,$file,$dh,@dirfiles);
+	my($status,$msg,%error,%film,$cid,$aid,$provider,$filename,$assetid,$new,$type,$file,$dh,@dirfiles);
 	
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	
@@ -114,7 +110,9 @@ sub main {
 		# No film found on Portal
 		error("No film matching [$ASSET] - film must be active and delivered");
 	}
-	($cid,$aid,$provider) = @{$film{$ASSET}};
+	$cid = $film{$ASSET}{'content_id'};
+	$aid = $film{$ASSET}{'asset_id'};
+	$provider = $film{$ASSET}{'provider'};
 	
 	# Check content provider's directory exists
 	if(!-d "$CONFIG{CS_ROOT}/$provider") {
@@ -210,9 +208,7 @@ sub main {
 	}
 	
 	# Set ingest date on Portal, then generate metadata file and upload to Portal
-	if(!$TEST) {
-		update_ingest_date($cid);
-	}
+	update_ingest_date($cid);
 }
 
 
@@ -644,7 +640,8 @@ sub read_listvalues {
 	
 	# Create hash
 	foreach my $id (keys %data) {
-		($group,$item) = @{$data{$id}};
+		$group = $data{$id}{'type'};
+		$item = $data{$id}{'value'};
 		$LISTVALUES{$group}{$item} = $id;
 	}
 }
@@ -668,7 +665,11 @@ sub read_pids {
 	
 	# Load a hash for each type of stream
 	foreach my $key (keys %data) {
-		($lang,$pid,$provider,$type,$codec) = @{$data{$key}};
+		$lang = $data{$key}{'code'};
+		$pid = $data{$key}{'pid'};
+		$provider = $data{$key}{'provider'};
+		$type = $data{$key}{'type'};
+		$codec = $data{$key}{'codec'};
 		if($type eq 'audio') {
 			$AUDIO_PIDS{"$provider-$codec-$pid"} = [($provider,$codec,$pid,$lang)];
 		}
@@ -687,7 +688,7 @@ sub read_pids {
 # Create a hash holding stream values
 # ---------------------------------------------------------------------------------------------
 sub read_streams {
-	my($status,$msg,%error,%data,$id);
+	my($status,$msg,%error,%data);
 	
 	# Read PIDs
 	($msg) = apiSelect('ingestStreams');
@@ -700,8 +701,7 @@ sub read_streams {
 	
 	# Create hash
 	foreach my $key (keys %data) {
-		($id) = @{$data{$key}};
-		$STREAMS{$key} = $id;
+		$STREAMS{$key} = $data{$key}{'stream_id'};
 	}
 }
 
@@ -718,29 +718,31 @@ sub update_asset {
 	my($cid) = @_;
 	my($status,$msg,%error,%data,$typ,$enc,$qty,$aid,$name,$size,$md5);
 	
-	# Skip if running in test mode
-	if(!$TEST) {
-		# Check whether an asset record exists
-		($msg) = apiSelect('ingestAssetCheck',"contentid=$cid","type=$ASSETTYPE","encoding=$ASSETINFO{'STREAM'}{'CODING'}");
-		($status,%error) = apiStatus($msg);
-		if(!$status) {
-			error("Can't read asset record for content '$ASSET': $error{MESSAGE}");
+	# Check whether an asset record exists
+	($msg) = apiSelect('ingestAssetCheck',"contentid=$cid","type=$ASSETTYPE","encoding=$ASSETINFO{'STREAM'}{'CODING'}");
+	($status,%error) = apiStatus($msg);
+	if(!$status) {
+		error("Can't read asset record for content '$ASSET': $error{MESSAGE}");
+	}
+	%data = apiData($msg);
+	
+	# Get list IDs from values 
+	$typ = $LISTVALUES{'Asset Type'}{$ASSETTYPE};
+	$enc = $LISTVALUES{'Asset Encoding'}{$ASSETINFO{'STREAM'}{'CODING'}};
+	$qty = $LISTVALUES{'Content Quality'}{$QUALITY};
+	
+	# Asset details
+	$name = $ASSETINFO{'FILE'}{'NAME'};
+	$size = $ASSETINFO{'FILE'}{'SIZE'};
+	$md5 = $ASSETINFO{'FILE'}{'MD5SUM'};
+	
+	# Update record if asset already exists
+	if(%data) {
+		$aid = (keys %data)[0];
+		if($TEST) {
+			logMsg($LOG,$PROGRAM,"TEST: Updated '$ASSETINFO{'STREAM'}{'CODING'}' asset record for $ASSETTYPE '$ASSET'");
 		}
-		%data = apiData($msg);
-		
-		# Get list IDs from values 
-		$typ = $LISTVALUES{'Asset Type'}{$ASSETTYPE};
-		$enc = $LISTVALUES{'Asset Encoding'}{$ASSETINFO{'STREAM'}{'CODING'}};
-		$qty = $LISTVALUES{'Content Quality'}{$QUALITY};
-		
-		# Asset details
-		$name = $ASSETINFO{'FILE'}{'NAME'};
-		$size = $ASSETINFO{'FILE'}{'SIZE'};
-		$md5 = $ASSETINFO{'FILE'}{'MD5SUM'};
-		
-		# Update record if asset already exists
-		if(%data) {
-			$aid = shift [(keys %data)];
+		else {
 			($msg) = apiDML('ingestAssetUpdate',"id=$aid","contentid=$cid","type=$typ","encoding=$enc","quality=$qty","name=$name","size=$size","md5=$md5");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
@@ -750,7 +752,12 @@ sub update_asset {
 				logMsg($LOG,$PROGRAM,"Updated '$ASSETINFO{'STREAM'}{'CODING'}' asset record for $ASSETTYPE '$ASSET'");
 			}
 		}
-		# If asset does not exist, create new asset record
+	}
+	# If asset does not exist, create new asset record
+	else {
+		if($TEST) {
+			logMsg($LOG,$PROGRAM,"TEST: Created asset record for $ASSETTYPE '$ASSET' set to '$ASSETINFO{'STREAM'}{'CODING'}'");
+		}
 		else {
 			($msg) = apiDML('ingestAssetInsert',"contentid=$cid","type=$typ","encoding=$enc","quality=$qty","name=$name","size=$size","md5=$md5");
 			($status,%error) = apiStatus($msg);
@@ -768,12 +775,12 @@ sub update_asset {
 				error("Could not find ID of asset record for $ASSETTYPE '$ASSET' encoded as '$ASSETINFO{'STREAM'}{'CODING'}': $error{MESSAGE}");
 			}
 			%data = apiData($msg);
-			$aid = shift [(keys %data)];
+			$aid = (keys %data)[0];
 		}
-		
-		# Return asset ID
-		return $aid;
 	}
+	
+	# Return asset ID
+	return $aid;
 }
 
 
@@ -794,7 +801,7 @@ sub update_ingest_date {
 	else {
 		# Update the new release flag
 		logMsg($LOG,$PROGRAM,"Updating ingestion date for '$ASSET'");
-		($msg) = apiDML('ingestUpdateIngestDate',"id=$id","ingested=".formatDateTime('zd mon cczy'));
+		($msg) = apiDML('ingestUpdateIngestDate',"id=$id","ingested='".formatDateTime('zd mon cczy')."'");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			error("Could not update the ingestion date for '$ASSET': $error{MESSAGE}");

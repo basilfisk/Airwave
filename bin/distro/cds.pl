@@ -219,7 +219,7 @@ sub dist_catalogue {
 # Set the end date for CDS batches that finished
 # ---------------------------------------------------------------------------------------------
 sub dist_ended {
-	my($status,$msg,%error,%cms,%cds,$distname,$ended,$res);
+	my($status,$msg,%error,%cms,%cds,$distname,$ended,$res,$distdir);
 	my $count = 0;
 	
 	# Start up message
@@ -276,13 +276,16 @@ sub dist_ended {
 		}
 		logMsg($LOG,$PROGRAM,"Ended date set to $ended for distribution [$distname]");
 		
-		# Move the distribution directory to a directory where it can be reused if required
-		$res = `mv $CONFIG{DIST_ACTIVE}/$distname $CONFIG{DIST_COMPLETE} 2>&1`;
-		if($res) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Ended: Unable to move $CONFIG{DIST_ACTIVE}/$distname to $CONFIG{DIST_COMPLETE}: $res");
-		}
-		else {
-			logMsg($LOG,$PROGRAM,"Moving $CONFIG{DIST_ACTIVE}/$distname to $CONFIG{DIST_COMPLETE}");
+		# Remove the directory tree and all files for the distribution
+		$distdir = "$CONFIG{DISTRIBUTION}/$distname";
+		if(-d $distdir) {
+			$res = `rm -r $distdir 2>&1`;
+			if($res) {
+				logMsgPortal($LOG,$PROGRAM,'E',"Ended: Unable to remove directory '$distdir': $res");
+			}
+			else {
+				logMsg($LOG,$PROGRAM,"Ended: Removing directory [$distdir]");
+			}
 		}
 	}
 	
@@ -591,6 +594,7 @@ sub dist_prepare {
 		$filmcode = $distros{$key}{asset_code};
 		$package = $distros{$key}{package};
 		$provider = $distros{$key}{provider};
+		logMsg($LOG,$PROGRAM,"Distribution [$distname]");
 		logMsg($LOG,$PROGRAM,"Preparing [$filmcode] using package [$package]");
 		
 		# Clear the error flag
@@ -606,7 +610,7 @@ sub dist_prepare {
 		# Determine location of the distribution directory
 		# If sub-directory specified, add to root directory and substitute asset name
 		# ----------------------------------------------------------------------------
-		$distdir = "$CONFIG{DIST_ACTIVE}/$distname";
+		$distdir = "$CONFIG{DISTRIBUTION}/$distname";
 		if($PACKAGES{$package}{distribution}{directory}) {
 			$distdir .= "/$PACKAGES{$package}{distribution}{directory}";
 			$distdir =~ s/\[asset\]/$filmcode/g;
@@ -692,12 +696,16 @@ sub dist_prepare {
 		}
 		
 		# Check whether film file exists
-		if(-f "$source/$file") {
+		if(!-f "$source/$file") {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film file not found '$source/$file'");
+			$errorfound = 1;
+		}
+		else {
 			# Drop existing link to film file
 			if(-l "$distdir/$file") {
 				$res = `rm $distdir/$file 2>&1`;
 				if($res) {
-					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to drop existing link to film file '$distdir/$file': $res");
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to film file '$distdir/$file': $res");
 					$errorfound = 1;
 				}
 			}
@@ -709,7 +717,7 @@ sub dist_prepare {
 				$errorfound = 1;
 			}
 			else {
-				logMsg($LOG,$PROGRAM,"Link created to film file '$source/$file'");
+				logMsg($LOG,$PROGRAM,"Created link to film file '$source/$file'");
 				# If link created successfully to securemedia file, link the SMA and MDM files as well
 				# Don't need to check for errors as these files will exist if the main securemedia file exists
 				if($PACKAGES{$package}{film}{securemedia}) {
@@ -717,11 +725,6 @@ sub dist_prepare {
 					$res = `ln -s $source/$file.sma $distdir/$file.sma 2>&1`;
 				}
 			}
-		}
-		# Can't find film file in repository
-		else {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film file not found '$source/$file'");
-			$errorfound = 1;
 		}
 		
 		# ----------------------------------------------------------------------------
@@ -742,27 +745,26 @@ sub dist_prepare {
 		$file = $PACKAGES{$package}{trailer}{clear};
 		$file =~ s/\[asset\]/$filmcode/g;
 		
-		# Check whether trailer file exists
+		# Check whether trailer file exists (optional, as film may not have a trailer)
 		if(-f "$source/$file") {
-			# Check whether file already linked
-			if(!-l "$distdir/$file") {
-				$res = `ln -s $source/$file $distdir/$file 2>&1`;
+			# Delete link if it already already exists
+			if(-l "$distdir/$file") {
+				$res = `rm $distdir/$file 2>&1`;
 				if($res) {
-					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to trailer file '$distdir/$file': $res");
 					$errorfound = 1;
 				}
-				else {
-					logMsg($LOG,$PROGRAM,"Creating link to trailer file '$source/$file'");
-				}
+			}
+			
+			# Create link
+			$res = `ln -s $source/$file $distdir/$file 2>&1`;
+			if($res) {
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
+				$errorfound = 1;
 			}
 			else {
-				logMsg($LOG,$PROGRAM,"Link to trailer file exists '$distdir/$file'");
+				logMsg($LOG,$PROGRAM,"Created link to trailer file '$source/$file'");
 			}
-		}
-		# Can't find trailer file
-		else {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Trailer file not found $source/$file");
-			$errorfound = 1;
 		}
 		
 		# ----------------------------------------------------------------------------
@@ -788,7 +790,7 @@ sub dist_prepare {
 			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Errors found while preparing distribution '$distname'");
 			
 			# Remove the directory tree and all files for the distribution
-			$distdir = "$CONFIG{DIST_ACTIVE}/$distname";
+			$distdir = "$CONFIG{DISTRIBUTION}/$distname";
 			if(-d $distdir) {
 				$res = `rm -r $distdir 2>&1`;
 				if($res) {
@@ -1176,7 +1178,7 @@ END
 # Stop a distribution on CDS
 # ---------------------------------------------------------------------------------------------
 sub dist_stop {
-	my($status,$msg,%error,%distros,%cds,$distname,$cdsid,$ended,$response);
+	my($status,$msg,%error,%distros,%cds,$distname,$cdsid,$ended,$response,$distdir);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
@@ -1231,6 +1233,18 @@ sub dist_stop {
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Stop: Ended date for distribution '$distname' has not been set on Portal [$error{CODE}] $error{MESSAGE}");
+		}
+		
+		# Remove the directory tree and all files for the distribution
+		$distdir = "$CONFIG{DISTRIBUTION}/$distname";
+		if(-d $distdir) {
+			$res = `rm -r $distdir 2>&1`;
+			if($res) {
+				logMsgPortal($LOG,$PROGRAM,'E',"Stop: Unable to remove directory '$distdir': $res");
+			}
+			else {
+				logMsg($LOG,$PROGRAM,"Stop: Removing directory [$distdir]");
+			}
 		}
 		
 		# All done

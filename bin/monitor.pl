@@ -129,7 +129,7 @@ SQL_RUNNING
 	
 	# Error raised during connection
 	if ($@) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Can't connect to CDS Portal: ".$DBI::errstr);
+		logMsgPortal($LOG,$PROGRAM,'E',"Can't connect to CDS Portal: ".$@);
 		return 0;
 	}
 	

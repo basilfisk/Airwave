@@ -1178,7 +1178,7 @@ END
 # Stop a distribution on CDS
 # ---------------------------------------------------------------------------------------------
 sub dist_stop {
-	my($status,$msg,%error,%distros,%cds,$distname,$cdsid,$ended,$response,$distdir);
+	my($status,$msg,%error,%distros,%cds,$distname,$cdsid,$ended,$response,$distdir,$res);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");

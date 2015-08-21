@@ -648,7 +648,7 @@ sub dist_prepare {
 			if ($type eq 'small' || $type eq 'large' || $type eq 'full' || $type eq 'hero' || $type eq 'landscape') {
 				$text = apiFileDownload("$filmcode-$type.jpg","$CONFIG{PORTAL_IMAGES}/$provider/$filmcode","$filmcode-$type.jpg",$distdir);
 #				if ($text) {
-#					 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER
+#					 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER. DON'T FAIL IF IMAGE TYPE IS NOT ON PORTAL
 #					$errorfound = 1;
 #					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal: [code] text");
 #				}

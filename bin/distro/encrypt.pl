@@ -95,30 +95,33 @@ sub main {
 		$catalogue = $films{$key}{sm_catalogue};
 		$keylength = $films{$key}{sm_key_length};
 		
-		# SecureMedia encryption
-		if($encryption eq 'securemedia') {
-			# If this film is not for the same server as the last, check parameters are present then register
-			if($lastsvr ne $svrcode) {
-				securemedia_check($url,$user,$pass,$catalogue,$keylength);
-				$ok = securemedia_register($svrname,$url,$user,$pass,$keylength);
-			}
-			
-			# Only encrypt films if successfully registered with the server
-			if($ok) {
-				# Create the name of the film file
-				$asset = get_file_name("$CONFIG{CS_ROOT}/$provider",$filmcode);
+		# Does this content need encrypting?
+		if($encryption) {
+			# SecureMedia encryption
+			if($encryption eq 'securemedia') {
+				# If this film is not for the same server as the last, check parameters are present then register
+				if($lastsvr ne $svrcode) {
+					securemedia_check($url,$user,$pass,$catalogue,$keylength);
+					$ok = securemedia_register($svrname,$url,$user,$pass,$keylength);
+				}
 				
-				# Encrypt using SecureMedia
-				$source = "$CONFIG{CS_ROOT}/$provider/$filmcode/$asset";
-				securemedia_encrypt($svrcode,$catalogue,$keylength,$filmname,$source,$filmcode,$asset,$provider);
-				
-				# Reset last server name
-				$lastsvr = $svrcode;
+				# Only encrypt films if successfully registered with the server
+				if($ok) {
+					# Create the name of the film file
+					$asset = get_file_name("$CONFIG{CS_ROOT}/$provider",$filmcode);
+					
+					# Encrypt using SecureMedia
+					$source = "$CONFIG{CS_ROOT}/$provider/$filmcode/$asset";
+					securemedia_encrypt($svrcode,$catalogue,$keylength,$filmname,$source,$filmcode,$asset,$provider);
+					
+					# Reset last server name
+					$lastsvr = $svrcode;
+				}
 			}
-		}
-		# For anything else, throw a warning and stop
-		else {
-			logMsgPortal($LOG,$PROGRAM,'W',"[$encryption] is an unsupported method of encryption ");
+			# For anything else, throw an error
+			else {
+				logMsgPortal($LOG,$PROGRAM,'E',"[$encryption] is an unsupported method of encryption ");
+			}
 		}
 	}
 }

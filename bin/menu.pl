@@ -93,6 +93,8 @@ sub main {
 		tkMenuOption('Logs',$name,'view_log',$name,'menu.log');
 		$name = 'Ingest Log';
 		tkMenuOption('Logs',$name,'view_log',$name,'ingest_film.log');
+		$name = 'Sync-Server Log';
+		tkMenuOption('Logs',$name,'view_log',$name,'sync-server.log');
 	}
 	
 	# Functions available on the Distribution Server

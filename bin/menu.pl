@@ -86,8 +86,6 @@ sub main {
 		# Film processing options
 		tkMenu('Preparation');
 		tkMenuOption('Preparation','Ingest Film','ingest_film','ask');
-		tkMenuSeparator('Preparation');
-		tkMenuOption('Preparation','Load USB Disk','load_disk','ask');
 		
 		# Log files
 		tkMenu('Logs');
@@ -95,8 +93,6 @@ sub main {
 		tkMenuOption('Logs',$name,'view_log',$name,'menu.log');
 		$name = 'Ingest Log';
 		tkMenuOption('Logs',$name,'view_log',$name,'ingest_film.log');
-		$name = 'Load USB Disk Log';
-		tkMenuOption('Logs',$name,'view_log',$name,'load_disk.log');
 	}
 	
 	# Functions available on the Distribution Server

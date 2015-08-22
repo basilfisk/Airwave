@@ -2,7 +2,7 @@
 # *********************************************************************************************
 # *********************************************************************************************
 #
-#  Load Airwave event data from files stored on server into Portal database
+#  Load Airwave event data from XML files into Portal database
 #
 #  There is one XML file for each site
 #
@@ -168,7 +168,7 @@ Version : v$VERSION
 Author  : Basil Fisk (c)2013 Airwave Ltd
 
 Summary :
-  Load the event data from the files stored on the local server into the Portal database.
+  Load the event data from XML files into the Portal database.
   There is one XML file for each site.
 
 Usage :

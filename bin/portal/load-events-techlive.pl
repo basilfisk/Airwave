@@ -2,9 +2,9 @@
 # *********************************************************************************************
 # *********************************************************************************************
 #
-#  Load event data from files stored on local server into Portal database.
+#  Load event data from CSV files into Portal database
 #
-#  There is one XML file for each site.
+#  There is one file for each site.
 #
 # *********************************************************************************************
 # *********************************************************************************************
@@ -22,7 +22,6 @@ use warnings;
 # System modules
 use Data::Dumper;
 use Getopt::Long;
-use XML::LibXML;
 
 # Breato modules
 use lib "$ROOT";
@@ -56,7 +55,6 @@ our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
 
 # Define date related variables
 our $CCYY = "20".substr($YYMM,0,2);
-our $MONTH = substr($YYMM,2,2);
 our @MONTHS = ('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
 
 # Directory in which events are created on the local server
@@ -78,7 +76,7 @@ main();
 # =============================================================================================
 sub main {
 	# Initialise local variables
-	my(%films,%refunds,%alias,%currencies,@files,$file,$site,%data,$key,$filename,$fh,$siterefunds,$refunded,$line,@flds,$currency,$charge,$datetime,$d,$t,$y,$m,$h,$i,$techlive,$filmname,$filmcode,$id,$classic,%unknown,@keys);
+	my(%films,%refunds,%alias,%currencies,@files,$file,$site,%data,$uid,$key,$filename,$fh,$siterefunds,$refunded,$line,@flds,$currency,$charge,$datetime,$date,$time,$d,$t,$y,$m,$h,$i,$techlive,$filmname,$filmcode,$id,$classic,%unknown,@keys);
 	my($status,$msg,%error);
 	
 	# Start up message
@@ -116,8 +114,7 @@ sub main {
 	($msg) = apiSelect('createEventTechliveFilms');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsg($LOG,$PROGRAM,"[$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"Error reading films from database");
+		logMsgPortal($LOG,$PROGRAM,'E',"Error reading films from database");
 		return;
 	}
 	%films = apiData($msg);
@@ -126,7 +123,7 @@ sub main {
 	($msg) = apiSelect('uipTechliveRefund',"month=$YYMM");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsg($LOG,$PROGRAM,"No Techlive refunds found on database for $YYMM");
+		logMsgPortal($LOG,$PROGRAM,'E',"No Techlive refunds found on database for $YYMM");
 	}
 	%refunds = apiData($msg);
 	
@@ -136,7 +133,7 @@ sub main {
 	($msg) = apiSelect('uipTechliveAliases');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsg($LOG,$PROGRAM,"No Techlive aliases found on database");
+		logMsgPortal($LOG,$PROGRAM,'E',"No Techlive aliases found on database");
 	}
 	%alias = apiData($msg);
 	
@@ -144,8 +141,7 @@ sub main {
 	($msg) = apiSelect('uipTechliveCurrency');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsg($LOG,$PROGRAM,"[$error{CODE}] $error{MESSAGE}");
-		logMsg($LOG,$PROGRAM,"Error reading currency codes from database");
+		logMsgPortal($LOG,$PROGRAM,'E',"Error reading currency codes from database");
 		return;
 	}
 	%currencies = apiData($msg);
@@ -157,6 +153,7 @@ sub main {
 		$site =~ s/_events//;
 		%data = ();
 		$key = 0;
+		$uid = "$YYMM/$file";
 		logMsg($LOG,$PROGRAM,"Site: $site");
 		
 		# Read the site data
@@ -171,19 +168,19 @@ sub main {
 			
 			# Check the currency code is registered on the Portal
 			if(@flds ne 4) {
-				logMsg($LOG,$PROGRAM," - Record must have 4 fields {techlive film ref},{DD/MM/YYYY HH24:MI},{amount},{currency}");
+				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Record must have 4 fields {techlive film ref},{DD/MM/YYYY HH24:MI},{amount},{currency}");
 				next RECORD;
 			}
 			
-			# Extract currency, force to lower case, and convert GBP to STG
+			# Extract currency, force to lower case, and convert STG to GBP
 			$currency = pop(@flds);
 			$currency =~ s/\s+//g;
 			$currency =~ tr[A-Z][a-z];
-			$currency = ($currency eq 'gbp') ? 'stg' : $currency;
+			$currency = ($currency eq 'stg') ? 'gbp' : $currency;
 			
 			# Check the currency code is registered on the Portal
 			if(!$currencies{$currency}) {
-				logMsg($LOG,$PROGRAM," - Unrecognised currency [$currency]");
+				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Unrecognised currency [$currency]");
 				next RECORD;
 			}
 			
@@ -194,11 +191,23 @@ sub main {
 			
 			# Extract the date/time and convert date from 'DD/MM/YYYY HH24:MI:SS' to 'DD Mon YYYY HH24:MI'
 			$datetime = pop(@flds);
-			($d,$t) = split(/ /,$datetime);
-			($d,$m,$y) = split(/\//,$d);
-			($h,$i) = split(/:/,$t);
-			if(!($d && $m && $y && $h && $i)) {
-				logMsg($LOG,$PROGRAM," - Date/time format should be 'DD/MM/YYYY HH24:MI' not [$datetime]");
+			($date,$time) = split(/ /,$datetime);
+			if(!($date && $time)) {
+				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Date/time format should be 'DD/MM/YYYY HH24:MI' not [$datetime]");
+				next RECORD;
+			}
+			
+			# Extract day, month and year
+			($d,$m,$y) = split(/\//,$date);
+			if(!($d && $m && $y)) {
+				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Date format should be 'DD/MM/YYYY' not [$date]");
+				next RECORD;
+			}
+			
+			# Extract hour and minute
+			($h,$i) = split(/:/,$time);
+			if(!($h && $i)) {
+				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Time format should be 'HH24:MI' not [$time]");
 				next RECORD;
 			}
 			$datetime = "$d $MONTHS[$m-1] $y $h:$i";
@@ -230,7 +239,7 @@ sub main {
 			else {
 				$filmcode = undef;
 				$unknown{$techlive} = $techlive;
-				logMsg($LOG,$PROGRAM," - Unrecognised film code [$techlive]");
+				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Unrecognised film code [$techlive]");
 				next RECORD;
 			}
 			
@@ -242,7 +251,7 @@ sub main {
 					$data{substr('0000'.$key,-5,5)} = [($site,$filmcode,$datetime,$charge,$currency)];
 				}
 				else {
-					logMsg($LOG,$PROGRAM," - Refund [$refunded] skipping film [$filmcode]");
+					logMsgPortal($LOG,$PROGRAM,'E',"$uid: Refund [$refunded] skipping film [$filmcode]");
 					$refunded++;
 				}
 			}
@@ -300,7 +309,7 @@ Version : v$VERSION
 Author  : Basil Fisk (c)2013 Airwave Ltd
 
 Summary :
-  Load the event data for Techlive stes from the files stored on the local server into the Portal database.
+  Load the event data for Techlive sites from CSV files into the Portal database.
   There is one CSV file for each site.
 
 Usage :

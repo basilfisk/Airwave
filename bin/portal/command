@@ -43,9 +43,13 @@ do
 	VALUE=(${VALUE//#/ })
 	# Check that parameter name is valid and convert value array back into a string
 	case "$NAME" in
+		asset)		ASSET=${VALUE[@]};;
 		command)	COMMAND=${VALUE[@]};;
 		company)	COMPANY=${VALUE[@]};;
+		directory)	DIRECTORY=${VALUE[@]};;
+		filename)	FILE=${VALUE[@]};;
 		film)		FILM=${VALUE[@]};;
+		language)	LANGUAGE=${VALUE[@]};;
 		package)	PACKAGE=${VALUE[@]};;
 		provider)	PROVIDER=${VALUE[@]};;
 		site)		SITE=${VALUE[@]};;
@@ -73,6 +77,29 @@ case "$COMMAND" in
 		# Run the script
 		msg "Running command: $ROOT/ingest_images.pl --film=$FILM --log"
 		$ROOT/ingest_images.pl --film=$FILM --log
+		;;
+	# Ingest VTT files
+	ing_vtt)
+		# Check the arguments are correct
+		if [ "$ASSET" == "" ]; then
+			msg "The 'asset' argument is missing"
+			exit
+		fi
+		if [ "$DIRECTORY" == "" ]; then
+			msg "The 'directory' argument is missing"
+			exit
+		fi
+		if [ "$FILE" == "" ]; then
+			msg "The 'file' argument is missing"
+			exit
+		fi
+		if [ "$LANGUAGE" == "" ]; then
+			msg "The 'lang' argument is missing"
+			exit
+		fi
+		# Run the script
+		msg "Running command: $ROOT/ingest_vtt.pl --directory=$DIRECTORY --file=$FILE --lang=$LANGUAGE --asset=$ASSET --log"
+		$ROOT/ingest_vtt.pl --directory=$DIRECTORY --file=$FILE --lang=$LANGUAGE --asset=$ASSET --log
 		;;
 	# Site inventory
 	inventory)

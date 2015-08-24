@@ -552,7 +552,7 @@ sub dist_notify_update_notified {
 # This is done through links from the Content Repository
 # ---------------------------------------------------------------------------------------------
 sub dist_prepare {
-	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,$text,$file,%distribution,$pending);
+	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,$text,%subtitles,$file,%distribution,$pending);
 	my($distid,$distname,$filmcode,$package,$provider);
 	
 	# Start up message
@@ -658,6 +658,31 @@ sub dist_prepare {
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unrecognised type of image [$type]");
 			}
 		}
+		
+		# ----------------------------------------------------------------------------
+		# If specified in package, download VTT sub-title files from the Portal
+		# ----------------------------------------------------------------------------
+		if($PACKAGES{$package}{subtitle}) {
+			# Read details of scheduled distributions
+			($msg) = apiSelect('cdsPrepareSubtitles',"assetcode=$filmcode");
+			($status,%error) = apiStatus($msg);
+			if(!$status) {
+				$errorfound = 1;
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Problem reading list of sub-title files [$error{CODE}] $error{MESSAGE}");
+			}
+			else {
+				%subtitles = apiData($msg);
+				foreach my $subtitle (keys %subtitles) {
+					$text = apiFileDownload($subtitle,"$CONFIG{PORTAL_VTT}/$provider/$filmcode",$subtitle,$distdir);
+#					if ($text) {
+#						 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER. DON'T FAIL IF IMAGE TYPE IS NOT ON PORTAL
+#						$errorfound = 1;
+#						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal: [code] text");
+#					}
+				}
+			}
+		}
+exit;
 		
 		# ----------------------------------------------------------------------------
 		# Prepare the film file

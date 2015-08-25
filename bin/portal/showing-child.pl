@@ -150,7 +150,7 @@ sub film_package {
 # Create a smaller image from an existing image
 #
 # Argument 1 : Asset reference
-# Argument 2 : Full name of temporary image file
+# Argument 2 : Full name of image file
 #
 # Return the name of the new image
 # ---------------------------------------------------------------------------------------------
@@ -159,7 +159,7 @@ sub film_image_resize {
 	my($ref,@tags,$info,$value,%settings,$h,$w,$ratio,$wide,$size,$result);
 	my $high = 200;
 	my $image = "$assetcode-show.jpg";
-
+	
 	# Skip if file already processed or image not downloaded
 	if(!-e "$TEMP/$image") {
 		# Read ALL the image characteristics
@@ -211,7 +211,7 @@ sub film_image_resize {
 sub film_page {
 	my($pack,$packname,$territory,$data_ref) = @_;
 	my(@sorted,$fh,$xml,$pdffile);
-	my($status,$msg,%error,%genre,$image,$lang,$ok);
+	my($status,$msg,%error,%genre,$jacket,$image,$lang,$ok);
 	my($provider,$film,$release,$duration,$cert,$title,$short,$full,$credits,$soundtracks,$subtitles,$credits_lab,$genres_lab,$duration_lab,$hdlogo,$genres);
 	my %data = %$data_ref;
 
@@ -273,10 +273,13 @@ sub film_page {
 		$credits =~ s/\\n/\@nl\@/g;
 		$credits =~ s/\n/\@nl\@/g;
 
-		# Read the poster image from the Portal into the temporary directory
-		$image = film_image_resize($film,"$ROOT/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg");
-		if(!$image) {
-			logMsgPortal($LOG,$PROGRAM,'W',"Can't find image for $title");
+		# If image exists, create a scaled copy in the temporary directory
+		$jacket = "$ROOT/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg";
+		if(-e $jacket) {
+			$image = film_image_resize($film,$jacket);
+		}
+		else {
+			logMsgPortal($LOG,$PROGRAM,'W',"Can't find image '$CONFIG{IMAGE_JACKET}/$provider/$film.jpg' for $title");
 		}
 
 		# Clean up invalid characters in text fields

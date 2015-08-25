@@ -219,7 +219,7 @@ sub dist_catalogue {
 # Set the end date for CDS batches that finished
 # ---------------------------------------------------------------------------------------------
 sub dist_ended {
-	my($status,$msg,%error,%cms,%cds,$distname,$ended,$res,$distdir);
+	my($status,$msg,%error,%cms,$ok,$cdsref,%cds,$distname,$ended,$res,$distdir);
 	my $count = 0;
 	
 	# Start up message
@@ -244,7 +244,12 @@ sub dist_ended {
 	}
 	
 	# Retrieve the list of running distributions
-	%cds = cds_sql_running();
+	($ok, $cdsref) = cds_sql_running();
+	if(!$ok) {
+		logMsg($LOG,$PROGRAM,"Could not read active distributions from the CDS Portal");
+		return;
+	}
+	%cds = %$cdsref;
 	
 	# Loop through each batch from the Portal and check if still running on CDS
 	DISTENDED: foreach my $cmsid (sort keys %cms) {
@@ -916,20 +921,19 @@ sub dist_prepare_packages {
 # Check whether any new distributions can be started on CDS, and start if they can
 # ---------------------------------------------------------------------------------------------
 sub dist_start {
-	my(%cds,$running,@runningnodes,$new);
+	my($ok,$cdsref,%cds,$running,@runningnodes,$new);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Start distributions on CDS");
 	
 	# Retrieve the list of running distributions
-	%cds = cds_sql_running();
-	
-	# Stop if no running distributions are found (or maybe unable to connect to CDS)
-	if(!%cds) {
-		logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
+	($ok, $cdsref) = cds_sql_running();
+	if(!$ok) {
+		logMsg($LOG,$PROGRAM,"Could not read active distributions from the CDS Portal");
 		return;
 	}
+	%cds = %$cdsref;
 	
 	# Create a list of sites that have running distributions
 	$running = keys(%cds);
@@ -962,7 +966,7 @@ sub dist_start {
 # ---------------------------------------------------------------------------------------------
 sub dist_start_new {
 	my($new,@runningnodes) = @_;
-	my(%sites,$site,$free,%freesite,%data,%content,@distlist,$seq,$response,$err,$xpc,@nodes,$cdsdistid,%cds,$start,%films);
+	my(%sites,$site,$free,%freesite,%data,%content,@distlist,$seq,$response,$err,$xpc,@nodes,$cdsdistid,$ok,$cdsref,%cds,$start,%films);
 	my($status,$msg,%error,%distros,$distname,$distid,$cdsnode,$notify,$contentid,$nodeid,$fs_node,$fs_free);
 	my %to_be_distrib = ();
 	
@@ -1099,7 +1103,12 @@ sub dist_start_new {
 		$cdsdistid = $nodes[0]->getAttribute('id');
 		
 		# Retrieve the list of running distributions
-		%cds = cds_sql_running();
+		($ok, $cdsref) = cds_sql_running();
+		if(!$ok) {
+			logMsg($LOG,$PROGRAM,"Could not read active distributions from the CDS Portal");
+			return;
+		}
+		%cds = %$cdsref;
 		
 		# Stop if no running distributions are found (or maybe unable to connect to CDS)
 		if(!%cds) {
@@ -1196,7 +1205,7 @@ END
 # Stop a distribution on CDS
 # ---------------------------------------------------------------------------------------------
 sub dist_stop {
-	my($status,$msg,%error,%distros,%cds,$distname,$cdsid,$ended,$response,$distdir,$res);
+	my($status,$msg,%error,%distros,$ok,$cdsref,%cds,$distname,$cdsid,$ended,$response,$distdir,$res);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
@@ -1218,7 +1227,12 @@ sub dist_stop {
 	}
 	
 	# Retrieve the list of running distributions
-	%cds = cds_sql_running();
+	($ok, $cdsref) = cds_sql_running();
+	if(!$ok) {
+		logMsg($LOG,$PROGRAM,"Could not read active distributions from the CDS Portal");
+		return;
+	}
+	%cds = %$cdsref;
 	
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
@@ -1276,14 +1290,19 @@ sub dist_stop {
 # Update the status of a CDS distribution
 # ---------------------------------------------------------------------------------------------
 sub dist_status {
-	my(%cds,$status,$msg,%error,%cms,$batch,@sites,$nod,$pct,$err);
+	my($ok,$cdsref,%cds,$status,$msg,%error,%cms,$batch,@sites,$nod,$pct,$err);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Check the status of distributions running on CDS");
 	
 	# Retrieve the list of running distributions
-	%cds = cds_sql_running();
+	($ok, $cdsref) = cds_sql_running();
+	if(!$ok) {
+		logMsg($LOG,$PROGRAM,"Could not read active distributions from the CDS Portal");
+		return;
+	}
+	%cds = %$cdsref;
 	
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
@@ -1865,7 +1884,7 @@ SQL_CONTENT
 # ---------------------------------------------------------------------------------------------
 # Run a query to retrieve the running distributions from the Airwave database on the CDS Portal
 #
-# Return results as a hash or undef if any errors
+# Return results as a [1,hashref] or [0,undef] if any errors
 # ---------------------------------------------------------------------------------------------
 sub cds_sql_running {
 	my($sql,$dbh,$sth,$ref,$id,%data);
@@ -1892,7 +1911,7 @@ SQL_RUNNING
 	
 	# Connect to the database
 	$dbh = cds_db_connect();
-	if(!$dbh) { return; }
+	if(!$dbh) { return (0, undef); }
 	
 	# Run the query and load the data into a hash
 	$sth = $dbh->prepare($sql);
@@ -1912,8 +1931,8 @@ SQL_RUNNING
 	# Disconnect from the database
 	$dbh->disconnect();
 	
-	# Return the data
-	return %data;
+	# Return success and the data
+	return (1, \%data);
 }
 
 

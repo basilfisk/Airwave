@@ -755,38 +755,40 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		# Read trailer source directory, substitute asset name, then check it exists
 		$source = "$PACKAGES{$package}{trailer}{source}";
-		$source =~ s/\[asset\]/$filmcode/g;
-		if(!-d $source) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read trailer directory '$source' for package '$package'");
-			$errorfound = 1;
-			# Skip remaining checks as they will all fail
-			next DISTRO;
-		}
-		
-		# Substitute the asset name
-		# TODO Does not cater for encrypted trailers
-		$file = $PACKAGES{$package}{trailer}{clear};
-		$file =~ s/\[asset\]/$filmcode/g;
-		
-		# Check whether trailer file exists (optional, as film may not have a trailer)
-		if(-f "$source/$file") {
-			# Delete link if it already already exists
-			if(-l "$distdir/$file") {
-				$res = `rm $distdir/$file 2>&1`;
-				if($res) {
-					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to trailer file '$distdir/$file': $res");
-					$errorfound = 1;
-				}
+		if($source) {
+			$source =~ s/\[asset\]/$filmcode/g;
+			if(!-d $source) {
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read trailer directory '$source' for package '$package'");
+				$errorfound = 1;
+				# Skip remaining checks as they will all fail
+				next DISTRO;
 			}
 			
-			# Create link
-			$res = `ln -s $source/$file $distdir/$file 2>&1`;
-			if($res) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
-				$errorfound = 1;
-			}
-			else {
-				logMsg($LOG,$PROGRAM,"Created link to trailer file '$source/$file'");
+			# Substitute the asset name
+			# TODO Does not cater for encrypted trailers
+			$file = $PACKAGES{$package}{trailer}{clear};
+			$file =~ s/\[asset\]/$filmcode/g;
+			
+			# Check whether trailer file exists (optional, as film may not have a trailer)
+			if(-f "$source/$file") {
+				# Delete link if it already already exists
+				if(-l "$distdir/$file") {
+					$res = `rm $distdir/$file 2>&1`;
+					if($res) {
+						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to trailer file '$distdir/$file': $res");
+						$errorfound = 1;
+					}
+				}
+				
+				# Create link
+				$res = `ln -s $source/$file $distdir/$file 2>&1`;
+				if($res) {
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
+					$errorfound = 1;
+				}
+				else {
+					logMsg($LOG,$PROGRAM,"Created link to trailer file '$source/$file'");
+				}
 			}
 		}
 		

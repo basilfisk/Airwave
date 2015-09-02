@@ -20,7 +20,7 @@ our @EXPORT = qw(apiData apiDML apiMessage apiMetadata apiStatus apiSelect);
 
 our %API;
 $API{host}		= 'api.visualsaas.net';
-$API{port}		= 8922;
+$API{port}		= 8822;
 $API{instance}	= 'airwave';
 $API{user}		= 'rexcell@techlive.co.uk'; 
 $API{password}	= 'A1rwav3';

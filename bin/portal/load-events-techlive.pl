@@ -29,7 +29,7 @@ use mods::API qw(apiDML apiData apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal parseDocument readConfig);
 
 # Program information
-our $PROGRAM = "load_events_techlive.pl";
+our $PROGRAM = "load-events-techlive.pl";
 our $VERSION = "2.0";
 
 # Check there are any arguments

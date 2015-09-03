@@ -192,7 +192,7 @@ sub log_stats {
 	$load15 = 100*$load15;
 	
 	# Write stats to Portal
-	($msg) = apiDML('monitorAddStats',"timestamp='$time'","load1=$load1","load5=$load5","load15=$load15","cpu=$cpu","cpupct=$cpupct","memorypct=$mempct","cdsprocs=$cds","nwrecv=$recv","nwsent=$sent","server=$HOSTNAME");
+	($msg) = apiDML('monitorAddStats',"timestamp=$time","load1=$load1","load5=$load5","load15=$load15","cpu=$cpu","cpupct=$cpupct","memorypct=$mempct","cdsprocs=$cds","nwrecv=$recv","nwsent=$sent","server=$HOSTNAME");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsg($LOG,$PROGRAM,"Stats for $time NOT added to Portal [$error{CODE}] $error{MESSAGE}");

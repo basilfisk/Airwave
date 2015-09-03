@@ -22,8 +22,7 @@ our %API;
 $API{host}		= 'api.visualsaas.net';
 $API{port}		= 8822;
 $API{instance}	= 'airwave';
-$API{user}		= 'rexcell@techlive.co.uk'; 
-$API{password}	= 'A1rwav3';
+$API{key}		= 'c83824ecd1dac6a633c595a324015066';
 
 1;
 
@@ -105,26 +104,26 @@ sub apiMessage {
 	# Email
 	if($call eq 'email') {
 		# Build the command
-		$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=msgEmail -F format=object ";
+		$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/msgEmail?instance=$API{instance}";
 		
 		# Add the parameters
-		# Strip out special characters, then split out name/value pair and reformat
 		foreach my $param (@params) {
 			# Strip out special characters
 			$param =~ s/'//g;
 			$param =~ s/&/and/g;
+			$param =~ s/ /%20/g;
 			# Split out name/value pair
 			($name,$value) = split(/=/,$param);
-			# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
-			if(substr($value,0,1) eq '<') {
-				$value = ' '.$value;
-			}
+#			# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
+#			if(substr($value,0,1) eq '<') {
+#				$value = ' '.$value;
+#			}
 			# Add to command string
-			$cmd .= "-F $name='$value' ";
+			$cmd .= "&$name=$value";
 		}
 		
 		# Close the command
-		$cmd .= "https://$API{host}:$API{port}";
+		$cmd .= "'";
 		
 		# Run the command and check the return code
 		$response = `$cmd`;
@@ -163,9 +162,8 @@ sub apiMetadata {
 	my($cmd,$response,$msg);
 
 	# Build the command
-	$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=$call ";
-	$cmd .= "-F assetcode=$assetcode -F format=$format ";
-	$cmd .= "https://$API{host}:$API{port}";
+	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
+	$cmd .= "&assetcode=$assetcode&format=$format'";
 
 	# Run the command and check the return code
 	$response = `$cmd`;
@@ -221,15 +219,16 @@ sub apiSQL {
 	my($cmd,$msg,$response);
 
 	# Build the command
-	$cmd = "curl -s -X POST -F username=$API{user} -F password=$API{password} -F instance=$API{instance} -F command=$call -F format=object ";
+	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
 
 	# Add the parameters
 	foreach my $param (@params) {
-		$cmd .= "-F $param ";
+		$param =~ s/ /%20/g;
+		$cmd .= "&$param";
 	}
 
 	# Close the command
-	$cmd .= "https://$API{host}:$API{port}";
+	$cmd .= "'";
 
 	# Run the command and check the return code
 	$response = `$cmd`;
@@ -321,9 +320,6 @@ sub apiStatus {
 sub jsonData {
 	my($string) = @_;
 	my($hash_ref);
-
-	# Remove newlines
-#	$string =~ s/\n//g;
 
 	# Parse the string and trap any errors
 	eval { $hash_ref = JSON::XS->new->latin1->decode($string) or die "error" };

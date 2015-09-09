@@ -155,7 +155,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/metadata.pl --film=$FILM --provider=$PROVIDER --log"
-		$ROOT/metadata.pl --film=$FILM --log
+		$ROOT/metadata.pl --film=$FILM --provider=$PROVIDER --log
 		;;
 	# PBTV returns spreadsheet
 	pbtv_sht)

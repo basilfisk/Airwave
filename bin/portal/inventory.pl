@@ -289,47 +289,48 @@ sub current_films {
 	($msg) = apiSelect('inventoryInstalled',"site=$sitecode");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'W',"No 'installed' films for site '$sitename'");
+		logMsgPortal($LOG,$PROGRAM,'W',"Problem reading 'installed' films for site '$sitename': [$error{CODE}] $error{MESSAGE}");
 	}
-	%films = apiData($msg);
-
-	# Initialise the counter and the last package tracker
-	$count = 0;
-	$last = '';
-
-	# Output each film
-	foreach my $film (sort keys %films) {
-		# Read the film record
-		$package = $films{$film}{'package'};
-		$filmname = $films{$film}{'title'};
-		$certificate = $films{$film}{'certificate'};
-		$languages = $films{$film}{'languages'};
-		$installed = $films{$film}{'licence_start'};
-
-		$filmname =~ s/&amp;/&/g;
-		($ok,$filmname) = cleanNonUTF8($filmname);
-		if(!$ok) {
-			logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
+	else {
+		# Initialise the counter and the last package tracker
+		$count = 0;
+		$last = '';
+	
+		# Output each film
+		%films = apiData($msg);
+		foreach my $film (sort keys %films) {
+			# Read the film record
+			$package = $films{$film}{'package'};
+			$filmname = $films{$film}{'title'};
+			$certificate = $films{$film}{'certificate'};
+			$languages = $films{$film}{'languages'};
+			$installed = $films{$film}{'licence_start'};
+	
+			$filmname =~ s/&amp;/&/g;
+			($ok,$filmname) = cleanNonUTF8($filmname);
+			if(!$ok) {
+				logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
+			}
+	
+			# Increment the counter for packages
+			if($package eq $last) {
+				$count++;
+			}
+			else {
+				$count = 1;
+				$last = $package;
+			}
+	
+			# Create the film record
+			$XML->startTag('record','id'=>'current');
+			$XML->dataElement('count',$count);
+			$XML->dataElement('package',$package);
+			$XML->dataElement('filmname',$filmname);
+			$XML->dataElement('certificate',$certificate);
+			$XML->dataElement('languages',$languages);
+			$XML->dataElement('installed',$installed);
+			$XML->endTag('record');
 		}
-
-		# Increment the counter for packages
-		if($package eq $last) {
-			$count++;
-		}
-		else {
-			$count = 1;
-			$last = $package;
-		}
-
-		# Create the film record
-		$XML->startTag('record','id'=>'current');
-		$XML->dataElement('count',$count);
-		$XML->dataElement('package',$package);
-		$XML->dataElement('filmname',$filmname);
-		$XML->dataElement('certificate',$certificate);
-		$XML->dataElement('languages',$languages);
-		$XML->dataElement('installed',$installed);
-		$XML->endTag('record');
 	}
 }
 
@@ -350,47 +351,48 @@ sub obsolete_films {
 	($msg) = apiSelect('inventoryObsolete',"site=$sitecode");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'W',"No 'obsolete' films for site '$sitename'");
+		logMsgPortal($LOG,$PROGRAM,'W',"Problem reading 'obsolete' films for site '$sitename': [$error{CODE}] $error{MESSAGE}");
 	}
-	%films = apiData($msg);
-
-	# Initialise the counter and the last package tracker
-	$count = 0;
-	$last = '';
-
-	# Output each film
-	foreach my $film (sort keys %films) {
-		# Read the film record
-		$provider = $films{$film}{'provider'};
-		$filmname = $films{$film}{'title'};
-		$certificate = $films{$film}{'certificate'};
-		$retired = $films{$film}{'licence_end'};
-		$installed = $films{$film}{'licence_start'};
-
-		$filmname =~ s/&amp;/&/g;
-		($ok,$filmname) = cleanNonUTF8($filmname);
-		if(!$ok) {
-			logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
+	else {
+		# Initialise the counter and the last package tracker
+		$count = 0;
+		$last = '';
+	
+		# Output each film
+		%films = apiData($msg);
+		foreach my $film (sort keys %films) {
+			# Read the film record
+			$provider = $films{$film}{'provider'};
+			$filmname = $films{$film}{'title'};
+			$certificate = $films{$film}{'certificate'};
+			$retired = $films{$film}{'licence_end'};
+			$installed = $films{$film}{'licence_start'};
+	
+			$filmname =~ s/&amp;/&/g;
+			($ok,$filmname) = cleanNonUTF8($filmname);
+			if(!$ok) {
+				logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
+			}
+	
+			# Increment the counter for packages
+			if($provider eq $last) {
+				$count++;
+			}
+			else {
+				$count = 1;
+				$last = $provider;
+			}
+	
+			# Create the film record
+			$XML->startTag('record','id'=>'obsolete');
+			$XML->dataElement('count',$count);
+			$XML->dataElement('provider',$provider);
+			$XML->dataElement('filmname',$filmname);
+			$XML->dataElement('certificate',$certificate);
+			$XML->dataElement('installed',$installed);
+			$XML->dataElement('retired',$retired);
+			$XML->endTag('record');
 		}
-
-		# Increment the counter for packages
-		if($provider eq $last) {
-			$count++;
-		}
-		else {
-			$count = 1;
-			$last = $provider;
-		}
-
-		# Create the film record
-		$XML->startTag('record','id'=>'obsolete');
-		$XML->dataElement('count',$count);
-		$XML->dataElement('provider',$provider);
-		$XML->dataElement('filmname',$filmname);
-		$XML->dataElement('certificate',$certificate);
-		$XML->dataElement('installed',$installed);
-		$XML->dataElement('retired',$retired);
-		$XML->endTag('record');
 	}
 }
 

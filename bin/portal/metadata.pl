@@ -67,13 +67,22 @@ sub main {
 	my($text);
 	my $dir = "../$CONFIG{PORTAL_META}/$PROVIDER/$FILM";
 	
+	# Start up message
+	logMsg($LOG,$PROGRAM,"=================================================================================");
+	logMsg($LOG,$PROGRAM,"Generating metadata for: $FILM");
+
 	# Read the JSON metadata from the Portal and create a file
 	$text = apiMetadata('apMetadata',$FILM,'json');
 	if(!$text) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read JSON metadata from the Portal: [code] text");
 		return;
 	}
-	writeFile("$dir/$FILM.json",$text);
+	if(writeFile("$ROOT/$dir/$FILM.json",$text)) {
+		logMsg($LOG,$PROGRAM,"JSON metadata written to file: $dir/$FILM.json");
+	}
+	else {
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not write JSON metadata to file: $dir/$FILM.json");
+	}
 	
 	# Read the XML metadata from the Portal and create a file
 	$text = apiMetadata('apMetadata',$FILM,'xml');
@@ -81,7 +90,12 @@ sub main {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read XML metadata from the Portal: [code] text");
 		return;
 	}
-	writeFile("$dir/$FILM.xml",$text);
+	if(writeFile("$ROOT/$dir/$FILM.xml",$text)) {
+		logMsg($LOG,$PROGRAM,"XML metadata written to file: $dir/$FILM.xml");
+	}
+	else {
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not write XML metadata to file: $dir/$FILM.xml");
+	}
 }
 
 

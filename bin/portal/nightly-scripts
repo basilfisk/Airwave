@@ -4,7 +4,7 @@
 #
 
 # Executables directory
-BIN=/srv/visualsaas/instances/aa002/bin
+BIN=/srv/visualsaas/instances/airwave/bin
 
 # Recreate the inventory reports for each active site
 $BIN/inventory.pl -log

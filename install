@@ -18,7 +18,7 @@ if [ "$SERVER" == "distro" ] || [ "$SERVER" == "prep" ]; then
 else
 	ROOT=/root/install
 	SOURCE=$ROOT/Airwave
-	INSTALL=/srv/visualsaas/instances/aa002/bin
+	INSTALL=/srv/visualsaas/instances/airwave/bin
 fi
 
 # Make sure we are in the installation directory

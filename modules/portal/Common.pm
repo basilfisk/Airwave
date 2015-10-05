@@ -10,7 +10,7 @@
 # Establish the root directory
 our $ROOT;
 BEGIN {
-	$ROOT = '/srv/visualsaas/instances/aa002/bin';
+	$ROOT = '/srv/visualsaas/instances/airwave/bin';
 }
 
 # Declare modules

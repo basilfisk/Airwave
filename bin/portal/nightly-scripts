@@ -4,7 +4,8 @@
 #
 
 # Executables directory
-BIN=/srv/visualsaas/instances/airwave/bin
+ROOT=/srv/visualsaas/instances/airwave
+BIN=$ROOT/bin
 
 # Recreate the inventory reports for each active site
 $BIN/inventory.pl -log
@@ -14,3 +15,6 @@ $BIN/showing.pl -package=all -territory=all -log
 
 # Recreate the site seets for active sites
 $BIN/site-sheet.pl -site=all -log
+
+# Script run as root, so change ownership so users can update files from web pages
+chown -R www-data:www-data $ROOT

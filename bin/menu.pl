@@ -385,7 +385,7 @@ sub view_log {
 # ---------------------------------------------------------------------------------------------
 sub ingest_film {
 	my($action) = @_;
-	my(%films,@filmlist,$asset,$prov,$filmname,$test,$dir,$dh,@batches,$fh,@files,@types,@qualities,$batch,$file,$type,$quality);
+	my(%films,@filmlist,$asset,$prov,$filmname,$test,$dir,$dh,@files,@types,@qualities,$file,$type,$quality);
 	my $x2 = $TOPLEFT{x}+$TOPLEFT{xinc};
 	my $y = $TOPLEFT{y};
 	
@@ -398,30 +398,13 @@ sub ingest_film {
 		# Create the dialog box
 		tkDialogOpen('Airwave','ingest_film',100,300,550,430,'Ingest a Film into the Content Server');
 		
-		# Read the list of films that can be ingested
+		# Read the films that can be ingested
 		$dir = $CONFIG{CS_DOWNLOAD};
 		if(!opendir($dh,$dir)) { print "Can't read directory [$dir]\n"; return; }
-		@batches = grep { !/^\./ } sort readdir($dh);
+		@files = grep { !/^\./ } sort readdir($dh);
 		closedir($dh);
 		
-		# Read list of films from the batch directory
-		# Quit if there aren't any batches
-		if(!@batches) {
-			tkOption('Airwave','Ingest Downloads','There are no batches available for processing','OK');
-			return;
-		}
-		$dir = "$CONFIG{CS_DOWNLOAD}/$batches[0]";
-		if(!opendir($fh,$dir)) { print "Can't read directory [$dir]\n"; return; }
-		
-		# Read files in the directory
-		@files = grep { !/^\./ } sort readdir($fh);
-		closedir($fh);
-		
-		# List of batches
-		tkLabel('ingest_film',$TOPLEFT{x},$y,'Batch');
-		tkDropdown('ingest_film','di_batch',$x2,$y,50,'update_files(di_file)',@batches);
-		
-		# List of files within the batch that can be ingested
+		# Show list of files that can be ingested
 		$y += $TOPLEFT{yinc};
 		tkLabel('ingest_film',$TOPLEFT{x},$y,'File');
 		tkDropdown('ingest_film','di_file',$x2,$y,50,'',@files);
@@ -464,12 +447,6 @@ sub ingest_film {
 	}
 	# Run the film ingestion script
 	else {
-		# Read the downloaded batch and film and check there are no spaces in the name
-		$batch = tkDropdownAction('di_batch','value');
-		if($batch =~ m/ /) {
-			tkOption('ingest_film','Film Ingestion','The batch directory name must not contain any spaces','OK');
-			return;
-		}
 		$file = tkDropdownAction('di_file','value');
 		if($file =~ m/ /) {
 			tkOption('ingest_film','Film Ingestion','The film file name must not contain any spaces','OK');
@@ -498,7 +475,7 @@ sub ingest_film {
 		$test = (tkCheckBoxValue('di_test')) ? '-test' : '';
 		
 		# Run the ingestion
-		system("$ROOT/ingest_film.pl -asset=$asset -batch=$batch -file=$file -type=$type -quality=$quality $test -log");
+		system("$ROOT/ingest_film.pl -asset=$asset -file=$file -type=$type -quality=$quality $test -log");
 		
 		# Close the parameter dialog
 		tkClose('ingest_film');

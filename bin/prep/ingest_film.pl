@@ -2,12 +2,7 @@
 # *********************************************************************************************
 # *********************************************************************************************
 #
-#  Check the film and trailer files in the specified batch (directory) and generate a
-#  metadata file for the film containing film details read from the Portal and structural
-#  information about the film and trailer files. The metadata file will be created in the
-#  batch directory with the name of the film and a '.xml' file extension.  The image files
-#  for the film will also be downloaded from the Portal so their details can be included
-#  in the metadata file.
+#  Ingest the selected film or trailer file
 #  
 # *********************************************************************************************
 # *********************************************************************************************
@@ -33,7 +28,7 @@ use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal md5Generate 
 
 # Program information
 our $PROGRAM = "ingest_film.pl";
-our $VERSION = "2.0";
+our $VERSION = "2.1";
 
 # Check there are any arguments
 if($#ARGV == -1) { usage(); }
@@ -41,14 +36,12 @@ if($#ARGV == -1) { usage(); }
 # Read command line options
 our $ASSET		= 'empty';
 our $ASSETTYPE	= 'empty';
-our $BATCH		= 'empty';
 our $FILE		= 'empty';
 our $QUALITY	= 'empty';
 our $LOG		= 0;
 our $TEST		= 0;
 if(!GetOptions(
 	'asset=s'		=> \$ASSET,			# asset code
-	'batch=s'		=> \$BATCH,			# name of WIP directory holding asset
 	'file=s'		=> \$FILE,			# name of asset file
 	'type=s'		=> \$ASSETTYPE,		# film/trailer
 	'quality=s'		=> \$QUALITY,		# hd/sd
@@ -91,7 +84,6 @@ sub main {
 	if($ASSET =~ m/empty/) { error("ERROR: 'asset' must have a value"); };
 	if($ASSETTYPE !~ m/^(film|trailer)$/) { error("ERROR: 'type' must be film or trailer"); };
 	if($QUALITY !~ m/^(hd|sd)$/) { error("ERROR: 'quality' must be sd or hd"); };
-	if($BATCH =~ m/empty/) { error("ERROR: 'batch' must have a value"); };
 	if($FILE =~ m/empty/) { error("ERROR: 'file' must have a value"); };
 	
 	# Load a set of hashes containing stream information, list values and stream data
@@ -123,7 +115,7 @@ sub main {
 	$REPO_DIR = "$CONFIG{CS_ROOT}/$provider/$ASSET";
 	
 	# File name of the asset to be ingested
-	$filename = "$CONFIG{CS_DOWNLOAD}/$BATCH/$FILE";
+	$filename = "$CONFIG{CS_DOWNLOAD}/$FILE";
 	
 	# 1 if new asset, 0 if existing asset
 	$new = ($aid) ? 0 : 1;
@@ -183,28 +175,13 @@ sub main {
 	}
 	
 	# Move new asset file to film directory in Repository
-	$file = "$CONFIG{CS_DOWNLOAD}/$BATCH/$FILE";
+	$file = "$CONFIG{CS_DOWNLOAD}/$FILE";
 	if($TEST) {
 		logMsg($LOG,$PROGRAM,"TEST: New $ASSETTYPE file [$file] moved to [$REPO_DIR/$ASSETINFO{'FILE'}{'NAME'}]");
 	}
 	else {
 		logMsg($LOG,$PROGRAM,"New $ASSETTYPE file [$file] moved to [$REPO_DIR/$ASSETINFO{'FILE'}{'NAME'}]");
 		system("mv $file $REPO_DIR/$ASSETINFO{'FILE'}{'NAME'}");
-	}
-	
-	# If empty, move download directory to 'trash' directory
-	opendir($dh,"$CONFIG{CS_DOWNLOAD}/$BATCH");
-	@dirfiles = readdir($dh);
-	closedir($dh);
-	@dirfiles = grep { !/^\./ } @dirfiles;
-	if(!@dirfiles) {
-		if($TEST) {
-			logMsg($LOG,$PROGRAM,"TEST: Moving download directory [$CONFIG{CS_DOWNLOAD}/$BATCH] to [$CONFIG{CS_TRASH}]");
-		}
-		else {
-			logMsg($LOG,$PROGRAM,"Moving download directory [$CONFIG{CS_DOWNLOAD}/$BATCH] to [$CONFIG{CS_TRASH}]");
-			system("mv $CONFIG{CS_DOWNLOAD}/$BATCH $CONFIG{CS_TRASH}");
-		}
 	}
 	
 	# Set ingest date on Portal, then generate metadata file and upload to Portal
@@ -467,7 +444,7 @@ sub asset_analyze {
 	}
 	else {
 		logMsg($LOG,$PROGRAM,$prefix."Generating an MD5 checksum");
-		$ASSETINFO{'FILE'}{'MD5SUM'} = md5Generate("$CONFIG{CS_DOWNLOAD}/$BATCH/$FILE");
+		$ASSETINFO{'FILE'}{'MD5SUM'} = md5Generate("$CONFIG{CS_DOWNLOAD}/$FILE");
 	}
 }
 
@@ -895,23 +872,14 @@ Version : v$VERSION
 Author  : Basil Fisk (c)2013 Airwave Ltd
 
 Summary :
-  Check the film and trailer files in the specified batch (directory) and generate a
-  metadata file for the film containing film details read from the Portal and structural
-  information about the film and trailer files. The metadata file will be created in the
-  batch directory with the name of the film and a '.xml' file extension.  The image files
-  for the film will also be downloaded from the Portal so their details can be included
-  in the metadata file.
+  Ingest the selected film or trailer file.
   
-  NB: There may be multiple film files in a directory - the main film and the trailer.
-  Trailers are distinguished as being less than 250MB in size.
-
 Usage :
   $PROGRAM --asset=<code>
   $PROGRAM --asset=<provider>
   
   MANDATORY
   --asset=<code>        The reference of a single asset on the Portal
-  --batch=<name>        The name of the directory holding the film to be ingested
   --file=<name>         The name of the file to be ingested
   --quality=<code>      The quality of the asset - sd|hd
   --type=<code>         The type of asset - film|trailer

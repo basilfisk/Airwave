@@ -639,6 +639,8 @@ sub dist_prepare {
 #					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal: [code] text");
 #				}
 				writeFile("$distdir/$filmcode.$type",$text);
+				# TEMPORARY DEBUG : 08/10/2015 BF
+				writeFile("$CONFIG{DISTRIBUTION}/metadata/$filmcode.$type",$text);
 			}
 			else {
 				$errorfound = 1;

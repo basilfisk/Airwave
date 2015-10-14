@@ -27,6 +27,10 @@ use IO::Socket::INET;
 use Socket;
 use XML::LibXML;
 
+# Airwave modules
+use lib "$ROOT";
+use mods::API qw(apiData apiDML apiFileDownload apiMessage apiMetadata apiSelect apiStatus);
+
 # Declare the package name and export the function names
 package mods::Common;
 require Exporter;

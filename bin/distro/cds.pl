@@ -758,8 +758,8 @@ sub dist_prepare {
 		# Prepare the trailer file
 		# ----------------------------------------------------------------------------
 		# Read trailer source directory, substitute asset name, then check it exists
-		$source = "$PACKAGES{$package}{trailer}{source}";
-		if($source) {
+		if($PACKAGES{$package}{trailer}{source}) {
+			$source = "$PACKAGES{$package}{trailer}{source}";
 			$source =~ s/\[asset\]/$filmcode/g;
 			if(!-d $source) {
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read trailer directory '$source' for package '$package'");

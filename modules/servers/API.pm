@@ -16,7 +16,7 @@ use JSON::XS;
 package mods::API;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(apiData apiDML apiFileDownload apiMessage apiMetadata apiStatus apiSelect);
+our @EXPORT = qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiStatus apiSelect);
 
 our %API;
 $API{host}		= 'api.visualsaas.net';
@@ -30,14 +30,6 @@ $API{key}		= 'c83824ecd1dac6a633c595a324015066';
 
 
 
-# =============================================================================================
-# =============================================================================================
-#
-# Public functions
-#
-# =============================================================================================
-# =============================================================================================
-
 # ---------------------------------------------------------------------------------------------
 # Parse a response from the Gateway and extract the data or information records
 #
@@ -48,7 +40,6 @@ $API{key}		= 'c83824ecd1dac6a633c595a324015066';
 sub apiData {
 	my($json) = @_;
 	my($hash_ref,$msg);
-	my %data = ();
 	my %error = ();
 
 	# Check whether any data was returned
@@ -62,8 +53,7 @@ sub apiData {
 
 	# Convert JSON document to hash - already validated by 'make_request'
 	($hash_ref,$msg) = jsonData($json);
-	%data = %$hash_ref;
-	return %data;
+	return %$hash_ref;
 }
 
 
@@ -110,80 +100,47 @@ sub apiFileDownload {
 	
 	# Run the command and check the return code
 	$response = `$cmd`;
-	if($? == -1) {
-		$msg = 'Failed to execute: '.$!;
-		$response = '{"status":"0", "severity":"FATAL", "code":"CLI007", "text": "'.$msg.'"}';
-	}
-	elsif($? & 127) {
-		$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
-		$response = '{"status":"0", "severity":"FATAL", "code":"CLI008", "text": "'.$msg.'"}';
-	}
-	else {
-		# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
-	}
-
-	# Return the JSON response
-	return $response;
+	return check_response($response,$?);
 }
 
 
 
 # ---------------------------------------------------------------------------------------------
-# Send and email message or an SMS message
+# Send an email message
 #
-# Argument 1  : Message command to be initiated (email/sms)
-# Argument 2+ : Array of message parameters
+# Argument 1+ : Array of message parameters
 #
 # Return the JSON response
 # ---------------------------------------------------------------------------------------------
-sub apiMessage {
-	my($call,@params) = @_;
-	my($cmd,$name,$value,$msg,$response);
+sub apiEmail {
+	my(@params) = @_;
+	my($cmd,$name,$value,$response);
 	
-	# Email
-	if($call eq 'email') {
-		# Build the command
-		$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/msgEmail?instance=$API{instance}";
-		
-		# Add the parameters
-		foreach my $param (@params) {
-			# Strip out special characters
-			$param =~ s/'//g;
-			$param =~ s/&/and/g;
-			$param =~ s/ /%20/g;
-			# Split out name/value pair
-			($name,$value) = split(/=/,$param);
-#			# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
-#			if(substr($value,0,1) eq '<') {
-#				$value = ' '.$value;
-#			}
-			# Add to command string
-			$cmd .= "&$name=$value";
-		}
-		
-		# Close the command
-		$cmd .= "'";
-		
-		# Run the command and check the return code
-		$response = `$cmd`;
-		if($? == -1) {
-			$msg = 'Failed to execute: '.$!;
-			$response = '{"status":"0", "severity":"FATAL", "code":"CLI007", "text": "'.$msg.'"}';
-		}
-		elsif($? & 127) {
-			$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
-			$response = '{"status":"0", "severity":"FATAL", "code":"CLI008", "text": "'.$msg.'"}';
-		}
-		else {
-			# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
-		}
+	# Build the command
+	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/msgEmail?instance=$API{instance}";
 	
-		# Return the JSON response
-		return $response;
+	# Add the parameters
+	foreach my $param (@params) {
+		# Strip out special characters
+		$param =~ s/'//g;
+		$param =~ s/&/and/g;
+		$param =~ s/ /%20/g;
+		# Split out name/value pair
+		($name,$value) = split(/=/,$param);
+#		# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
+#		if(substr($value,0,1) eq '<') {
+#			$value = ' '.$value;
+#		}
+		# Add to command string
+		$cmd .= "&$name=$value";
 	}
-	else {
-		# SMS
-	}
+	
+	# Close the command
+	$cmd .= "'";
+	
+	# Run the command and check the return code
+	$response = `$cmd`;
+	return check_response($response,$?,$!);
 }
 
 
@@ -192,13 +149,14 @@ sub apiMessage {
 # Run a query to retrieve metadata
 #
 # Argument 1 : Function to be called
-# Argument 2 : Array of arguments to the function (name=value)
+# Argument 2 : Asset reference
+# Argument 3 : Format of results (xml/json)
 #
 # Return the JSON response
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
 	my($call,$assetcode,$format) = @_;
-	my($cmd,$response,$msg);
+	my($cmd,$response);
 
 	# Build the command
 	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
@@ -206,20 +164,7 @@ sub apiMetadata {
 
 	# Run the command and check the return code
 	$response = `$cmd`;
-	if($? == -1) {
-		$msg = 'Failed to execute: '.$!;
-		$response = '{"status":"0", "severity":"FATAL", "code":"CLI001", "text": "'.$msg.'"}';
-	}
-	elsif($? & 127) {
-		$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
-		$response = '{"status":"0", "severity":"FATAL", "code":"CLI002", "text": "'.$msg.'"}';
-	}
-	else {
-		# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
-	}
-
-	# Return the JSON response
-	return $response;
+	return check_response($response,$?,$!);
 }
 
 
@@ -255,7 +200,7 @@ sub apiSelect {
 # ---------------------------------------------------------------------------------------------
 sub apiSQL {
 	my($call,@params) = @_;
-	my($cmd,$msg,$response);
+	my($cmd,$response);
 
 	# Build the command
 	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
@@ -271,20 +216,7 @@ sub apiSQL {
 
 	# Run the command and check the return code
 	$response = `$cmd`;
-	if($? == -1) {
-		$msg = 'Failed to execute: '.$!;
-		$response = '{"status":"0", "severity":"FATAL", "code":"CLI001", "text": "'.$msg.'"}';
-	}
-	elsif($? & 127) {
-		$msg = 'Child died with signal ['.($? & 127).'], '.(($? & 128) ? 'with' : 'without').' coredump';
-		$response = '{"status":"0", "severity":"FATAL", "code":"CLI002", "text": "'.$msg.'"}';
-	}
-	else {
-		# SUCCESS CODE: printf "Child exited with value %d\n", $? >> 8;
-	}
-
-	# Return the JSON response
-	return $response;
+	return check_response($response,$?,$!);
 }
 
 
@@ -345,6 +277,42 @@ sub apiStatus {
 
 	# Return (0,%error) or (1,undef)
 	return ($status,%error);
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Check the response returned from the API
+#
+# Argument 1 : Response message string
+# Argument 2 : Error number
+# Argument 3 : Error text
+#
+# Return response string or error message in JSON format
+# ---------------------------------------------------------------------------------------------
+sub check_response {
+	my($response,$result,$error) = @_;
+	my($msg);
+	
+	# Command failed
+	if($result == -1) {
+		$msg = 'Failed to execute: '.$error;
+		return '{"status":"0", "severity":"FATAL", "code":"CLI007", "text": "'.$msg.'"}';
+	}
+	# Command process terminated
+	elsif($result & 127) {
+		$msg = 'Child died with signal ['.($result & 127).'], '.(($result & 128) ? 'with' : 'without').' coredump';
+		return '{"status":"0", "severity":"FATAL", "code":"CLI008", "text": "'.$msg.'"}';
+	}
+	# Empty response
+	elsif(!$response) {
+		$msg = 'No response from API';
+		return '{"status":"0", "severity":"FATAL", "code":"CLI009", "text": "'.$msg.'"}';
+	}
+	# Response text received
+	else {
+		return $response;
+	}
 }
 
 

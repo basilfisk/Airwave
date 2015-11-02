@@ -38,7 +38,7 @@ $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME}=0;
 
 # Airwave modules
 use lib "$ROOT";
-use mods::API qw(apiData apiDML apiFileDownload apiMessage apiMetadata apiSelect apiStatus);
+use mods::API qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiSelect apiStatus);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
 
 # Program information
@@ -557,7 +557,7 @@ sub dist_notify_update_notified {
 # This is done through links from the Content Repository
 # ---------------------------------------------------------------------------------------------
 sub dist_prepare {
-	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,$text,%subtitles,$file,%distribution,$pending);
+	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,%subtitles,$file,%distribution,$pending);
 	my($distid,$distname,$filmcode,$package,$provider);
 	
 	# Start up message
@@ -632,15 +632,17 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		foreach my $type (sort keys %{$PACKAGES{$package}{metadata}}) {
 			if ($type eq 'json' || $type eq 'xml') {
-				$text = apiMetadata('apMetadata',$filmcode,$type);
-#				if ($text) {
-#					 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER
-#					$errorfound = 1;
-#					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal: [code] text");
-#				}
-				writeFile("$distdir/$filmcode.$type",$text);
-				# TEMPORARY DEBUG : 08/10/2015 BF
-				writeFile("$CONFIG{DISTRIBUTION}/metadata/$filmcode.$type",$text);
+				($status,$msg) = apiMetadata('apMetadata',$filmcode,$type);
+				if(!$status) {
+					$errorfound = 1;
+					($status,%error) = apiStatus($msg);
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal [$error{CODE}] $error{MESSAGE}");
+				}
+				else {
+					writeFile("$distdir/$filmcode.$type",$msg);
+				}
+				# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES
+				writeFile("$CONFIG{DISTRIBUTION}/metadata/$filmcode.$type",$msg);
 			}
 			else {
 				$errorfound = 1;
@@ -653,12 +655,12 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		foreach my $type (sort keys %{$PACKAGES{$package}{image}}) {
 			if ($type eq 'small' || $type eq 'large' || $type eq 'full' || $type eq 'hero' || $type eq 'landscape') {
-				$text = apiFileDownload("$filmcode-$type.jpg","$CONFIG{PORTAL_IMAGES}/$provider/$filmcode","$filmcode-$type.jpg",$distdir);
-#				if ($text) {
-#					 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER. DON'T FAIL IF IMAGE TYPE IS NOT ON PORTAL
-#					$errorfound = 1;
-#					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal: [code] text");
-#				}
+				$msg = apiFileDownload("$filmcode-$type.jpg","$CONFIG{PORTAL_IMAGES}/$provider/$filmcode","$filmcode-$type.jpg",$distdir);
+				($status,%error) = apiStatus($msg);
+				if(!$status) {
+					$errorfound = 1;
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal [$error{CODE}] $error{MESSAGE}");
+				}
 			}
 			else {
 				$errorfound = 1;
@@ -680,12 +682,12 @@ sub dist_prepare {
 			else {
 				%subtitles = apiData($msg);
 				foreach my $subtitle (keys %subtitles) {
-					$text = apiFileDownload($subtitle,"$CONFIG{PORTAL_VTT}/$provider/$filmcode",$subtitle,$distdir);
-#					if ($text) {
-#						 # ----------------------------------------------------------------- CHECK STATUS CODE IN RESPONSE HEADER. DON'T FAIL IF IMAGE TYPE IS NOT ON PORTAL
-#						$errorfound = 1;
-#						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal: [code] text");
-#					}
+					$msg = apiFileDownload($subtitle,"$CONFIG{PORTAL_VTT}/$provider/$filmcode",$subtitle,$distdir);
+					($status,%error) = apiStatus($msg);
+					if(!$status) {
+						$errorfound = 1;
+						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download sub-title file [$subtitle] from Portal [$error{CODE}] $error{MESSAGE}");
+					}
 				}
 			}
 		}
@@ -2076,7 +2078,7 @@ sub email_send {
 	$cc =~ s/;/ /g;
 	
 	# Send the email
-	($msg) = apiMessage('email',"to='$to'","from='$from'","subject='$subject'","body='$body'","cc='$cc'");
+	($msg) = apiEmail("to='$to'","from='$from'","subject='$subject'","body='$body'","cc='$cc'");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Email: Notification email NOT sent to '$to' for distribution '$distname' [$error{CODE}] $error{MESSAGE}");

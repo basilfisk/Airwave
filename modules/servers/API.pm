@@ -142,15 +142,23 @@ sub apiFileDownload {
 	$response = `$cmd`;
 	
 	# Check the start of the downloaded file to see if an error was returned
-	$msg = `head -c 15 $tdir/$tfile`;
-	if ($msg =~ /{"status"/) {
-		# Download failed
-		$msg = `cat $tdir/$tfile`;
-		return $msg;
+	if(-f "$tdir/$tfile") {
+		$msg = `head -c 15 $tdir/$tfile`;
+		if($msg =~ /{"status"/) {
+			# Download failed
+			$msg = `cat $tdir/$tfile`;
+		}
+		else {
+			# Download succeeded
+			$msg = '{"status":"1"}';
+		}
 	}
-	
-	# Download succeeded
-	return '{"status":"1"}';
+	# No response from API
+	else {
+		$msg = "Couldn't read file [$tdir/$tfile]";
+		$msg = '{"status":"0", "severity":"FATAL", "code":"CLI010", "text": "'.$msg.'"}';
+	}
+	return $msg;
 }
 
 

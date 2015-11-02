@@ -80,32 +80,6 @@ sub apiDML {
 
 
 # ---------------------------------------------------------------------------------------------
-# Download a file from the Portal
-#
-# Argument 1 : Name of source file
-# Argument 2 : Path to source file
-# Argument 3 : Name of target file
-# Argument 4 : Path to target file
-#
-# Return the JSON response
-# ---------------------------------------------------------------------------------------------
-sub apiFileDownload {
-	my($sfile,$sdir,$tfile,$tdir) = @_;
-	my($cmd,$response,$msg);
-	
-	# Build the command
-	$cmd = "curl -s -u $API{key}: -F instance=$API{instance} ";
-	$cmd .= "-F source=$sdir/$sfile -o $tdir/$tfile ";
-	$cmd .= "https://$API{host}:$API{port}/2/fileDownload";
-	
-	# Run the command and check the return code
-	$response = `$cmd`;
-	return check_response($response,$?);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
 # Send an email message
 #
 # Argument 1+ : Array of message parameters
@@ -146,25 +120,69 @@ sub apiEmail {
 
 
 # ---------------------------------------------------------------------------------------------
+# Download a file from the Portal
+#
+# Argument 1 : Name of source file
+# Argument 2 : Path to source file
+# Argument 3 : Name of target file
+# Argument 4 : Path to target file
+#
+# Return the JSON response
+# ---------------------------------------------------------------------------------------------
+sub apiFileDownload {
+	my($sfile,$sdir,$tfile,$tdir) = @_;
+	my($cmd,$response,$msg);
+	
+	# Build the command
+	$cmd = "curl -s -u $API{key}: -F instance=$API{instance} ";
+	$cmd .= "-F source=$sdir/$sfile -o $tdir/$tfile ";
+	$cmd .= "https://$API{host}:$API{port}/2/fileDownload";
+	
+	# Download the file
+	$response = `$cmd`;
+	
+	# Check the start of the downloaded file to see if an error was returned
+	$msg = `head -c 15 $tdir/$tfile`;
+	if ($msg =~ /{"status"/) {
+		# Download failed
+		$msg = `cat $tdir/$tfile`;
+		return $msg;
+	}
+	
+	# Download succeeded
+	return '{"status":"1"}';
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
 # Run a query to retrieve metadata
 #
 # Argument 1 : Function to be called
 # Argument 2 : Asset reference
 # Argument 3 : Format of results (xml/json)
 #
-# Return the JSON response
+# If successful return (1,data) otherwise (0,JSON error)
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
 	my($call,$assetcode,$format) = @_;
-	my($cmd,$response);
+	my($cmd,$response,$msg);
 
 	# Build the command
 	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
 	$cmd .= "&assetcode=$assetcode&format=$format'";
 
-	# Run the command and check the return code
+	# Run the command
 	$response = `$cmd`;
-	return check_response($response,$?,$!);
+	
+	# Check the start of the response to see if an error was returned
+	if ($response =~ /{"status"/) {
+		# Download failed
+		return (0,$response);
+	}
+	
+	# Download succeeded
+	return (1,$response);
 }
 
 

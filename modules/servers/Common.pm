@@ -29,15 +29,15 @@ use XML::LibXML;
 
 # Airwave modules
 use lib "$ROOT";
-use mods::API qw(apiData apiDML apiFileDownload apiMessage apiMetadata apiSelect apiStatus);
+use mods::API qw(apiDML apiStatus);
 
 # Declare the package name and export the function names
 package mods::Common;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime 
-				 formatNumber logMsg logMsgPortal md5Generate msgCache msgLog parseDocument processInfo
-				 readConfig readConfigXML validFormat validNumber wrapText writeFile);
+				 formatNumber jsonData logMsg logMsgPortal md5Generate msgCache msgLog parseDocument 
+				 processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
 				 
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
@@ -442,6 +442,28 @@ sub formatNumber {
 		
 	# Return the formatted number
 	return $str;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Convert a string in JSON format to a hash
+#
+# Argument 1 : String in JSON format
+#
+# Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
+# ---------------------------------------------------------------------------------------------
+sub jsonData {
+	my($string) = @_;
+	my($hash_ref);
+
+	# Parse the string and trap any errors
+	eval { $hash_ref = JSON::XS->new->latin1->decode($string) or die "error" };
+	if($@) {
+		return (undef,$@);
+	}
+
+	return ($hash_ref,undef);
 }
 
 

@@ -227,7 +227,7 @@ sub dist_ended {
 	logMsg($LOG,$PROGRAM,"Set the end date for completed CDS batches");
 	
 	# Read the list of running batches from the Airwave Portal
-	($msg) = apiSelect('cdsStarted');
+	$msg = apiSelect('cdsStarted');
 	($status,%error) = apiStatus($msg);
 	
 	# Stop if there were errors reading from the Airwave Portal
@@ -267,7 +267,7 @@ sub dist_ended {
 		# Update ended date on distribution record
 		# NB: This is not the end date as logged on CDS
 		$ended = formatDateTime('zd Mon ccyy zh24:mi');
-		($msg) = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
+		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Ended: End date NOT updated for distribution [$distname] [$error{CODE}] $error{MESSAGE}");
@@ -322,7 +322,7 @@ sub dist_node_status {
 	}
 	
 	# Read the list of CDS nodes from the Portal
-	($msg) = apiSelect('cdsNodes');
+	$msg = apiSelect('cdsNodes');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Node Status: Unable to read list of current distributions from the Portal [$error{CODE}] $error{MESSAGE}");
@@ -348,7 +348,7 @@ sub dist_node_status {
 			# If CDS and CMS names match, update the Portal
 			if("$cmsname" eq "$name") {
 				$status = ($status eq 'active') ? 'true' : 'false';
-				($msg) = apiDML('cdsUpdateNodeStatus',"id=$id","status=$status");
+				$msg = apiDML('cdsUpdateNodeStatus',"id=$id","status=$status");
 				($status,%error) = apiStatus($msg);
 				if(!$status) {
 					logMsgPortal($LOG,$PROGRAM,'E',"Node Status: Status NOT updated for node '$name' [$error{CODE}] $error{MESSAGE}");
@@ -372,7 +372,7 @@ sub dist_notify {
 	logMsg($LOG,$PROGRAM,"Generate emails for completed distributions");
 	
 	# Return a hash keyed by distribution ID and content name, with distribition and film details
-	($msg) = apiSelect('cdsNotify');
+	$msg = apiSelect('cdsNotify');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Notify: No unnotified distributions found [$error{CODE}] $error{MESSAGE}");
@@ -540,7 +540,7 @@ sub dist_notify_update_notified {
 	
 	# Update the notified date on the distribution
 	$notified = formatDateTime('zd Mon ccyy zh24:mi');
-	($msg) = apiDML('cdsUpdateNotified',"id=$distid","notified='$notified'");
+	$msg = apiDML('cdsUpdateNotified',"id=$distid","notified='$notified'");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Notify: Notified date NOT updated for distribution '$distname' [$error{CODE}] $error{MESSAGE}");
@@ -557,7 +557,7 @@ sub dist_notify_update_notified {
 # This is done through links from the Content Repository
 # ---------------------------------------------------------------------------------------------
 sub dist_prepare {
-	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,%subtitles,$file,%distribution,$pending);
+	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,%subtitles,$file,%distribution,$pending,%meta);
 	my($distid,$distname,$filmcode,$package,$provider);
 	
 	# Start up message
@@ -568,7 +568,7 @@ sub dist_prepare {
 	dist_prepare_packages();
 	
 	# Read details of scheduled distributions
-	($msg) = apiSelect('cdsPrepare');
+	$msg = apiSelect('cdsPrepare');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Problem finding distributions for the preparation stage [$error{CODE}] $error{MESSAGE}");
@@ -632,13 +632,16 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		foreach my $type (sort keys %{$PACKAGES{$package}{metadata}}) {
 			if ($type eq 'json' || $type eq 'xml') {
-				($status,$msg) = apiMetadata('apMetadata',$filmcode,$type);
+				$msg = apiMetadata('apMetadata',$filmcode,$type);
+				($status,%error) = apiStatus($msg);
 				if(!$status) {
 					$errorfound = 1;
-					($status,%error) = apiStatus($msg);
 					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal [$error{CODE}] $error{MESSAGE}");
 				}
 				else {
+					%meta = apiData($msg);
+					$msg = $meta{xml};
+					$msg =~ s/&quot;/"/g;
 					writeFile("$distdir/$filmcode.$type",$msg);
 				}
 				# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES
@@ -673,7 +676,7 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		if($PACKAGES{$package}{subtitle}) {
 			# Read details of scheduled distributions
-			($msg) = apiSelect('cdsPrepareSubtitles',"assetcode=$filmcode");
+			$msg = apiSelect('cdsPrepareSubtitles',"assetcode=$filmcode");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
 				$errorfound = 1;
@@ -833,7 +836,7 @@ sub dist_prepare {
 		else {
 			# No errors found, so update the pending date on distribution record
 			$pending = formatDateTime('zd Mon ccyy zh24:mi');
-			($msg) = apiDML('cdsUpdatePending',"id=$distid","pending='$pending'");
+			$msg = apiDML('cdsUpdatePending',"id=$distid","pending='$pending'");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to update distribution record '$distname' with pending date/time [$error{CODE}] $error{MESSAGE}");
@@ -900,7 +903,7 @@ sub dist_prepare_packages {
 	my($status,$msg,%error,%packs,$package,$class,$type,$value);
 	
 	# Read list of packages from Portal
-	($msg) = apiSelect('cdsPreparePackages');
+	$msg = apiSelect('cdsPreparePackages');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Problem reading list of packages [$error{CODE}] $error{MESSAGE}");
@@ -1020,7 +1023,7 @@ sub dist_start_new {
 	# Find pending distributions with catalogued content on CDS
 	# -----------------------------------------------------------
 	# Read all pending distributions from Portal
-	($msg) = apiSelect('cdsStart');
+	$msg = apiSelect('cdsStart');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Start: Can't read list of pending distributions [$error{CODE}] $error{MESSAGE}");
@@ -1126,7 +1129,7 @@ sub dist_start_new {
 		$start = convertCDSdate($cds{$cdsdistid}{Start});
 		
 		# Update started date on distribution record
-		($msg) = apiDML('cdsUpdateStarted',"id=$distid","started='$start'");
+		$msg = apiDML('cdsUpdateStarted',"id=$distid","started='$start'");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Start: Started date NOT updated [$error{CODE}] $error{MESSAGE}");
@@ -1135,7 +1138,7 @@ sub dist_start_new {
 			logMsg($LOG,$PROGRAM,"Updated distribution [$distname] with start date/time");
 			
 			# Build up a hash of film details for each site within the distribution
-			($msg) = apiSelect('cdsStartDistFilms',"id=$distid");
+			$msg = apiSelect('cdsStartDistFilms',"id=$distid");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
 				logMsgPortal($LOG,$PROGRAM,'E',"Start: No films returned for distribution '$distname' [$error{CODE}] $error{MESSAGE}");
@@ -1218,7 +1221,7 @@ sub dist_stop {
 	logMsg($LOG,$PROGRAM,"Abort requested distributions on CDS");
 	
 	# Read all pending distributions from the Portal
-	($msg) = apiSelect('cdsAbort');
+	$msg = apiSelect('cdsAbort');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Stop: No sites have distributions to be aborted [$error{CODE}] $error{MESSAGE}");
@@ -1267,7 +1270,7 @@ sub dist_stop {
 		
 		# Flag as ended on the Portal
 		$ended = formatDateTime('zd Mon ccyy zh24:mi');
-		($msg) = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
+		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Stop: Ended date for distribution '$distname' has not been set on Portal [$error{CODE}] $error{MESSAGE}");
@@ -1317,7 +1320,7 @@ sub dist_status {
 	}
 	
 	# Read the list of running batches from the Portal
-	($msg) = apiSelect('cdsStarted');
+	$msg = apiSelect('cdsStarted');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsg($LOG,$PROGRAM,"Status: Could not read list of active distributions");
@@ -1340,7 +1343,7 @@ sub dist_status {
 			if($cms{$cmsdistid}{dist_name} eq $batch) {
 				$pct = $cds{$key}{Progress};
 				$err = $cds{$key}{Errors};
-				($msg) = apiDML('cdsUpdateStatus',"id=$cmsdistid","completion=$pct","errors=$err");
+				$msg = apiDML('cdsUpdateStatus',"id=$cmsdistid","completion=$pct","errors=$err");
 				($status,%error) = apiStatus($msg);
 				if(!$status) {
 					logMsgPortal($LOG,$PROGRAM,'E',"Status: Status values NOT updated for batch '$batch' [$error{CODE}] $error{MESSAGE}");

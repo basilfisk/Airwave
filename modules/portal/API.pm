@@ -39,21 +39,28 @@ $API{key}		= 'c83824ecd1dac6a633c595a324015066';
 # ---------------------------------------------------------------------------------------------
 sub apiData {
 	my($json) = @_;
-	my($hash_ref,$msg);
+	my($hash_ref,$msg,%hash,$item,$iteminitem,%new);
 	my %error = ();
 
 	# Check whether any data was returned
 	if(!$json) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'WARN';
 		$error{CODE} = 'CLI006';
 		$error{MESSAGE} = "No data returned by the Gateway";
 		return %error;
 	}
 
-	# Convert JSON document to hash - already validated by 'make_request'
-	($hash_ref,$msg) = jsonData($json);
-	return %$hash_ref;
+	# Convert JSON document to hash
+	($hash_ref,$msg) = json_data($json);
+
+	# Extract inner 'data' hash
+	%hash = %$hash_ref{data};
+	foreach $item (keys %hash) {
+		foreach $iteminitem (keys %{$hash{$item}}) {
+			$new{$iteminitem} = $hash{$item}{$iteminitem};
+		}
+	}
+	return %new;
 }
 
 
@@ -68,13 +75,9 @@ sub apiData {
 # ---------------------------------------------------------------------------------------------
 sub apiDML {
 	my($call,@params) = @_;
-	my($response);
 	
 	# Processing for Select and DML commands is the same
-	$response = apiSQL($call,@params);
-	
-	# Return the JSON response
-	return $response;
+	return apiSQL($call,@params);
 }
 
 
@@ -136,7 +139,7 @@ sub apiMetadata {
 	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
 	$cmd .= "&assetcode=$assetcode&format=$format'";
 
-	# Run the command and check the return code
+	# Run the command
 	$response = `$cmd`;
 	return check_response($response,$?,$!);
 }
@@ -153,13 +156,9 @@ sub apiMetadata {
 # ---------------------------------------------------------------------------------------------
 sub apiSelect {
 	my($call,@params) = @_;
-	my($response);
 	
 	# Processing for Select and DML commands is the same
-	$response = apiSQL($call,@params);
-	
-	# Return the JSON response
-	return $response;
+	return apiSQL($call,@params);
 }
 
 
@@ -213,7 +212,6 @@ sub apiStatus {
 	# Check whether any data was returned
 	if(!$json) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI003';
 		$error{MESSAGE} = "No data returned by the Gateway";
 		return (0,%error);
@@ -222,17 +220,15 @@ sub apiStatus {
 	# If an HTML tag is present, something went wrong with the CURL call
 	if($json =~ m/HTML/i) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI004';
 		$error{MESSAGE} = "Problem with the CURL call. Check arguments";
 		return (0,%error);
 	}
 	
 	# Convert JSON document to hash and check validity of JSON message returned by API
-	($hash_ref,$msg) = jsonData($json);
+	($hash_ref,$msg) = json_data($json);
 	if(!$hash_ref) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI005';
 		$error{MESSAGE} = "Error parsing JSON response message: $msg";
 		return (0,%error);
@@ -244,7 +240,6 @@ sub apiStatus {
     $status = (defined($data{status}) && $data{status} eq '0') ? 0 : 1;
 	if(!$status) {
 		$error{STATUS} = $status;
-		$error{SEVERITY} = ($data{severity}) ? $data{severity} : 'WARN';
 		$error{CODE} = $data{code};
 		$error{MESSAGE} = $data{text};
 	}
@@ -298,7 +293,7 @@ sub check_response {
 #
 # Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
 # ---------------------------------------------------------------------------------------------
-sub jsonData {
+sub json_data {
 	my($string) = @_;
 	my($hash_ref);
 

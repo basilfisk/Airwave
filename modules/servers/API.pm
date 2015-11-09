@@ -39,21 +39,28 @@ $API{key}		= 'c83824ecd1dac6a633c595a324015066';
 # ---------------------------------------------------------------------------------------------
 sub apiData {
 	my($json) = @_;
-	my($hash_ref,$msg);
+	my($hash_ref,$msg,%hash,$item,$iteminitem,%new);
 	my %error = ();
 
 	# Check whether any data was returned
 	if(!$json) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'WARN';
 		$error{CODE} = 'CLI006';
 		$error{MESSAGE} = "No data returned by the Gateway";
 		return %error;
 	}
 
-	# Convert JSON document to hash - already validated by 'make_request'
-	($hash_ref,$msg) = jsonData($json);
-	return %$hash_ref;
+	# Convert JSON document to hash
+	($hash_ref,$msg) = json_data($json);
+
+	# Extract inner 'data' hash
+	%hash = %$hash_ref{data};
+	foreach $item (keys %hash) {
+		foreach $iteminitem (keys %{$hash{$item}}) {
+			$new{$iteminitem} = $hash{$item}{$iteminitem};
+		}
+	}
+	return %new;
 }
 
 
@@ -68,13 +75,9 @@ sub apiData {
 # ---------------------------------------------------------------------------------------------
 sub apiDML {
 	my($call,@params) = @_;
-	my($response);
 	
 	# Processing for Select and DML commands is the same
-	$response = apiSQL($call,@params);
-	
-	# Return the JSON response
-	return $response;
+	return apiSQL($call,@params);
 }
 
 
@@ -150,13 +153,14 @@ sub apiFileDownload {
 		}
 		else {
 			# Download succeeded
-			$msg = '{"status":"1"}';
+			$msg = "Download of file [$tdir/$tfile] was successful";
+			$msg = '{"status":"1", "data": { "code":"CLI001", "text": "'.$msg.'"}}';
 		}
 	}
 	# No response from API
 	else {
 		$msg = "Couldn't read file [$tdir/$tfile]";
-		$msg = '{"status":"0", "severity":"FATAL", "code":"CLI010", "text": "'.$msg.'"}';
+		$msg = '{"status":"0", "data": { "code":"CLI002", "text": "'.$msg.'"}}';
 	}
 	return $msg;
 }
@@ -174,7 +178,7 @@ sub apiFileDownload {
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
 	my($call,$assetcode,$format) = @_;
-	my($cmd,$response,$msg);
+	my($cmd,$response);
 
 	# Build the command
 	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
@@ -182,15 +186,7 @@ sub apiMetadata {
 
 	# Run the command
 	$response = `$cmd`;
-	
-	# Check the start of the response to see if an error was returned
-	if ($response =~ /{"status"/) {
-		# Download failed
-		return (0,$response);
-	}
-	
-	# Download succeeded
-	return (1,$response);
+	return check_response($response,$?,$!);
 }
 
 
@@ -205,13 +201,9 @@ sub apiMetadata {
 # ---------------------------------------------------------------------------------------------
 sub apiSelect {
 	my($call,@params) = @_;
-	my($response);
 	
 	# Processing for Select and DML commands is the same
-	$response = apiSQL($call,@params);
-	
-	# Return the JSON response
-	return $response;
+	return apiSQL($call,@params);
 }
 
 
@@ -265,7 +257,6 @@ sub apiStatus {
 	# Check whether any data was returned
 	if(!$json) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI003';
 		$error{MESSAGE} = "No data returned by the Gateway";
 		return (0,%error);
@@ -274,17 +265,15 @@ sub apiStatus {
 	# If an HTML tag is present, something went wrong with the CURL call
 	if($json =~ m/HTML/i) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI004';
 		$error{MESSAGE} = "Problem with the CURL call. Check arguments";
 		return (0,%error);
 	}
 	
 	# Convert JSON document to hash and check validity of JSON message returned by API
-	($hash_ref,$msg) = jsonData($json);
+	($hash_ref,$msg) = json_data($json);
 	if(!$hash_ref) {
 		$error{STATUS} = 0;
-		$error{SEVERITY} = 'FATAL';
 		$error{CODE} = 'CLI005';
 		$error{MESSAGE} = "Error parsing JSON response message: $msg";
 		return (0,%error);
@@ -296,9 +285,8 @@ sub apiStatus {
     $status = (defined($data{status}) && $data{status} eq '0') ? 0 : 1;
 	if(!$status) {
 		$error{STATUS} = $status;
-		$error{SEVERITY} = ($data{severity}) ? $data{severity} : 'WARN';
-		$error{CODE} = $data{code};
-		$error{MESSAGE} = $data{text};
+		$error{CODE} = $data{data}{code};
+		$error{MESSAGE} = $data{data}{text};
 	}
 
 	# Return (0,%error) or (1,undef)
@@ -323,17 +311,17 @@ sub check_response {
 	# Command failed
 	if($result == -1) {
 		$msg = 'Failed to execute: '.$error;
-		return '{"status":"0", "severity":"FATAL", "code":"CLI007", "text": "'.$msg.'"}';
+		return '{"status":"0", "data": { "code":"CLI007", "text": "'.$msg.'"}}';
 	}
 	# Command process terminated
 	elsif($result & 127) {
 		$msg = 'Child died with signal ['.($result & 127).'], '.(($result & 128) ? 'with' : 'without').' coredump';
-		return '{"status":"0", "severity":"FATAL", "code":"CLI008", "text": "'.$msg.'"}';
+		return '{"status":"0", "data": { "code":"CLI008", "text": "'.$msg.'"}}';
 	}
 	# Empty response
 	elsif(!$response) {
 		$msg = 'No response from API';
-		return '{"status":"0", "severity":"FATAL", "code":"CLI009", "text": "'.$msg.'"}';
+		return '{"status":"0", "data": { "code":"CLI009", "text":"'.$msg.'"}}';
 	}
 	# Response text received
 	else {
@@ -350,7 +338,7 @@ sub check_response {
 #
 # Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
 # ---------------------------------------------------------------------------------------------
-sub jsonData {
+sub json_data {
 	my($string) = @_;
 	my($hash_ref);
 

@@ -22,7 +22,7 @@ our %API;
 $API{host}		= 'api.visualsaas.net';
 $API{port}		= 8822;
 $API{instance}	= 'airwave';
-$API{key}		= 'c83824ecd1dac6a633c595a324015066';
+$API{key}		= '8950d855b82084a3229a8048698c5ead';
 
 1;
 

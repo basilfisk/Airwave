@@ -133,7 +133,12 @@ sub main {
 		return;
 	}
 	
-	# Create the different image sizes
+	# Create directory on Portal holding metadata of film if needed
+	if (!-d $tdir) {
+		system("mkdir -p $tdir");
+	}
+	
+	# Copy the VTT file to the metadata directory
 	$res = `cp $source $tdir/$tfile`;
 	if($res) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Error copying VTT file '$FILENAME' to '$tdir': $res");

@@ -130,10 +130,15 @@ sub film_details {
 	
 	# If requested film was found
 	if($cid) {
-		# Directories on Portal holding metadata and images are based on film provider of film
-		$meta = "$ROOT/../$CONFIG{PORTAL_META}/$provider/$film";
+		# Directories on Portal holding images
 		$jacket = "$ROOT/../$CONFIG{IMAGE_JACKET}/$provider";
 		$landscape = "$ROOT/../$CONFIG{IMAGE_LANDSCAPE}/$provider";
+		
+		# Directory on Portal holding metadata of film; create if needed
+		$meta = "$ROOT/../$CONFIG{PORTAL_META}/$provider/$film";
+		if (!-d $meta) {
+			system("mkdir -p $meta");
+		}
 		
 		# Create the small images from the jacket image
 		jacket_images($cid,$film,$meta,$jacket);
@@ -286,9 +291,13 @@ sub image_save {
 	# Use the height and width to create standard size 'large' and 'small' images
 	$high = $settings{ImageHeight};
 	$wide = $settings{ImageWidth};
+	if(!($high && $wide)) {
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image height or width");
+		return;
+	}
 	$mime = $settings{MIMEType};
-	if(!($high && $wide && $mime)) {
-		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image height, width or MIME type");
+	if(!$mime) {
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image MIME type");
 		return;
 	}
 	

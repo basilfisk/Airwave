@@ -640,8 +640,13 @@ sub dist_prepare {
 				}
 				else {
 					%meta = apiData($msg);
-					$msg = $meta{xml};
-					$msg =~ s/&quot;/"/g;
+					if ($type eq 'json') {
+						$msg = Dumper(\%meta);
+					}
+					else {
+						$msg = $meta{xml};
+						$msg =~ s/&quot;/"/g;
+					}
 					writeFile("$distdir/$filmcode.$type",$msg);
 				}
 				# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES

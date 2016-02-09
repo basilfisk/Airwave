@@ -108,10 +108,10 @@ sub main {
 				# Only encrypt films if successfully registered with the server
 				if($ok) {
 					# Create the name of the film file
-					$asset = get_file_name("$CONFIG{CS_ROOT}/$provider",$filmcode);
+					$asset = get_file_name($filmcode);
 					
 					# Encrypt using SecureMedia
-					$source = "$CONFIG{CS_ROOT}/$provider/$filmcode/$asset";
+					$source = "$CONFIG{DIST_ROOT}/$provider/$filmcode/$asset";
 					securemedia_encrypt($svrcode,$catalogue,$keylength,$filmname,$source,$filmcode,$asset,$provider);
 					
 					# Reset last server name
@@ -131,17 +131,16 @@ sub main {
 # ---------------------------------------------------------------------------------------------
 # Find the file name of an asset from the XML metadata file
 #
-# Argument 1 : Repository directory of the film
-# Argument 2 : Reference of film
+# Argument 1 : Reference of film
 #
 # Return the asset file name
 # ---------------------------------------------------------------------------------------------
 sub get_file_name {
-	my($repo,$film) = @_;
+	my($film) = @_;
 	my($file,$err,$xpc,@nodes);
 	
 	# Open and parse the XML metadata file
-	$file = "$repo/$film/$film.xml";
+	$file = "$CONFIG{DIST_META}/$film.xml";
 	($err,$xpc) = parseDocument('file',$file);
 	if(!$xpc) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Cannot open the XML file: $file: $err");

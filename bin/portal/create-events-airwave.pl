@@ -53,7 +53,6 @@ GetOptions (
 
 # Check that period argument is present and valid
 if($YYMM eq 'empty') { usage(1); }
-if(check_period($YYMM)) { usage(2); }
 
 # If site is 'all', convert to '*'
 $SITECODE = ($SITECODE eq 'all') ? '*' : $SITECODE;
@@ -233,33 +232,6 @@ sub main {
 
 
 # ---------------------------------------------------------------------------------------------
-# Check that a period is between 1101 and 1512 inclusive
-# Argument 1 : Message
-# ---------------------------------------------------------------------------------------------
-sub check_period {
-	my($yymm) = @_;
-	my($yy,$mm);
-
-	# Pack original date with invalid characters
-	$yymm = substr($yymm.'aaaa',0,4);
-
-	# Check the year (integer, between 11 and 15)
-	$yy = substr($yymm,0,2);
-	if($yy !~ /^\d+$/) { return 1; }
-	if(int($yy) < 11 || int($yy) > 15) { return 1; }
-
-	# Check the month (integer, between 1 and 12)
-	$mm = substr($yymm,2,2);
-	if($mm !~ /^\d+$/) { return 1; }
-	if(int($mm) < 1 || int($mm) > 12) { return 1; }
-
-	# Valid period
-	return 0;
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
 # Program usage
 # Argument 1 : Error number
 # ---------------------------------------------------------------------------------------------
@@ -269,9 +241,6 @@ sub usage {
 
 	if($err == 1) {
 		logMsg($LOG,$PROGRAM,"The 'yymm' argument must be present");
-	}
-	elsif($err == 2) {
-		logMsg($LOG,$PROGRAM,"The 'yymm' date must be between 1101 and 1512 inclusive");
 	}
 	else {
 		printf("
@@ -292,7 +261,7 @@ Usage :
   $PROGRAM --yymm=<YYMM>
   
   MANDATORY
-    --yymm=<YYMM>	 The reporting month in YYMM format (between 1101 and 1512 inclusive).
+    --yymm=<YYMM>	 The reporting month in YYMM format.
   
   OPTIONAL
     --s|site=<name>	Site for which the events are to be created.  The default is all sites.

@@ -176,7 +176,7 @@ Usage :
   
   MANDATORY
   --site=<name>		The site code or 'all'.
-  --yymm=<YYMM>		The reporting month in YYMM format (between 1101 and 1512 inclusive).
+  --yymm=<YYMM>		The reporting month in YYMM format.
   
   OPTIONAL
   --log				If set, the results from the script will be written to the Airwave

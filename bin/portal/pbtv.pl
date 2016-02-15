@@ -45,7 +45,6 @@ GetOptions (
 
 # Check that YYMM argument is present
 if($YYMM eq 'empty') { usage(1); }
-if(check_period($YYMM)) { usage(2); }
 
 # Read the configuration parameters
 our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
@@ -152,33 +151,6 @@ sub main {
 		logMsgPortal($LOG,$PROGRAM,'E',$msg);
 		return;
 	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Check that a period is between 1101 and 1512 inclusive
-# Argument 1 : Message
-# ---------------------------------------------------------------------------------------------
-sub check_period {
-	my($yymm) = @_;
-	my($yy,$mm);
-
-	# Pack original date with invalid characters
-	$yymm = substr($yymm.'aaaa',0,4);
-
-	# Check the year (integer, between 11 and 15)
-	$yy = substr($yymm,0,2);
-	if($yy !~ /^\d+$/) { return 1; }
-	if(int($yy) < 11 || int($yy) > 15) { return 1; }
-
-	# Check the month (integer, between 1 and 12)
-	$mm = substr($yymm,2,2);
-	if($mm !~ /^\d+$/) { return 1; }
-	if(int($mm) < 1 || int($mm) > 12) { return 1; }
-
-	# Valid period
-	return 0;
 }
 
 
@@ -340,9 +312,6 @@ sub usage {
 	if($err == 1) {
 		logMsgPortal($LOG,$PROGRAM,'E',"The 'yymm' argument is mandatory");
 	}
-	elsif($err == 2) {
-		logMsgPortal($LOG,$PROGRAM,'E',"The 'yymm' date must be between 1101 and 1512 inclusive");
-	}
 	else {
 		printf("
 Program : $PROGRAM
@@ -357,7 +326,7 @@ Usage :
   $PROGRAM --yymm=<YYMM>
 
   MANDATORY
-  --yymm=<YYMM>		The reporting month in YYMM format (between 1101 and 1512 inclusive).
+  --yymm=<YYMM>		The reporting month in YYMM format.
   
   OPTIONAL
   --log		 If set, the results from the script will be written to the Airwave

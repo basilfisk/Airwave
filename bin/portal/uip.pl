@@ -82,6 +82,11 @@ else {
 	$FILENAME = "UIP Schedules $YYMM Techlive";
 }
 
+# Make sure the directory exists
+if (!-d "$ROOT/../$CONFIG{PORTAL_UIP}/$CCYY") {
+	system("mkdir -p $ROOT/../$CONFIG{PORTAL_UIP}/$CCYY");
+}
+
 # Spreadsheet parameters
 msxmlSetParameter('NAME',$FILENAME);
 msxmlSetParameter('DIR',"$ROOT/../$CONFIG{PORTAL_UIP}/$CCYY");

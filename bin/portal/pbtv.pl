@@ -54,6 +54,11 @@ my @mmm = ('January','February','March','April','May','June','July','August','Se
 our $CCYY = "20".substr($YYMM,0,2);
 our $PERIOD = $mmm[int(substr($YYMM,2,2))-1]." ".$CCYY;
 
+# Make sure the directory exists
+if (!-d "$ROOT/../$CONFIG{PORTAL_PBTV}/$CCYY") {
+	system("mkdir -p $ROOT/../$CONFIG{PORTAL_PBTV}/$CCYY");
+}
+
 # Spreadsheet parameters
 our $FILENAME = "PlayboyTV $YYMM";
 msxmlSetParameter('NAME',$FILENAME);

@@ -20,11 +20,12 @@ use warnings;
 
 # System modules
 use Getopt::Long;
+use Data::Dumper;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiSelect apiStatus);
-use mods::Common qw(cleanNonAlpha formatDateTime logMsg logMsgPortal parseDocument readConfig);
+use mods::API qw(apiData apiMetadata apiSelect apiStatus);
+use mods::Common qw(cleanNonAlpha formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
 
 # Program information
 our $PROGRAM = "encrypt.pl";
@@ -59,8 +60,7 @@ main();
 # Main processing function
 # ---------------------------------------------------------------------------------------------
 sub main {
-	my($status,$msg,%error,$asset,$source);
-	my(%films,$svrcode,$svrname,$filmcode,$filmname,$provider,$encryption,$url,$user,$pass,$catalogue,$keylength,$ok);
+	my($status,$msg,%error,%films,$encryption);
 	my $lastsvr = '';
 	
 	# Start up message
@@ -82,41 +82,17 @@ sub main {
 	
 	# Encrypt each combination of server and film
 	foreach my $key (sort keys %films) {
-		# Server and film details
-		$svrname = $films{$key}{server_name};
-		$svrcode = $films{$key}{server_ref};
-		$filmcode = $films{$key}{asset_code};
-		$filmname = $films{$key}{title};
-		$provider = $films{$key}{provider};
+		# Select type of encryption to be used
 		$encryption = $films{$key}{enc_type};
-		$url = $films{$key}{sm_url};
-		$user = $films{$key}{sm_user};
-		$pass = $films{$key}{sm_pass};
-		$catalogue = $films{$key}{sm_catalogue};
-		$keylength = $films{$key}{sm_key_length};
 		
 		# Does this content need encrypting?
 		if($encryption) {
 			# SecureMedia encryption
-			if($encryption eq 'securemedia') {
-				# If this film is not for the same server as the last, check parameters are present then register
-				if($lastsvr ne $svrcode) {
-					securemedia_check($url,$user,$pass,$catalogue,$keylength);
-					$ok = securemedia_register($svrname,$url,$user,$pass,$keylength);
-				}
-				
-				# Only encrypt films if successfully registered with the server
-				if($ok) {
-					# Create the name of the film file
-					$asset = get_file_name($filmcode);
-					
-					# Encrypt using SecureMedia
-					$source = "$CONFIG{DIST_ROOT}/$provider/$filmcode/$asset";
-					securemedia_encrypt($svrcode,$catalogue,$keylength,$filmname,$source,$filmcode,$asset,$provider);
-					
-					# Reset last server name
-					$lastsvr = $svrcode;
-				}
+			if($encryption eq 'securemedia20') {
+				$lastsvr = securemedia('standard',$lastsvr,%films{$key});
+			}
+			elsif($encryption eq 'securemedia21') {
+				$lastsvr = securemedia('exterity',$lastsvr,%films{$key});
 			}
 			# For anything else, throw an error
 			else {
@@ -137,14 +113,27 @@ sub main {
 # ---------------------------------------------------------------------------------------------
 sub get_file_name {
 	my($film) = @_;
-	my($file,$err,$xpc,@nodes);
+	my($msg,$status,%error,%meta,$xml,$file,$err,$xpc,@nodes);
 	
-	# Open and parse the XML metadata file
+	# Read the latest XML metadata from the Portal
+	$msg = apiMetadata('apMetadata',$film,'xml');
+	($status,%error) = apiStatus($msg);
+	if(!$status) {
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read XML metadata from Portal [$error{CODE}] $error{MESSAGE}");
+		exit;
+	}
+	%meta = apiData($msg);
+	$xml = $meta{xml};
+	$xml =~ s/&quot;/"/g;
+	writeFile("$CONFIG{DIST_META}/$film.xml",$xml);
+	
+	# Parse the XML metadata
 	$file = "$CONFIG{DIST_META}/$film.xml";
-	($err,$xpc) = parseDocument('file',$file);
+#	($err,$xpc) = parseDocument('file',$file);
+	($err,$xpc) = parseDocument('string',$xml);
 	if(!$xpc) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Cannot open the XML file: $file: $err");
-		return;
+		exit;
 	}
 	
 	# Read the film asset name
@@ -163,6 +152,58 @@ sub get_file_name {
 
 
 # ---------------------------------------------------------------------------------------------
+# Encrypt using SecureMedia
+# 
+# Argument 1 : Type of executable file to be used for encryption (standard|exterity)
+# Argument 2 : Code of last server used for encryption in this session
+# Argument 3 : Hash with film details
+#
+# Return code of last server used for encryption
+# ---------------------------------------------------------------------------------------------
+sub securemedia {
+	my($type,$lastsvr,%film) = @_;
+	my(@keys,$key,$svrcode,$svrname,$filmcode,$filmname,$provider,$url,$user,$pass,$catalogue,$keylength,$ok,$asset,$source);
+	logMsg($LOG,$PROGRAM,"Encrypting with '$type' SecureMedia client");
+	
+	# Read the film key
+	@keys = keys %film;
+	$key = $keys[0];
+	
+	# Server and film details
+	$svrname = $film{$key}{server_name};
+	$svrcode = $film{$key}{server_ref};
+	$filmcode = $film{$key}{asset_code};
+	$filmname = $film{$key}{title};
+	$provider = $film{$key}{provider};
+	$url = $film{$key}{sm_url};
+	$user = $film{$key}{sm_user};
+	$pass = $film{$key}{sm_pass};
+	$catalogue = $film{$key}{sm_catalogue};
+	$keylength = $film{$key}{sm_key_length};
+	
+	# If this film is not for the same server as the last, check parameters are present then register
+	if($lastsvr ne $svrcode) {
+		securemedia_check($url,$user,$pass,$catalogue,$keylength);
+		$ok = securemedia_register($type,$svrname,$url,$user,$pass,$keylength);
+	}
+	
+	# Only encrypt films if successfully registered with the server
+	if($ok) {
+		# Create the name of the film file
+		$asset = get_file_name($filmcode);
+		
+		# Encrypt using SecureMedia
+		$source = "$CONFIG{DIST_ROOT}/$provider/$filmcode/$asset";
+		securemedia_encrypt($type,$svrcode,$catalogue,$keylength,$provider,$filmname,$filmcode,$source,$asset);
+		
+		# Return code of server used for encryption
+		return $svrcode;
+	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
 # Check that all SecureMedia parameters have been entered
 # 
 # Argument 1 : URL to the SecureMedia key vault server
@@ -173,6 +214,7 @@ sub get_file_name {
 # ---------------------------------------------------------------------------------------------
 sub securemedia_check {
 	my($host,$user,$password,$catalogue,$keylength) = @_;
+	logMsg($LOG,$PROGRAM,"Checking SecureMedia parameters");
 	
 	# Check that the required encryption parameters have been defined
 	if(!$host) {
@@ -195,6 +237,7 @@ sub securemedia_check {
 		logMsgPortal($LOG,$PROGRAM,'E',"Length of the encryption key has not been specified");
 		exit;
 	}
+	logMsg($LOG,$PROGRAM,"SecureMedia parameter checks passed");
 }
 
 
@@ -202,16 +245,18 @@ sub securemedia_check {
 # ---------------------------------------------------------------------------------------------
 # Encrypt a film against the SecureMedia key vault server
 # 
-# Argument 1 : Name of directory into which encrypted files are to be written
-# Argument 2 : SecureMedia catalogue in which the key is to be stored
-# Argument 3 : SecureMedia encryption key length
-# Argument 4 : Film title
-# Argument 5 : Full path and name of the source file
-# Argument 6 : Asset code of the film to be encrypted
-# Argument 7 : Name of the encrypted file to be created
+# Argument 1 : Type of executable file to be used for encryption (standard|exterity)
+# Argument 2 : Name of directory into which encrypted files are to be written
+# Argument 3 : SecureMedia catalogue in which the key is to be stored
+# Argument 4 : SecureMedia encryption key length
+# Argument 5 : Film provider
+# Argument 6 : Film title
+# Argument 7 : Asset code of the film to be encrypted
+# Argument 8 : Full path and name of the source file
+# Argument 9 : Name of the encrypted file to be created
 # ---------------------------------------------------------------------------------------------
 sub securemedia_encrypt {
-	my($server,$catalogue,$keylength,$filmname,$repo,$filmcode,$encfile,$provider) = @_;
+	my($type,$server,$catalogue,$keylength,$provider,$filmname,$filmcode,$repo,$encfile) = @_;
 	my($encdir,$dist,$cmd,$res,@errs);
 	my $smlog = "$CONFIG{LOGDIR}/$CONFIG{SM_LOG_ENCRYPT}";
 	
@@ -228,8 +273,13 @@ sub securemedia_encrypt {
 		# Remove the last log file, if it exists
 		if(-f $smlog) { $res = `rm $smlog`; }
 		
-		# Build the encryption command
-		$cmd = "/usr/local/bin/smm2encrypt -mcat $catalogue -mn $filmname -i $repo -o $dist -media.keylen $keylength -l 2 -lf $smlog";
+		# Build the command
+		if ($type eq 'exterity') {
+			$cmd = "/usr/local/bin/smm2encrypt_ext -enctype sc -scramble AES-ECB-BEG -enca norm -mcat $catalogue -mn $filmname -i $repo -o $dist -l 2 -lf $smlog";
+		}
+		else {
+			$cmd = "/usr/local/bin/smm2encrypt -mcat $catalogue -mn $filmname -i $repo -o $dist -media.keylen $keylength -l 2 -lf $smlog";
+		}
 		
 		# Encrypt the film, unless running in 'test' mode
 		if($ENCRYPT) {
@@ -237,7 +287,7 @@ sub securemedia_encrypt {
 			
 			# Create the directory to hold the encrypted films for this encryption server
 			if(!-d $encdir) {
-				$res = `mkdir $encdir`;
+				$res = `mkdir -p $encdir`;
 				if(!-d $encdir) {
 					logMsgPortal($LOG,$PROGRAM,'E',"Can't create directory for encryption server '$encdir': $res");
 					return;
@@ -266,24 +316,32 @@ sub securemedia_encrypt {
 # ---------------------------------------------------------------------------------------------
 # Register against the SecureMedia key vault server (before first asset is encrypted)
 # 
-# Argument 1 : Name of the SecureMedia key vault server
-# Argument 2 : URL to the SecureMedia key vault server
-# Argument 3 : SecureMedia user name for the encryption client
-# Argument 4 : SecureMedia password for the encryption client
-# Argument 5 : SecureMedia encryption key length
+# Argument 1 : Type of executable file to be used for encryption (standard|exterity)
+# Argument 2 : Name of the SecureMedia key vault server
+# Argument 3 : URL to the SecureMedia key vault server
+# Argument 4 : SecureMedia user name for the encryption client
+# Argument 5 : SecureMedia password for the encryption client
+# Argument 6 : SecureMedia encryption key length
 #
 # Return 1 for success or 0 for failure
 # ---------------------------------------------------------------------------------------------
 sub securemedia_register {
-	my($server,$host,$user,$password,$keylength) = @_;
+	my($type,$server,$host,$user,$password,$keylength) = @_;
 	my($cmd,$res,@errs);
 	my $smlog = "$CONFIG{LOGDIR}/$CONFIG{SM_LOG_REGISTER}";
 	
 	# Remove the last log file, if it exists
 	if(-f $smlog) { $res = `rm $smlog`; }
 	
+	# Build the command
+	if ($type eq 'exterity') {
+		$cmd = "/usr/local/bin/smm2encrypt_ext -register -rsurl $host -user $user -pass $password -rsource http://db-securemedia.exterity.com:9999/getrandom -l 2 -lf $smlog";
+	}
+	else {
+		$cmd = "/usr/local/bin/smm2encrypt -register -rsurl $host -user $user -pass $password -esam.keylen $keylength -l 2 -lf $smlog";
+	}
+	
 	# Register with the SecureMedia server
-	$cmd = "/usr/local/bin/smm2encrypt -register -rsurl $host -user $user -pass $password -esam.keylen $keylength -l 2 -lf $smlog";
 	if($ENCRYPT) {
 		logMsg($LOG,$PROGRAM,"Registering with the '$server' SecureMedia key vault server: $cmd");
 		$res = `$cmd`;

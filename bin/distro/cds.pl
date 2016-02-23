@@ -650,7 +650,7 @@ sub dist_prepare {
 					writeFile("$distdir/$filmcode.$type",$msg);
 				}
 				# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES
-				writeFile("$CONFIG{DISTRIBUTION}/metadata/$filmcode.$type",$msg);
+				writeFile("$CONFIG{DIST_META}/$filmcode.$type",$msg);
 			}
 			else {
 				$errorfound = 1;

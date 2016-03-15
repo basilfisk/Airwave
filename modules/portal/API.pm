@@ -236,12 +236,12 @@ sub apiStatus {
 	%data = %$hash_ref;
 
 	# Check status and return error hash if call failed
-    # Status element will not be set if data is returned, only if an error message is returned
-    $status = (defined($data{status}) && $data{status} eq '0') ? 0 : 1;
+	# Status element will not be set if data is returned, only if an error message is returned
+	$status = (defined($data{status}) && $data{status} eq '0') ? 0 : 1;
 	if(!$status) {
 		$error{STATUS} = $status;
-		$error{CODE} = $data{code};
-		$error{MESSAGE} = $data{text};
+		$error{CODE} = $data{data}{code};
+		$error{MESSAGE} = $data{data}{text};
 	}
 
 	# Return (0,%error) or (1,undef)

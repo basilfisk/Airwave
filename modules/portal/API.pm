@@ -22,7 +22,8 @@ our %API;
 $API{host}		= 'api.visualsaas.net';
 $API{port}		= 8822;
 $API{instance}	= 'airwave';
-$API{key}		= 'c83824ecd1dac6a633c595a324015066';
+#$API{key}		= 'c83824ecd1dac6a633c595a324015066';
+$API{key}		= '8950d855b82084a3229a8048698c5ead';
 
 1;
 
@@ -266,17 +267,17 @@ sub check_response {
 	# Command failed
 	if($result == -1) {
 		$msg = 'Failed to execute: '.$error;
-		return '{"status":"0", "severity":"FATAL", "code":"CLI007", "text": "'.$msg.'"}';
+		return '{"status":"0", "data": { "code":"CLI007", "text": "'.$msg.'"}}';
 	}
 	# Command process terminated
 	elsif($result & 127) {
 		$msg = 'Child died with signal ['.($result & 127).'], '.(($result & 128) ? 'with' : 'without').' coredump';
-		return '{"status":"0", "severity":"FATAL", "code":"CLI008", "text": "'.$msg.'"}';
+		return '{"status":"0", "data": { "code":"CLI008", "text": "'.$msg.'"}}';
 	}
 	# Empty response
 	elsif(!$response) {
 		$msg = 'No response from API';
-		return '{"status":"0", "severity":"FATAL", "code":"CLI009", "text": "'.$msg.'"}';
+		return '{"status":"0", "data": { "code":"CLI009", "text":"'.$msg.'"}}';
 	}
 	# Response text received
 	else {

@@ -31,6 +31,7 @@ use HTTP::Tiny;
 use XML::LibXML;
 use Getopt::Long;
 use Data::Dumper;
+use JSON::XS;
 
 # Don't verify host certificate. This only applies to my laptop, as I have
 # had a problem since upgrading Perl as part of Ubuntu 11.10
@@ -641,7 +642,7 @@ sub dist_prepare {
 				else {
 					%meta = apiData($msg);
 					if ($type eq 'json') {
-						$msg = Dumper(\%meta);
+						$msg = encode_json(\%meta);
 					}
 					else {
 						$msg = $meta{xml};

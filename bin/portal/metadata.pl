@@ -26,7 +26,7 @@ use JSON::XS;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiMetadata apiStatus);
+use mods::API qw(apiData apiMetadata apiSelect apiStatus);
 use mods::Common qw(logMsg logMsgPortal readConfig writeFile);
 
 # Program information
@@ -65,20 +65,52 @@ main();
 # Process a single film or all films for a content provider
 # ---------------------------------------------------------------------------------------------
 sub main {
-	my($text);
+	my($msg,$status,%error,%data,$code);
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
+	
+	# Generate metadata for all provider's films
+	if($FILM eq 'all') {
+		$msg = apiSelect('metadataFilms',"provider=$PROVIDER");
+		($status,%error) = apiStatus($msg);
+		if(!$status) {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read film codes from Portal [$error{CODE}] $error{MESSAGE}");
+			return;
+		}
+		else {
+			# Run through all films, even if there are problems
+			%data = apiData($msg);
+			foreach $code (sort keys %data) {
+				generate_meta($code);
+			}
+		}
+	}
+	else {
+		generate_meta($FILM);
+	}
+}
 
+
+
+# ---------------------------------------------------------------------------------------------
+# Generate JSON and XML metadata for 1 film
+#
+# Argument 1 : Film code
+# ---------------------------------------------------------------------------------------------
+sub generate_meta {
+	my($filmcode) = @_;
+	my($text);
+	
 	# Read the JSON metadata from the Portal and create a file
-	$text = read_metadata('json');
+	$text = read_metadata($filmcode,'json');
 	if(!$text) { return; }
-	if(!write_metadata('json',$text)) { return; }
+	if(!write_metadata($filmcode,'json',$text)) { return; }
 	
 	# Read the XML metadata from the Portal and create a file
-	$text = read_metadata('xml');
+	$text = read_metadata($filmcode,'xml');
 	if(!$text) { return; }
-	if(!write_metadata('xml',$text)) { return; }
+	if(!write_metadata($filmcode,'xml',$text)) { return; }
 }
 
 
@@ -107,20 +139,21 @@ sub json_data {
 # ---------------------------------------------------------------------------------------------
 # Read metadata from the Portal
 #
-# Argument 1 : Type of content (json|xml)
+# Argument 1 : Film code
+# Argument 2 : Type of content (json|xml)
 #
 # Return metadata for success or undef for error
 # ---------------------------------------------------------------------------------------------
 sub read_metadata {
-	my($type) = @_;
-	my($msg,$status,%error,$ref,$msg,%meta);
+	my($filmcode,$type) = @_;
+	my($msg,$status,%error,%meta);
 	my $name = uc($type);
-	logMsg($LOG,$PROGRAM,"Generating $name metadata for $FILM");
+	logMsg($LOG,$PROGRAM,"Generating $name metadata for $filmcode");
 	
-	$msg = apiMetadata('apMetadata',$FILM,$type);
+	$msg = apiMetadata('apMetadata',$filmcode,$type);
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read $name metadata from Portal [$error{CODE}] $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read $name metadata for $filmcode [$error{CODE}] $error{MESSAGE}");
 		return;
 	}
 	else {
@@ -142,24 +175,32 @@ sub read_metadata {
 # ---------------------------------------------------------------------------------------------
 # Read metadata from the Portal
 #
-# Argument 1 : Type of content (json|xml)
-# Argument 2 : Metadata text
+# Argument 1 : Film code
+# Argument 2 : Type of content (json|xml)
+# Argument 3 : Metadata text
 #
 # Return 1 for success or 0 for error
 # ---------------------------------------------------------------------------------------------
 sub write_metadata {
-	my($type,$text) = @_;
-	my $dir = "../$CONFIG{PORTAL_META}/$PROVIDER/$FILM";
+	my($filmcode,$type,$text) = @_;
+	my $dir = "../$CONFIG{PORTAL_META}/$PROVIDER/$filmcode";
 	my $name = uc($type);
-	logMsg($LOG,$PROGRAM,"Writing $name metadata to Portal for $FILM");
+	logMsg($LOG,$PROGRAM,"Writing $name metadata to Portal for $filmcode");
 	
-	if(writeFile("$ROOT/$dir/$FILM.$type",$text)) {
-		logMsg($LOG,$PROGRAM,"$name metadata written to file: $dir/$FILM.$type");
-		return 1;
+	# Check directory exists before writing
+	if (!-d $dir) {
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Directory $dir does not exist");
+		return 0;
 	}
 	else {
-		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not write $name metadata to file: $dir/$FILM.$type");
-		return 0;
+		if(writeFile("$ROOT/$dir/$filmcode.$type",$text)) {
+			logMsg($LOG,$PROGRAM,"$name metadata written to file $dir/$filmcode.$type");
+			return 1;
+		}
+		else {
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not write $name metadata to file $dir/$filmcode.$type");
+			return 0;
+		}
 	}
 }
 

@@ -16,5 +16,10 @@ $BIN/showing.pl -package=all -territory=all -log
 # Recreate the site seets for active sites
 $BIN/site-sheet.pl -site=all -log
 
+# Generate all metadata in JSON and XML format
+$BIN/metadata.pl -film=all -provider=BBC -log
+$BIN/metadata.pl -film=all -provider=PBTV -log
+$BIN/metadata.pl -film=all -provider=UIP -log
+
 # Script run as root, so change ownership so users can update files from web pages
 chown -R www-data:www-data $ROOT

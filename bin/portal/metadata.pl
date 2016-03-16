@@ -183,7 +183,7 @@ sub read_metadata {
 # ---------------------------------------------------------------------------------------------
 sub write_metadata {
 	my($filmcode,$type,$text) = @_;
-	my $dir = "../$CONFIG{PORTAL_META}/$PROVIDER/$filmcode";
+	my $dir = "$ROOT/../$CONFIG{PORTAL_META}/$PROVIDER/$filmcode";
 	my $name = uc($type);
 	logMsg($LOG,$PROGRAM,"Writing $name metadata to Portal for $filmcode");
 	
@@ -193,7 +193,7 @@ sub write_metadata {
 		return 0;
 	}
 	else {
-		if(writeFile("$ROOT/$dir/$filmcode.$type",$text)) {
+		if(writeFile("$dir/$filmcode.$type",$text)) {
 			logMsg($LOG,$PROGRAM,"$name metadata written to file $dir/$filmcode.$type");
 			return 1;
 		}

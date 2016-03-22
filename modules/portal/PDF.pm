@@ -120,6 +120,7 @@ sub pdfReport {
 
 	# Read and validate the colour and style definitions
 	read_colours($xpc);
+	read_font($xpc);
 	read_styles($xpc);
 
 	# Validate the rest of the configuration file
@@ -399,6 +400,18 @@ sub error_msg {
 
 # ---------------------------------------------------------------------------------------------
 # Create the PDF file
+#     Subtype    Type of font. PDF defines some types of fonts. It must be one 
+#                of the predefined type Type1, Type3, TrueType or Type0.In this
+#                version, only Type1 is supported. This is the default value.
+#     Encoding   Specifies the  encoding  from which the new encoding differs.
+#                It must be one of the predefined encodings MacRomanEncoding,
+#                MacExpertEncoding, Symbol or WinAnsiEncoding. The default 
+#                value is WinAnsiEncoding.
+#     BaseFont   The PostScript name of the font. It can be one of the following
+#                base fonts: Courier, Courier-Bold, Courier-BoldOblique,
+#                Courier-Oblique, Helvetica, Helvetica-Bold,
+#                Helvetica-BoldOblique, Helvetica-Oblique, Times-Roman,
+#                Times-Bold, Times-Italic, Times-BoldItalic or Symbol.
 # ---------------------------------------------------------------------------------------------
 sub open_pdf_file {
 	# Create the PDF object
@@ -410,22 +423,60 @@ sub open_pdf_file {
 							 );
 
 	# Font definitions
+	if($PDF_REPORT{font} eq 'Courier') {
 	$PDF_FONT{'normal'} = 
 			$PDF_DOC->font('Subtype'  => 'Type1',
 						   'Encoding' => 'WinAnsiEncoding',
-						   'BaseFont' => 'Helvetica');
+						   'BaseFont' => 'Courier');
 	$PDF_FONT{'bold'} = 
 			$PDF_DOC->font('Subtype'  => 'Type1',
 						   'Encoding' => 'WinAnsiEncoding',
-						   'BaseFont' => 'Helvetica-Bold');
+						   'BaseFont' => 'Courier-Bold');
 	$PDF_FONT{'oblique'} = 
 			$PDF_DOC->font('Subtype'  => 'Type1',
 						   'Encoding' => 'WinAnsiEncoding',
-						   'BaseFont' => 'Helvetica-Oblique');
+						   'BaseFont' => 'Courier-Oblique');
 	$PDF_FONT{'bold-oblique'} = 
 			$PDF_DOC->font('Subtype'  => 'Type1',
 						   'Encoding' => 'WinAnsiEncoding',
-						   'BaseFont' => 'Helvetica-BoldOblique');
+						   'BaseFont' => 'Courier-BoldOblique');
+	}
+	elsif($PDF_REPORT{font} eq 'Times') {
+	$PDF_FONT{'normal'} = 
+			$PDF_DOC->font('Subtype'  => 'Type1',
+						   'Encoding' => 'WinAnsiEncoding',
+						   'BaseFont' => 'Times-Roman');
+	$PDF_FONT{'bold'} = 
+			$PDF_DOC->font('Subtype'  => 'Type1',
+						   'Encoding' => 'WinAnsiEncoding',
+						   'BaseFont' => 'Times-Bold');
+	$PDF_FONT{'oblique'} = 
+			$PDF_DOC->font('Subtype'  => 'Type1',
+						   'Encoding' => 'WinAnsiEncoding',
+						   'BaseFont' => 'Times-Italic');
+	$PDF_FONT{'bold-oblique'} = 
+			$PDF_DOC->font('Subtype'  => 'Type1',
+						   'Encoding' => 'WinAnsiEncoding',
+						   'BaseFont' => 'Times-BoldItalic');
+	}
+	else {
+		$PDF_FONT{'normal'} = 
+				$PDF_DOC->font('Subtype'  => 'Type1',
+							   'Encoding' => 'WinAnsiEncoding',
+							   'BaseFont' => 'Helvetica');
+		$PDF_FONT{'bold'} = 
+				$PDF_DOC->font('Subtype'  => 'Type1',
+							   'Encoding' => 'WinAnsiEncoding',
+							   'BaseFont' => 'Helvetica-Bold');
+		$PDF_FONT{'oblique'} = 
+				$PDF_DOC->font('Subtype'  => 'Type1',
+							   'Encoding' => 'WinAnsiEncoding',
+							   'BaseFont' => 'Helvetica-Oblique');
+		$PDF_FONT{'bold-oblique'} = 
+				$PDF_DOC->font('Subtype'  => 'Type1',
+							   'Encoding' => 'WinAnsiEncoding',
+							   'BaseFont' => 'Helvetica-BoldOblique');
+	}
 }
 
 
@@ -719,6 +770,23 @@ sub read_colours {
 		# Load hash
 		$PDF_COLOURS{$id} = [ ($r,$g,$b) ];
 	}
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Read the font definitions from the configuration file
+#
+# Argument 1 : XPath Context
+# ---------------------------------------------------------------------------------------------
+sub read_font {
+	my($xpc) = @_;
+	my($path,@nodes);
+
+	# Read the style definitions. There must be at least 1
+	$path = "/report/format/font";
+	@nodes = $xpc->findnodes($path);
+	$PDF_REPORT{font} = $nodes[0]->textContent;
 }
 
 

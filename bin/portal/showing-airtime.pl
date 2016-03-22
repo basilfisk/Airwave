@@ -59,7 +59,6 @@ $IMAGES{footer} = 'Airtime_Footer.gif';
 
 # Location of report configuration file
 our $TEMP = "$CONFIG{TEMP}";
-our $OUTPUT = "$ROOT/../$CONFIG{AIRTIME_OUTPUT}";
 our $CONFFILE = "$ROOT/etc/showing-airtime.conf";
 our $DATAFILE = "$TEMP/showing-airtime.xml";
 
@@ -303,8 +302,8 @@ sub film_page {
 	}
 
 	# Generate the PDF file
-	pdfReport($CONFFILE,$DATAFILE,"$OUTPUT/$pdffile");
-	logMsg($LOG,$PROGRAM,"Created report '$OUTPUT/$pdffile'");
+	pdfReport($CONFFILE,$DATAFILE,"$ROOT/../$CONFIG{AIRTIME_OUTPUT}/$pdffile");
+	logMsg($LOG,$PROGRAM,"Created report '$CONFIG{AIRTIME_OUTPUT}/$pdffile'");
 }
 
 

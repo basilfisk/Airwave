@@ -13,13 +13,16 @@ $BIN/inventory.pl -log
 # Recreate all of the marketing sheets
 $BIN/showing.pl -package=all -territory=all -log
 
-# Recreate the site seets for active sites
+# Recreate the site sheets for active sites
 $BIN/site-sheet.pl -site=all -log
 
 # Generate all metadata in JSON and XML format
 $BIN/metadata.pl -film=all -provider=BBC -log
 $BIN/metadata.pl -film=all -provider=PBTV -log
 $BIN/metadata.pl -film=all -provider=UIP -log
+
+# Recreate the AirTime marketing sheets
+$BIN/showing-airtime.pl -language=en -log
 
 # Script run as root, so change ownership so users can update files from web pages
 chown -R www-data:www-data $ROOT

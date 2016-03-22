@@ -16,6 +16,7 @@ if [ "$SERVER" == "distro" ] || [ "$SERVER" == "prep" ]; then
 	SOURCE=$ROOT/Airwave
 	INSTALL=/home/airwave/bin
 else
+	APACHE=/etc/apache2/sites-available
 	ROOT=/root/install
 	SOURCE=$ROOT/Airwave
 	INSTALL=/srv/visualsaas/instances/airwave/bin
@@ -98,9 +99,11 @@ case "$SERVER" in
 		if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
 		
 		# Install the configuration files
+		cp $SOURCE/etc/portal/airtime.conf $APACHE
 		cp $SOURCE/etc/portal/airwave-portal.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/inventory.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/showing.conf $INSTALL/etc
+		cp $SOURCE/etc/portal/showing-airtime.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/site-sheet.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/smoovie-barker.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/smoovie-pos.conf $INSTALL/etc
@@ -115,6 +118,7 @@ case "$SERVER" in
 		cp $SOURCE/bin/portal/metadata.pl $INSTALL
 		cp $SOURCE/bin/portal/nightly-scripts $INSTALL
 		cp $SOURCE/bin/portal/pbtv.pl $INSTALL
+		cp $SOURCE/bin/portal/showing-airtime.pl $INSTALL
 		cp $SOURCE/bin/portal/showing-child.pl $INSTALL
 		cp $SOURCE/bin/portal/showing.pl $INSTALL
 		cp $SOURCE/bin/portal/site-sheet.pl $INSTALL

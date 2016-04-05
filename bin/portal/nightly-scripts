@@ -10,8 +10,11 @@ BIN=$ROOT/bin
 # Recreate the inventory reports for each active site
 $BIN/inventory.pl -log
 
-# Recreate all of the marketing sheets
+# Recreate the Airwave marketing sheets
 $BIN/showing.pl -package=all -territory=all -log
+
+# Recreate the AirTime marketing sheets
+$BIN/showing-airtime.pl -language=en -log
 
 # Recreate the site sheets for active sites
 $BIN/site-sheet.pl -site=all -log
@@ -20,9 +23,6 @@ $BIN/site-sheet.pl -site=all -log
 $BIN/metadata.pl -film=all -provider=BBC -log
 $BIN/metadata.pl -film=all -provider=PBTV -log
 $BIN/metadata.pl -film=all -provider=UIP -log
-
-# Recreate the AirTime marketing sheets
-$BIN/showing-airtime.pl -language=en -log
 
 # Script run as root, so change ownership so users can update files from web pages
 chown -R www-data:www-data $ROOT

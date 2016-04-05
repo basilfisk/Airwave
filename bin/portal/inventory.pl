@@ -68,7 +68,7 @@ main();
 sub main {
 	# Initialise local variables
 	my($period,$status,$msg,%error,%sites);
-	my($partner,$sitecode,$encryption,$territory,$package,$ok,$filename);
+	my($partner,$sitecode,$encryption,$territory,$package,$ok,$filename,$sitedir);
 
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
@@ -92,7 +92,7 @@ sub main {
 		$territory = $sites{$sitename}{'territory'};
 		$package = $sites{$sitename}{'package'};
 
-		# Clean up site nae
+		# Clean up site name
 		$sitename =~ s/&amp;/&/g;
 		($ok,$sitename) = cleanNonUTF8($sitename);
 		if(!$ok) {
@@ -115,7 +115,9 @@ sub main {
 		$filename =~ s/[^a-zA-Z0-9 \.\-]//g;
 
 		# Generate PDF file with current inventory of films
-		pdfReport($CONFFILE,$DATAFILE,"$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode/$filename");
+		$sitedir = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode";
+		if(!-d $sitedir) { system("mkdir -p $sitedir"); }
+		pdfReport($CONFFILE,$DATAFILE,"$sitedir/$filename");
 	}
 }
 

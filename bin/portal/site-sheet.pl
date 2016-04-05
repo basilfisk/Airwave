@@ -46,7 +46,7 @@ GetOptions (
 our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
 
 # Name of data file and configuration file
-our $SITECONF = "$ROOT/etc/site_sheet.conf";
+our $SITECONF = "$ROOT/etc/site-sheet.conf";
 our $DATAFILE = "$CONFIG{TEMP}/site_sheet.xml";
 our $PDFDIR = "$CONFIG{TEMP}";
 our $PDFFILE = "Site\ Sheet.pdf";
@@ -69,7 +69,7 @@ main();
 # ---------------------------------------------------------------------------------------------
 sub main {
 	# Initialise local variables
-	my($status,$msg,%error,%sites,$fh,$xml,$sitename,$sitecode,$address,$packages);
+	my($status,$msg,%error,%sites,$fh,$xml,$sitename,$sitecode,$address,$packages,$sitedir);
 
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
@@ -145,7 +145,9 @@ sub main {
 		$fh->close();
 
 		# Generate PDF file with 1 page/site
-		pdfReport($SITECONF,$DATAFILE,"$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode/$PDFFILE");
+		$sitedir = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode";
+		if(!-d $sitedir) { system("mkdir -p $sitedir"); }
+		pdfReport($SITECONF,$DATAFILE,"$sitedir/$PDFFILE");
 	}
 }
 

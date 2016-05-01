@@ -560,6 +560,9 @@ sub dist_notify_update_notified {
 sub dist_prepare {
 	my($status,$msg,%error,%distros,$errorfound,$distdir,$res,$source,%subtitles,$file,%distribution,$pending,%meta);
 	my($distid,$distname,$filmcode,$package,$provider);
+	my($psr,$doc,$xpc,@nodes,$str,$fh,$row,$ref,%json);
+	my $acstatus = 1;
+	my $acerrors = '';
 	
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
@@ -633,12 +636,15 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		foreach my $type (sort keys %{$PACKAGES{$package}{metadata}}) {
 			if ($type eq 'json' || $type eq 'xml') {
+				# Read metadata from Portal
 				$msg = apiMetadata('apMetadata',$filmcode,$type);
 				($status,%error) = apiStatus($msg);
+				# Failed to read metadata
 				if(!$status) {
 					$errorfound = 1;
 					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata [$type] from Portal [$error{CODE}] $error{MESSAGE}");
 				}
+				# Read successfully so write to file
 				else {
 					%meta = apiData($msg);
 					if ($type eq 'json') {
@@ -648,7 +654,149 @@ sub dist_prepare {
 						$msg = $meta{xml};
 						$msg =~ s/&quot;/"/g;
 					}
-					writeFile("$distdir/$filmcode.$type",$msg);
+					$file = "$distdir/$filmcode.$type";
+					writeFile($file,$msg);
+					
+					# Check that file written successfully
+					if (!-f $file) {
+						$errorfound = 1;
+						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Metadata file not created '$file'");
+					}
+					
+					else {
+						# Check asset codes are correct in XML metadata file
+						if ($type eq 'xml') {
+							$file = "$distdir/$filmcode.xml";
+							$psr = XML::LibXML->new();
+							eval { $doc = $psr->parse_file($file); };
+							if($@) {
+								$errorfound = 1;
+								logMsgPortal($LOG,$PROGRAM,'E',"Unable to read XML metadata file '$file': $@");
+							}
+							# XML document parsed successfully
+							else {
+								$xpc = XML::LibXML::XPathContext->new($doc);
+								# Check metadata ID
+								@nodes = $xpc->findnodes("/metadata");
+								if(@nodes) {
+									$str = $nodes[0]->getAttribute('id');
+									if($str ne $filmcode) {
+										$acerrors .= "$str ";
+										$acstatus = 0;
+									}
+								}
+								else {
+									$errorfound = 1;
+									logMsgPortal($LOG,$PROGRAM,'E',"Metadata element is missing in file '$file'");
+								}
+								# Check image names
+								@nodes = $xpc->findnodes("/metadata/images/image");
+								if(@nodes) {
+									for(my $i=0; $i<@nodes; $i++) {
+										$str = $nodes[$i]->textContent;
+										if($str !~ /^$filmcode-+/) {
+											$acerrors .= "$str ";
+											$acstatus = 0;
+										}
+									}
+								}
+								else {
+									$errorfound = 1;
+									logMsgPortal($LOG,$PROGRAM,'E',"'images' element is missing in file '$file'");
+								}
+								# Check asset names
+								@nodes = $xpc->findnodes("/metadata/assets/asset");
+								if(@nodes) {
+									for(my $i=0; $i<@nodes; $i++) {
+										$str = $nodes[$i]->getAttribute('name');
+										if($str !~ /^$filmcode\_+/) {
+											$acerrors .= "$str ";
+											$acstatus = 0;
+										}
+									}
+								}
+								else {
+									$errorfound = 1;
+									logMsgPortal($LOG,$PROGRAM,'E',"Asset name attributes are missing in file '$file'");
+								}
+								# Log summary of errors found
+								if (!$acstatus) {
+									$errorfound = 1;
+									logMsgPortal($LOG,$PROGRAM,'E',"Asset code should be '$filmcode' but the following codes have been found: $acerrors");
+								}
+							}
+						}
+						# Check asset codes are correct in JSON metadata file
+						else {
+							$file = "$distdir/$filmcode.json";
+							$fh = new IO::File("<$file");
+							if (!$fh) {
+								$errorfound = 1;
+								logMsgPortal($LOG,$PROGRAM,'E',"Unable to read JSON metadata file '$file'");
+							}
+							else {
+								# Read records into variable
+								while ($row = <$fh>) {
+									chomp $row;
+									$str .= $row
+								}
+								($ref,$msg) = json_data($str);
+								if ($msg) {
+									$errorfound = 1;
+									logMsgPortal($LOG,$PROGRAM,'E',"Error parsing JSON metadata file '$file': $msg");
+								}
+								else {
+									%json = %$ref;
+									# Check metadata ID
+									if($json{id}) {
+										if($json{id} ne $filmcode) {
+											$acerrors .= "$json{id} ";
+											$acstatus = 0;
+										}
+									}
+									else {
+										$errorfound = 1;
+										logMsgPortal($LOG,$PROGRAM,'E',"ID is missing in file '$file'");
+									}
+									# Check image names
+									@nodes = @{$json{images}};
+									if(@nodes) {
+										for(my $i=0; $i<@nodes; $i++) {
+											$str = $nodes[$i]{name};
+											if($str !~ /^$filmcode-+/) {
+												$acerrors .= "$str ";
+												$acstatus = 0;
+											}
+										}
+									}
+									else {
+										$errorfound = 1;
+										logMsgPortal($LOG,$PROGRAM,'E',"'images' element is missing in file '$file'");
+									}
+									# Check asset names
+									@nodes = @{$json{assets}};
+									if(@nodes) {
+										for(my $i=0; $i<@nodes; $i++) {
+											$str = $nodes[$i]{name};
+											if($str !~ /^$filmcode\_+/) {
+												$acerrors .= "$str ";
+												$acstatus = 0;
+											}
+										}
+									}
+									else {
+										$errorfound = 1;
+										logMsgPortal($LOG,$PROGRAM,'E',"'assets' element is missing in file '$file'");
+									}
+									# Log summary of errors found
+									if (!$acstatus) {
+										$errorfound = 1;
+										logMsgPortal($LOG,$PROGRAM,'E',"Asset code should be '$filmcode' but the following codes have been found: $acerrors");
+									}
+								}
+							}
+						}
+					}
 				}
 				# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES
 				writeFile("$CONFIG{DIST_META}/$filmcode.$type",$msg);
@@ -664,11 +812,21 @@ sub dist_prepare {
 		# ----------------------------------------------------------------------------
 		foreach my $type (sort keys %{$PACKAGES{$package}{image}}) {
 			if ($type eq 'small' || $type eq 'large' || $type eq 'full' || $type eq 'hero' || $type eq 'landscape') {
+				# Read image from Portal
 				$msg = apiFileDownload("$filmcode-$type.jpg","$CONFIG{PORTAL_IMAGES}/$provider/$filmcode","$filmcode-$type.jpg",$distdir);
 				($status,%error) = apiStatus($msg);
+				# Failed to read image
 				if(!$status) {
 					$errorfound = 1;
 					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download image [$type] from Portal [$error{CODE}] $error{MESSAGE}");
+				}
+				# Check that file written successfully
+				else {
+					$file = "$distdir/$filmcode-$type.jpg";
+					if (!-f $file) {
+						$errorfound = 1;
+						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Image file not created '$file'");
+					}
 				}
 			}
 			else {
@@ -681,21 +839,33 @@ sub dist_prepare {
 		# If specified in package, download VTT sub-title files from the Portal
 		# ----------------------------------------------------------------------------
 		if($PACKAGES{$package}{subtitle}) {
-			# Read details of scheduled distributions
+			# Read list of subtitle files
 			$msg = apiSelect('cdsPrepareSubtitles',"assetcode=$filmcode");
 			($status,%error) = apiStatus($msg);
+			# Failed to read list of subtitle files
 			if(!$status) {
 				$errorfound = 1;
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Problem reading list of sub-title files [$error{CODE}] $error{MESSAGE}");
 			}
+			# Now download the subtitle files from the Portal
 			else {
 				%subtitles = apiData($msg);
 				foreach my $subtitle (keys %subtitles) {
+					# Download a subtitle file
 					$msg = apiFileDownload($subtitle,"$CONFIG{PORTAL_VTT}/$provider/$filmcode",$subtitle,$distdir);
 					($status,%error) = apiStatus($msg);
+					# Failed to download subtitle file
 					if(!$status) {
 						$errorfound = 1;
 						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not download sub-title file [$subtitle] from Portal [$error{CODE}] $error{MESSAGE}");
+					}
+					# Check that subtitle file written successfully
+					else {
+						$file = "$distdir/$subtitle";
+						if (!-f $file) {
+							$errorfound = 1;
+							logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Sub-title file not created '$file'");
+						}
 					}
 				}
 			}
@@ -708,8 +878,8 @@ sub dist_prepare {
 		$source = "$PACKAGES{$package}{film}{source}";
 		$source =~ s/\[asset\]/$filmcode/g;
 		if(!-d $source) {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read film directory '$source' for package '$package'");
 			$errorfound = 1;
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read film directory '$source' for package '$package'");
 			# Skip remaining checks as they will all fail
 			next DISTRO;
 		}
@@ -725,32 +895,32 @@ sub dist_prepare {
 			$file = dist_prepare_file_name($source,$PACKAGES{$package}{film}{verimatrix});
 		}
 		else {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film type for package '$package' can only be: clear, securemedia or verimatrix");
 			$errorfound = 1;
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film type for package '$package' can only be: clear, securemedia or verimatrix");
 			# Skip remaining checks as they will all fail
 			next DISTRO;
 		}
 		
 		# Check whether film file exists
 		if(!-f "$source/$file") {
-			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film file not found '$source/$file'");
 			$errorfound = 1;
+			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Film file not found '$source/$file'");
 		}
 		else {
 			# Drop existing link to film file
 			if(-l "$distdir/$file") {
 				$res = `rm $distdir/$file 2>&1`;
 				if($res) {
-					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to film file '$distdir/$file': $res");
 					$errorfound = 1;
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to film file '$distdir/$file': $res");
 				}
 			}
 			
 			# Create link
 			$res = `ln -s $source/$file $distdir/$file 2>&1`;
 			if($res) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to film file '$source/$file': $res");
 				$errorfound = 1;
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to film file '$source/$file': $res");
 			}
 			else {
 				logMsg($LOG,$PROGRAM,"Created link to film file '$source/$file'");
@@ -771,8 +941,8 @@ sub dist_prepare {
 			$source = "$PACKAGES{$package}{trailer}{source}";
 			$source =~ s/\[asset\]/$filmcode/g;
 			if(!-d $source) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read trailer directory '$source' for package '$package'");
 				$errorfound = 1;
+				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to read trailer directory '$source' for package '$package'");
 				# Skip remaining checks as they will all fail
 				next DISTRO;
 			}
@@ -788,16 +958,16 @@ sub dist_prepare {
 				if(-l "$distdir/$file") {
 					$res = `rm $distdir/$file 2>&1`;
 					if($res) {
-						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to trailer file '$distdir/$file': $res");
 						$errorfound = 1;
+						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to trailer file '$distdir/$file': $res");
 					}
 				}
 				
 				# Create link
 				$res = `ln -s $source/$file $distdir/$file 2>&1`;
 				if($res) {
-					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
 					$errorfound = 1;
+					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to create link to trailer file '$source/$file': $res");
 				}
 				else {
 					logMsg($LOG,$PROGRAM,"Created link to trailer file '$source/$file'");
@@ -2192,6 +2362,27 @@ sub extract_distribution_data {
 		$cds{$key}{SITES} = [@sites];;
 	}
 	return %cds;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Convert a string in JSON format to a hash
+#
+# Argument 1 : String in JSON format
+#
+# Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
+# ---------------------------------------------------------------------------------------------
+sub json_data {
+	my($string) = @_;
+	my($hash_ref);
+
+	# Parse the string and trap any errors
+	eval { $hash_ref = JSON::XS->new->latin1->decode($string) };
+	if($@) {
+		return (undef,$@);
+	}
+	return ($hash_ref,undef);
 }
 
 

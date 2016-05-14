@@ -1,4 +1,11 @@
 The following Perl modules must be installed from CPAN
 	Image::ExifTool
+		apt install -y libimage-exiftool-perl
+	JSON::XS
+		apt install -y libjson-xs-perl
 	PDF::Create
+		apt install -y libpdf-create-perl
+	XML::LibXML
+		apt install -y libxml-libxml-perl
 	XML::Writer
+		apt install -y libxml-writer-perl

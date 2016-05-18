@@ -19,7 +19,7 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiStatus apiSelect);
 
 our %API;
-$API{host}		= 'api.visualsaas.net';
+$API{host}		= 'apivs.visualsaas.net';
 $API{port}		= 8822;
 $API{instance}	= 'airwave';
 $API{key}		= '8950d855b82084a3229a8048698c5ead';

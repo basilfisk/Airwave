@@ -54,8 +54,8 @@ our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
 
 # AirTime logo and footer
 our %IMAGES;
-$IMAGES{header} = 'Airtime_Logo.gif';
-$IMAGES{footer} = 'Airtime_Footer.gif';
+$IMAGES{header} = 'airtime_logo_thumbnail.jpg';
+$IMAGES{footer} = 'airtime_app_logo_thumbnail.jpg';
 
 # Location of report configuration file
 our $TEMP = "$CONFIG{TEMP}";

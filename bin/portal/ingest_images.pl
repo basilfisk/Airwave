@@ -209,7 +209,7 @@ sub jacket_image_create {
 	$h = $settings{ImageHeight};
 	$w = $settings{ImageWidth};
 	if(!($h && $w)) {
-		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image height or width");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading jacket image height or width");
 		return;
 	}
 	$ratio = $h/$w;
@@ -220,7 +220,7 @@ sub jacket_image_create {
 	$name = "$film-$type.jpg";
 	$result = `convert $jacket -resize $size $meta/$name`;
 	if($result) {
-		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error resizing image to $size: $result");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error resizing jacket image to $size: $result");
 		return;
 	}
 	
@@ -292,12 +292,12 @@ sub image_save {
 	$high = $settings{ImageHeight};
 	$wide = $settings{ImageWidth};
 	if(!($high && $wide)) {
-		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image height or width");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading '$type' image height or width");
 		return;
 	}
 	$mime = $settings{MIMEType};
 	if(!$mime) {
-		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading image MIME type");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading '$type' image MIME type");
 		return;
 	}
 	
@@ -308,7 +308,7 @@ sub image_save {
 	($msg) = apiDML('ingestImageSearch',"cid=$cid","type=$typeid");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
-		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading details of '$type' image for '$name': $error{MESSAGE}");
+		logMsgPortal($LOG,$PROGRAM,'E',"$film: Error reading '$type' image details for '$name': $error{MESSAGE}");
 		return;
 	}
 	

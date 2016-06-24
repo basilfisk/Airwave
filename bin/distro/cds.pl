@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # ***************************************************************************
 # ***************************************************************************
-# 
+#
 # This script is the interface between the distributions that are planned
 # and scheduled on the Portal, and CDS which manages the distributions to
 # each site.
@@ -124,7 +124,7 @@ sub main {
 		`tail -$CONFIG{LOGLINES} $CONFIG{LOGDIR}/cds.log`;
 		exit;
 	}
-	
+
 	# Login to the CDS node, stop if no session number returned by CDS
 	login_user();
 	if(!$SESSION) { exit; }
@@ -204,7 +204,7 @@ sub dist_catalogue {
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Catalogue the '$CONFIG{AIRWAVE_NODE_NAME}' node on the CDS server");
-	
+
 	# Run CDS command
 	$response = cds_command('indexnode');
 	if(!$response) {
@@ -222,28 +222,28 @@ sub dist_catalogue {
 sub dist_ended {
 	my($status,$msg,%error,%cms,$ok,$cdsref,%cds,$distname,$ended,$res,$distdir);
 	my $count = 0;
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Set the end date for completed CDS batches");
-	
+
 	# Read the list of running batches from the Airwave Portal
 	$msg = apiSelect('cdsStarted');
 	($status,%error) = apiStatus($msg);
-	
+
 	# Stop if there were errors reading from the Airwave Portal
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Ended: Unable to read list of current distributions from the Portal [$error{CODE}] $error{MESSAGE}");
 		return;
 	}
 	%cms = apiData($msg);
-	
+
 	# Stop if there are no running batches on the Airwave Portal
 	if(!%cms) {
 		logMsg($LOG,$PROGRAM,"No active distributions on the Portal");
 		return;
 	}
-	
+
 	# Retrieve the list of running distributions
 	($ok, $cdsref) = cds_sql_running();
 	if(!$ok) {
@@ -251,11 +251,11 @@ sub dist_ended {
 		return;
 	}
 	%cds = %$cdsref;
-	
+
 	# Loop through each batch from the Portal and check if still running on CDS
 	DISTENDED: foreach my $cmsid (sort keys %cms) {
 		$distname = $cms{$cmsid}{dist_name};
-		
+
 		# If batch names match, distribution is still running on CDS so skip to next CMS record
 		foreach my $cdsid (keys %cds) {
 			if($cds{$cdsid}{Bundle} eq $distname) {
@@ -264,7 +264,7 @@ sub dist_ended {
 		}
 		# Increment counter for number of distributions to be ended
 		$count++;
-		
+
 		# Update ended date on distribution record
 		# NB: This is not the end date as logged on CDS
 		$ended = formatDateTime('zd Mon ccyy zh24:mi');
@@ -275,7 +275,7 @@ sub dist_ended {
 			next DISTENDED;
 		}
 		logMsg($LOG,$PROGRAM,"Ended date set to $ended for distribution [$distname]");
-		
+
 		# Remove the directory tree and all files for the distribution
 		$distdir = "$CONFIG{DISTRIBUTION}/$distname";
 		if(-d $distdir) {
@@ -288,7 +288,7 @@ sub dist_ended {
 			}
 		}
 	}
-	
+
 	# Warn that no distributions have been flagged as ended
 	if(!$count) {
 		logMsg($LOG,$PROGRAM,"No distributions have been flagged as ended");
@@ -302,14 +302,14 @@ sub dist_ended {
 # ---------------------------------------------------------------------------------------------
 sub dist_node_status {
 	my($response,$err,$xpc,@nodes,$status,$msg,%error,%cms,$cmsname,$id,@child,$name);
-	
+
 	# Retrieve node details from CDS
 	$response = cds_command('listnodes');
 	if(!$response) {
 		logMsgPortal($LOG,$PROGRAM,'W',"Node Status: Unable to retrieve the list of nodes on CDS");
 		return;
 	}
-	
+
 	# Read the list of nodes, stop if errors reading the response
 	($err,$xpc) = parseDocument('string',$response);
 	if(!$xpc) {
@@ -321,7 +321,7 @@ sub dist_node_status {
 		logMsgPortal($LOG,$PROGRAM,'E',"Node Status: Unable to extract nodes from response document");
 		return;
 	}
-	
+
 	# Read the list of CDS nodes from the Portal
 	$msg = apiSelect('cdsNodes');
 	($status,%error) = apiStatus($msg);
@@ -330,13 +330,13 @@ sub dist_node_status {
 		return;
 	}
 	%cms = apiData($msg);
-	
+
 	# Stop if no CDS nodes were returned from the Portal
 	if(!%cms) {
 		logMsg($LOG,$PROGRAM,"No CDS nodes were returned from the Portal");
 		return;
 	}
-	
+
 	# Update the status of matching nodes on the Portal
 	foreach my $id (keys %cms) {
 		$cmsname = $cms{$id}{node};
@@ -345,7 +345,7 @@ sub dist_node_status {
 			$status = $node->getAttribute('status');
 			@child = $node->findnodes("cds:name");
 			$name = $child[0]->textContent;
-			
+
 			# If CDS and CMS names match, update the Portal
 			if("$cmsname" eq "$name") {
 				$status = ($status eq 'active') ? 'true' : 'false';
@@ -367,11 +367,11 @@ sub dist_node_status {
 sub dist_notify {
 	my($status,$msg,%error,%data,$distid,$distname,$node,$notify,$provider,$site,$asset,$abort,%films);
 	my @lastdist = (0,'','','','');
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Generate emails for completed distributions");
-	
+
 	# Return a hash keyed by distribution ID and content name, with distribition and film details
 	$msg = apiSelect('cdsNotify');
 	($status,%error) = apiStatus($msg);
@@ -380,13 +380,13 @@ sub dist_notify {
 		return;
 	}
 	%data = apiData($msg);
-	
+
 	# Stop if no notifications are needed
 	if(!%data) {
 		logMsg($LOG,$PROGRAM,"There are no unnotified distributions on the Portal");
 		return;
 	}
-		
+
 	# Process each combination of node and film
 	# Build up a hash of film details for each site and send before next site is processed
 	foreach my $key (sort keys %data) {
@@ -398,7 +398,7 @@ sub dist_notify {
 		$site = $data{$key}{site};
 		$asset = $data{$key}{content};
 		$abort = $data{$key}{abort};
-		
+
 		# If same node, add next set of film details to hash
 		if($lastdist[0] == $distid) {
 			$films{"$provider:$site:$asset"} = [ ($provider,$site,$asset,$abort) ];
@@ -409,16 +409,16 @@ sub dist_notify {
 			if($lastdist[0]) {
 				dist_notify_email_send(@lastdist,%films);
 			}
-			
+
 			# Save the current node details
 			@lastdist = ($distid,$distname,$node,$notify,$abort);
-			
+
 			# Clear the hash and add the current film record
 			%films = ();
 			$films{"$provider:$site:$asset"} = [ ($provider,$site,$asset,$abort) ];
 		}
 	}
-	
+
 	# Send the email for the last node
 	dist_notify_email_send(@lastdist,%films);
 }
@@ -441,7 +441,7 @@ sub dist_notify_email_body {
 	my $lastsite = '';
 	my $newline = "<br>";
 	my $body = '';
-	
+
 	# Content section of the email
 	foreach my $key (sort keys %films) {
 		# Read site and film related data
@@ -449,7 +449,7 @@ sub dist_notify_email_body {
 		$site = @{$films{$key}}[1];
 		$title = @{$films{$key}}[2];
 		$abort = @{$films{$key}}[3];
-		
+
 		# Genre heading
 		if($lastprov ne $provider) {
 			$lastprov = $provider;
@@ -460,7 +460,7 @@ sub dist_notify_email_body {
 The following <b>$genre</b> content $status downloaded by CDS to node <b>$node</b> in batch <b>$distname</b>.$newline$newline
 GENRE
 		}
-		
+
 		# Site name
 		if($lastsite ne $site) {
 			$lastsite = $site;
@@ -468,13 +468,13 @@ GENRE
 <b>$site</b> $newline
 SITE
 		}
-		
+
 		# Print the film title
 		$body .= <<FILM;
 - $title $newline
 FILM
 	}
-	
+
 	# Closing section of the email
 	$body .= <<END;
 $newline
@@ -484,7 +484,7 @@ $CONFIG{DIST_EMAIL_COMPANY} $newline
 Phone: $CONFIG{DIST_EMAIL_PHONE} $newline
 Email: $CONFIG{DIST_EMAIL_FROM} $newline
 END
-	
+
 	# Return the body of the email
 	return $body;
 }
@@ -504,17 +504,17 @@ END
 sub dist_notify_email_send {
 	my($distid,$distname,$node,$to,$abort,%films) = @_;
 	my($body,$status,$rc);
-	
+
 	# Generate the body of the email
 	$body = dist_notify_email_body($node,$distname,%films);
-	
+
 	# Strip out all new lines
 	$body =~ s/\n//g;
-	
+
 	# Send the email
 	$status = ($abort eq 'true') ? 'aborted' : 'finished';
 	$rc = email_send($status,$distname,$node,$to,$body);
-	
+
 	# If email sent without problems, update the notified date on the distribution
 	if($rc) {
 		dist_notify_update_notified($distid,$distname);
@@ -532,13 +532,13 @@ sub dist_notify_email_send {
 sub dist_notify_update_notified {
 	my($distid,$distname) = @_;
 	my($status,$msg,%error,$notified);
-	
+
 	# If batch not specified, don't update
 	if(!$distid) {
 		logMsgPortal($LOG,$PROGRAM,'W',"Notify: Unable to update the notified date as no distribution ID given");
 		return;
 	}
-	
+
 	# Update the notified date on the distribution
 	$notified = formatDateTime('zd Mon ccyy zh24:mi');
 	$msg = apiDML('cdsUpdateNotified',"id=$distid","notified='$notified'");
@@ -563,14 +563,14 @@ sub dist_prepare {
 	my($psr,$doc,$xpc,@nodes,$str,$fh,$row,$ref,%json);
 	my $acstatus = 1;
 	my $acerrors = '';
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Prepare the files for a distribution on CDS");
-	
+
 	# Read package details from Portal
 	dist_prepare_packages();
-	
+
 	# Read details of scheduled distributions
 	$msg = apiSelect('cdsPrepare');
 	($status,%error) = apiStatus($msg);
@@ -579,13 +579,13 @@ sub dist_prepare {
 		return;
 	}
 	%distros = apiData($msg);
-	
+
 	# Stop if there is nothing to process
 	if(!%distros) {
 		logMsg($LOG,$PROGRAM,"No distributions ready for the preparation stage");
 		return;
 	}
-	
+
 	# -----------------------------------------------------------------
 	# Create links to files to be distributed
 	# Key is distribution ID || film code
@@ -599,16 +599,16 @@ sub dist_prepare {
 		$provider = $distros{$key}{provider};
 		logMsg($LOG,$PROGRAM,"Distribution [$distname]");
 		logMsg($LOG,$PROGRAM,"Preparing [$filmcode] using package [$package]");
-		
+
 		# Clear the error flag
 		$errorfound = 0;
-		
+
 		# Check the package for the distribution
 		if (!$package) {
 			$errorfound = 1;
 			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Invalid package for distribution [$distname]");
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# Determine location of the distribution directory
 		# If sub-directory specified, add to root directory and substitute asset name
@@ -618,7 +618,7 @@ sub dist_prepare {
 			$distdir .= "/$PACKAGES{$package}{distribution}{directory}";
 			$distdir =~ s/\[asset\]/$filmcode/g;
 		}
-		
+
 		# Create the distribution directory if needed
 		if(!-d $distdir) {
 			$res = `mkdir -p $distdir 2>&1`;
@@ -630,7 +630,7 @@ sub dist_prepare {
 				logMsg($LOG,$PROGRAM,"Creating directory [$distdir]");
 			}
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# Read the metadata from the Portal and create a file (JSON or XML)
 		# ----------------------------------------------------------------------------
@@ -656,13 +656,13 @@ sub dist_prepare {
 					}
 					$file = "$distdir/$filmcode.$type";
 					writeFile($file,$msg);
-					
+
 					# Check that file written successfully
 					if (!-f $file) {
 						$errorfound = 1;
 						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Metadata file not created '$file'");
 					}
-					
+
 					else {
 						# Check asset codes are correct in XML metadata file
 						if ($type eq 'xml') {
@@ -736,6 +736,7 @@ sub dist_prepare {
 							}
 							else {
 								# Read records into variable
+								$str = '';
 								while ($row = <$fh>) {
 									chomp $row;
 									$str .= $row
@@ -806,7 +807,7 @@ sub dist_prepare {
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unrecognised type of metadata [$type]");
 			}
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# Download the images from the Portal
 		# ----------------------------------------------------------------------------
@@ -834,7 +835,7 @@ sub dist_prepare {
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unrecognised type of image [$type]");
 			}
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# If specified in package, download VTT sub-title files from the Portal
 		# ----------------------------------------------------------------------------
@@ -870,7 +871,7 @@ sub dist_prepare {
 				}
 			}
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# Prepare the film file
 		# ----------------------------------------------------------------------------
@@ -883,7 +884,7 @@ sub dist_prepare {
 			# Skip remaining checks as they will all fail
 			next DISTRO;
 		}
-		
+
 		# Find the name of the most recent film file
 		if($PACKAGES{$package}{film}{clear}) {
 			$file = dist_prepare_file_name($source,$PACKAGES{$package}{film}{clear});
@@ -900,7 +901,7 @@ sub dist_prepare {
 			# Skip remaining checks as they will all fail
 			next DISTRO;
 		}
-		
+
 		# Check whether film file exists
 		if(!-f "$source/$file") {
 			$errorfound = 1;
@@ -915,7 +916,7 @@ sub dist_prepare {
 					logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to film file '$distdir/$file': $res");
 				}
 			}
-			
+
 			# Create link
 			$res = `ln -s $source/$file $distdir/$file 2>&1`;
 			if($res) {
@@ -932,7 +933,7 @@ sub dist_prepare {
 				}
 			}
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# Prepare the trailer file
 		# ----------------------------------------------------------------------------
@@ -946,12 +947,12 @@ sub dist_prepare {
 				# Skip remaining checks as they will all fail
 				next DISTRO;
 			}
-			
+
 			# Substitute the asset name
 			# TODO Does not cater for encrypted trailers
 			$file = $PACKAGES{$package}{trailer}{clear};
 			$file =~ s/\[asset\]/$filmcode/g;
-			
+
 			# Check whether trailer file exists (optional, as film may not have a trailer)
 			if(-f "$source/$file") {
 				# Delete link if it already already exists
@@ -962,7 +963,7 @@ sub dist_prepare {
 						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to delete existing link to trailer file '$distdir/$file': $res");
 					}
 				}
-				
+
 				# Create link
 				$res = `ln -s $source/$file $distdir/$file 2>&1`;
 				if($res) {
@@ -974,7 +975,7 @@ sub dist_prepare {
 				}
 			}
 		}
-		
+
 		# ----------------------------------------------------------------------------
 		# If the error count has already been initialised, add the current status,
 		# otherwise initialise the error count with the current status
@@ -986,7 +987,7 @@ sub dist_prepare {
 			$distribution{$distid} = [($distname,$errorfound)];
 		}
 	}
-	
+
 	# ------------------------------------------------------------------
 	# Update each error free distribution record with pending date/time
 	# ------------------------------------------------------------------
@@ -996,7 +997,7 @@ sub dist_prepare {
 		if($errorfound) {
 			# Errors found, so back out gracefully
 			logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Errors found while preparing distribution '$distname'");
-			
+
 			# Remove the directory tree and all files for the distribution
 			$distdir = "$CONFIG{DISTRIBUTION}/$distname";
 			if(-d $distdir) {
@@ -1022,7 +1023,7 @@ sub dist_prepare {
 			}
 		}
 	}
-	
+
 	# Catalogue the Airwave Distribution node to register the new distributions with CDS
 	dist_catalogue();
 }
@@ -1040,7 +1041,7 @@ sub dist_prepare {
 sub dist_prepare_file_name {
 	my($repodir,$pattern) = @_;
 	my($dh,@files,$newest);
-	
+
 	# Read the list of files in the asset directory
 	if(!opendir($dh,$repodir)) {
 		# Problem reading the directory
@@ -1051,20 +1052,20 @@ sub dist_prepare_file_name {
 		# Read the files then close the directory handle
 		@files = grep { /$pattern/ } sort readdir($dh);
 		closedir($dh);
-		
+
 		# Select the most recent film file
 		# TEMPORARY - USES THE LENGTH OF THE FILE NAME
 		$newest = '';
 		foreach my $file (@files) {
 			# If first file
 			if(!$newest) { $newest = $file; }
-			
+
 			# Is next file more recent?
 			if(length($file) > length($newest)) {
 				$newest = $file;
 			}
 		}
-		
+
 		# Return the name of the newest film
 		return $newest;
 	}
@@ -1077,7 +1078,7 @@ sub dist_prepare_file_name {
 # ---------------------------------------------------------------------------------------------
 sub dist_prepare_packages {
 	my($status,$msg,%error,%packs,$package,$class,$type,$value);
-	
+
 	# Read list of packages from Portal
 	$msg = apiSelect('cdsPreparePackages');
 	($status,%error) = apiStatus($msg);
@@ -1086,7 +1087,7 @@ sub dist_prepare_packages {
 		exit;
 	}
 	%packs = apiData($msg);
-	
+
 	# Populate global hash of packages
 	%PACKAGES = ();
 	foreach my $id (sort keys %packs) {
@@ -1094,7 +1095,7 @@ sub dist_prepare_packages {
 		$class = $packs{$id}{class};
 		$type = $packs{$id}{type};
 		$value = $packs{$id}{file};
-		
+
 		$value =~ s/~bslash/\\/g;
 		$PACKAGES{$package}{$class}{$type} = $value;
 	}
@@ -1107,11 +1108,11 @@ sub dist_prepare_packages {
 # ---------------------------------------------------------------------------------------------
 sub dist_start {
 	my($ok,$cdsref,%cds,$running,@runningnodes,$new);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Start distributions on CDS");
-	
+
 	# Retrieve the list of running distributions
 	($ok, $cdsref) = cds_sql_running();
 	if(!$ok) {
@@ -1119,13 +1120,13 @@ sub dist_start {
 		return;
 	}
 	%cds = %$cdsref;
-	
+
 	# Create a list of sites that have running distributions
 	$running = keys(%cds);
 	foreach my $key (keys %cds) {
 		push(@runningnodes,$cds{$key}{Site});
 	}
-	
+
 	# Check number of distributions currently running on CDS against max number of concurrent
 	# processes allowed to see whether new distributions can be started
 	if($running < $CONFIG{CDS_MAX_CONCURRENT}) {
@@ -1154,19 +1155,19 @@ sub dist_start_new {
 	my(%sites,$site,$free,%freesite,%data,%content,@distlist,$seq,$response,$err,$xpc,@nodes,$cdsdistid,$ok,$cdsref,%cds,$start,%films);
 	my($status,$msg,%error,%distros,$distname,$distid,$cdsnode,$notify,$contentid,$nodeid,$fs_node,$fs_free);
 	my %to_be_distrib = ();
-	
+
 	# ---------------------------------------------------------
 	# Retrieve list of nodes and catalogued content from CDS
 	# ---------------------------------------------------------
 	# Retrieve details of active sites from CDS
 	%sites = cds_sql_sites();
-	
+
 	# Stop if no sites are found (i.e. can't connect to CDS)
 	if(!%sites) {
 		logMsg($LOG,$PROGRAM,"Can't connect to the CDS Portal");
 		return;
 	}
-	
+
 	# Only keep nodes on which no distributions are running (free)
 	foreach my $id (keys %sites) {
 		$free = 1;
@@ -1180,21 +1181,21 @@ sub dist_start_new {
 			$freesite{$sites{$id}{Site}} = [($id,1)];
 		}
 	}
-	
+
 	# Retrieve catalogued content on CDS
 	%data = cds_sql_content();
-	
+
 	# Stop if no catalogued content is found (or maybe unable to connect to CDS)
 	if(!%data) {
 		logMsg($LOG,$PROGRAM,"Can't read any catalogued content from the CDS Portal");
 		return;
 	}
-	
+
 	# Extract bundle IDs
 	foreach my $id (keys %data) {
 		$content{$data{$id}{Bundle}} = $id;
 	}
-	
+
 	# -----------------------------------------------------------
 	# Find pending distributions with catalogued content on CDS
 	# -----------------------------------------------------------
@@ -1206,13 +1207,13 @@ sub dist_start_new {
 		return;
 	}
 	%distros = apiData($msg);
-	
+
 	# Stop if there are no pending distributions
 	if(!%distros) {
 		logMsg($LOG,$PROGRAM,"There are no pending distributions on the Portal");
 		return;
 	}
-	
+
 	# Select only distributions that have catalogued content on CDS as only these can be started
 	# Key is sequence in which to be run
 	foreach my $seq (sort keys %distros) {
@@ -1220,11 +1221,11 @@ sub dist_start_new {
 		$distid = $distros{$seq}{dist_id};
 		$cdsnode = $distros{$seq}{node_name};
 		$notify = $distros{$seq}{node_email};
-		
+
 		# Pending distribution record from Portal must match catalogued content on CDS
 		foreach my $bundle (keys %content) {
 			$contentid = $content{$bundle};
-			
+
 			# If distribution and catalogue names match, find CDS node ID
 			if($bundle eq $distname) {
 				# Loop through each CDS node
@@ -1240,7 +1241,7 @@ sub dist_start_new {
 						$freesite{$site} = [($fs_node,0)];
 					}
 				}
-				
+
 				# Save distribution and node details, skip if node not found on CDS
 				if($nodeid != 0) {
 					$to_be_distrib{$seq} = [($distid,$distname,$contentid,$nodeid,$cdsnode,$notify)];
@@ -1248,24 +1249,24 @@ sub dist_start_new {
 			}
 		}
 	}
-	
+
 	# Stop if there is nothing to be distributed
 	if(!%to_be_distrib) {
 		logMsg($LOG,$PROGRAM,"No catalogued content found on CDS for distribution");
 		return;
 	}
-	
+
 	# ---------------------------------------------------------
 	# Initiate a CDS start request for each distribution
 	# ---------------------------------------------------------
 	@distlist = sort keys %to_be_distrib;
-	
+
 	# Limit to miximum that can be started or total scheduled, whichever is less
 	$new = ($new > @distlist) ? @distlist : $new;
 	DISTSTART: for(my $i=0; $i<$new; $i++) {
 		$seq = $distlist[$i];
 		($distid,$distname,$contentid,$nodeid,$cdsnode,$notify) = @{$to_be_distrib{$seq}};
-		
+
 		# Build the CDS command to start the distribution
 		$response = cds_command('sendcontent',$contentid,$nodeid);
 		if(!$response) {
@@ -1273,7 +1274,7 @@ sub dist_start_new {
 			next DISTSTART;
 		}
 		logMsg($LOG,$PROGRAM,"Started distribution [$distname] on CDS");
-		
+
 		# Read the CDS distribution ID from the response document
 		($err,$xpc) = parseDocument('string',$response);
 		if(!$xpc) {
@@ -1286,7 +1287,7 @@ sub dist_start_new {
 			next DISTSTART;
 		}
 		$cdsdistid = $nodes[0]->getAttribute('id');
-		
+
 		# Retrieve the list of running distributions
 		($ok, $cdsref) = cds_sql_running();
 		if(!$ok) {
@@ -1294,16 +1295,16 @@ sub dist_start_new {
 			return;
 		}
 		%cds = %$cdsref;
-		
+
 		# Stop if no running distributions are found (or maybe unable to connect to CDS)
 		if(!%cds) {
 			logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 			return;
 		}
-		
+
 		# Convert from CDS date to Portal date
 		$start = convertCDSdate($cds{$cdsdistid}{Start});
-		
+
 		# Update started date on distribution record
 		$msg = apiDML('cdsUpdateStarted',"id=$distid","started='$start'");
 		($status,%error) = apiStatus($msg);
@@ -1312,7 +1313,7 @@ sub dist_start_new {
 		}
 		else {
 			logMsg($LOG,$PROGRAM,"Updated distribution [$distname] with start date/time");
-			
+
 			# Build up a hash of film details for each site within the distribution
 			$msg = apiSelect('cdsStartDistFilms',"id=$distid");
 			($status,%error) = apiStatus($msg);
@@ -1321,7 +1322,7 @@ sub dist_start_new {
 				return;
 			}
 			%films = apiData($msg);
-			
+
 			# Send the email for the distribution node
 			dist_start_email_send($distname,$cdsnode,$notify,%films);
 		}
@@ -1344,13 +1345,13 @@ sub dist_start_email_send {
 	my $lastprov = '';
 	my $newline = "<br>";
 	my $body = '';
-	
+
 	# Content section of the email
 	foreach my $key (sort keys %films) {
 		# Read site and film related data
 		$provider = $films{$key}{provider};
 		$title = $films{$key}{title};
-		
+
 		# Genre heading
 		if($lastprov ne $provider) {
 			$lastprov = $provider;
@@ -1360,13 +1361,13 @@ sub dist_start_email_send {
 The following <b>$genre</b> content has been scheduled for download by CDS to node <b>$node</b> in batch <b>$distname</b>.$newline$newline
 GENRE
 		}
-		
+
 		# Print the film title
 		$body .= <<FILM;
 - $title $newline
 FILM
 	}
-	
+
 	# Closing section of the email
 	$body .= <<END;
 $newline
@@ -1376,10 +1377,10 @@ $CONFIG{DIST_EMAIL_COMPANY} $newline
 Phone $CONFIG{DIST_EMAIL_PHONE} $newline
 Email $CONFIG{DIST_EMAIL_FROM} $newline
 END
-	
+
 	# Strip out all new lines
 	$body =~ s/\n//g;
-	
+
 	# Send the email
 	email_send('started',$distname,$node,$to,$body);
 }
@@ -1391,11 +1392,11 @@ END
 # ---------------------------------------------------------------------------------------------
 sub dist_stop {
 	my($status,$msg,%error,%distros,$ok,$cdsref,%cds,$distname,$cdsid,$ended,$response,$distdir,$res);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Abort requested distributions on CDS");
-	
+
 	# Read all pending distributions from the Portal
 	$msg = apiSelect('cdsAbort');
 	($status,%error) = apiStatus($msg);
@@ -1404,13 +1405,13 @@ sub dist_stop {
 		return;
 	}
 	%distros = apiData($msg);
-	
+
 	# Stop if there are no pending distributions
 	if(!%distros) {
 		logMsg($LOG,$PROGRAM,"There are no distributions to be aborted on the Portal");
 		return;
 	}
-	
+
 	# Retrieve the list of running distributions
 	($ok, $cdsref) = cds_sql_running();
 	if(!$ok) {
@@ -1418,32 +1419,32 @@ sub dist_stop {
 		return;
 	}
 	%cds = %$cdsref;
-	
+
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
 		logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 		return;
 	}
-	
+
 	# Abort each distribution
 	foreach my $cmsid (keys %distros) {
 		$distname = $distros{$cmsid}{distribution};
 		logMsg($LOG,$PROGRAM,"Aborting distribution [$distname]");
-		
+
 		# Find the CDS distribution ID from the distribution name
 		foreach my $id (keys %cds) {
 			if($cds{$id}{Bundle} eq $distname) {
 				$cdsid = $id;
 			}
 		}
-		
+
 		# Stop the distribution on CDS
 		$response = cds_command('abortdistribution',$cdsid);
 		if(!$response) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Stop: Unable to abort distribution '$distname' on CDS");
 			return;
 		}
-		
+
 		# Flag as ended on the Portal
 		$ended = formatDateTime('zd Mon ccyy zh24:mi');
 		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
@@ -1451,7 +1452,7 @@ sub dist_stop {
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Stop: Ended date for distribution '$distname' has not been set on Portal [$error{CODE}] $error{MESSAGE}");
 		}
-		
+
 		# Remove the directory tree and all files for the distribution
 		$distdir = "$CONFIG{DISTRIBUTION}/$distname";
 		if(-d $distdir) {
@@ -1463,7 +1464,7 @@ sub dist_stop {
 				logMsg($LOG,$PROGRAM,"Stop: Removing directory [$distdir]");
 			}
 		}
-		
+
 		# All done
 		logMsg($LOG,$PROGRAM,"Aborted distribution [$distname] on CDS");
 	}
@@ -1476,11 +1477,11 @@ sub dist_stop {
 # ---------------------------------------------------------------------------------------------
 sub dist_status {
 	my($ok,$cdsref,%cds,$status,$msg,%error,%cms,$batch,@sites,$nod,$pct,$err);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Check the status of distributions running on CDS");
-	
+
 	# Retrieve the list of running distributions
 	($ok, $cdsref) = cds_sql_running();
 	if(!$ok) {
@@ -1488,13 +1489,13 @@ sub dist_status {
 		return;
 	}
 	%cds = %$cdsref;
-	
+
 	# Stop if no running distributions are found (or maybe unable to connect to CDS)
 	if(!%cds) {
 		logMsg($LOG,$PROGRAM,"No distributions running on the CDS Portal");
 		return;
 	}
-	
+
 	# Read the list of running batches from the Portal
 	$msg = apiSelect('cdsStarted');
 	($status,%error) = apiStatus($msg);
@@ -1502,14 +1503,14 @@ sub dist_status {
 		logMsg($LOG,$PROGRAM,"Status: Could not read list of active distributions");
 		return;
 	}
-	
+
 	# Read list of running batches
 	%cms = apiData($msg);
 	if(!%cms) {
 		logMsg($LOG,$PROGRAM,"Status: No sites have active distributions");
 		return;
 	}
-	
+
 	# List the running distributions
 	logMsg($LOG,$PROGRAM,"STATUS OF ACTIVE DISTRIBUTIONS");
 	foreach my $key (sort keys %cds) {
@@ -1540,21 +1541,21 @@ sub dist_status {
 sub list_complete {
 	my($response,%cds,@sites,@files);
 	my($to,$from) = months_offset(1);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"List finished distributions on CDS");
-	
+
 	# Run CDS command
 	$response = cds_command('listaudit',$from,$to);
 	if(!$response) {
 		logMsg($LOG,$PROGRAM,"Unable to retrieve the list of completed distributions on CDS");
 		return;
 	}
-	
+
 	# Extract the distribution data from the CDS message
 	%cds = extract_distribution_data($response);
-	
+
 	# List the completed distribution data
 	logMsg($LOG,$PROGRAM,"DISTRIBUTIONS COMPLETED BETWEEN ".substr($from,0,10)." AND ".substr($to,0,10));
 	foreach my $key (sort keys %cds) {
@@ -1586,21 +1587,21 @@ sub list_complete {
 sub list_running {
 	my($response,%cds,@sites,@files);
 	my($to,$from) = months_offset(1);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"List distributions running on CDS");
-	
+
 	# Run CDS command
 	$response = cds_command('listdistributions',$from,$to);
 	if(!$response) {
 		logMsg($LOG,$PROGRAM,"Unable to retrieve the list of distributions running on CDS");
 		return;
 	}
-	
+
 	# Extract the data for running distributions from the CDS message
 	%cds = extract_distribution_data($response);
-	
+
 	# List the running distributions
 	logMsg($LOG,$PROGRAM,"ACTIVE DISTRIBUTIONS STARTED BETWEEN ".substr($from,0,10)." AND ".substr($to,0,10));
 	foreach my $key (sort keys %cds) {
@@ -1631,18 +1632,18 @@ sub list_running {
 # ---------------------------------------------------------------------------------------------
 sub list_content {
 	my($response,$err,$xpc,@nodes,@child,$cid,$cname,$nid,$nname);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"List catalogued content on CDS");
-	
+
 	# Run CDS command
 	$response = cds_command('listcontent');
 	if(!$response) {
 		logMsg($LOG,$PROGRAM,"Unable to retrieve the list of content packages on CDS");
 		return;
 	}
-	
+
 	# Extract the list of content
 	($err,$xpc) = parseDocument('string',$response);
 	if(!$xpc) {
@@ -1663,7 +1664,7 @@ sub list_content {
 		$nid = $child[0]->getAttribute('id');
 		@child = $child[0]->findnodes("cds:name");
 		$nname = $child[0]->textContent;
-		
+
 		# Print content
 		logMsg($LOG,$PROGRAM,"  $cname [$cid]");
 	}
@@ -1676,18 +1677,18 @@ sub list_content {
 # ---------------------------------------------------------------------------------------------
 sub list_groups {
 	my($response,$err,$xpc,@nodes,@child,$gid,$gname,%groups);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"List groups on CDS");
-	
+
 	# Run CDS command
 	$response = cds_command('listgroups');
 	if(!$response) {
 		logMsg($LOG,$PROGRAM,"Unable to retrieve the list of groups on CDS");
 		return;
 	}
-	
+
 	# Extract the list of content
 	($err,$xpc) = parseDocument('string',$response);
 	if(!$xpc) {
@@ -1706,9 +1707,9 @@ sub list_groups {
 		$gname = $child[0]->textContent;
 		$groups{$gname} = $gid;
 	}
-	
+
 	# Print the groups in alphabetic order
-	foreach my $grp (sort keys %groups) { 
+	foreach my $grp (sort keys %groups) {
 		logMsg($LOG,$PROGRAM,"  $grp [$groups{$grp}]");
 	}
 }
@@ -1720,18 +1721,18 @@ sub list_groups {
 # ---------------------------------------------------------------------------------------------
 sub list_nodes {
 	my($response,$err,$xpc,@nodes,@child,$id,$state,$name,%nodelist,@array);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"List nodes on CDS");
-	
+
 	# Run CDS command
 	$response = cds_command('listnodes');
 	if(!$response) {
 		logMsg($LOG,$PROGRAM,"Unable to retrieve the list of nodes on CDS");
 		return;
 	}
-	
+
 	# Extract the list of content
 	($err,$xpc) = parseDocument('string',$response);
 	if(!$xpc) {
@@ -1751,7 +1752,7 @@ sub list_nodes {
 		$name = $child[0]->textContent;
 		$nodelist{$id} = [ ($name,$state) ];
 	}
-	
+
 	# Print the active nodes in alphabetic order
 	logMsg($LOG,$PROGRAM,"Active Nodes");
 	foreach my $id (sort keys %nodelist) {
@@ -1762,7 +1763,7 @@ sub list_nodes {
 	foreach my $elem (sort @array) {
 		logMsg($LOG,$PROGRAM,"  $elem");
 	}
-	
+
 	# Print the inactive nodes in alphabetic order
 	@array = ();
 	logMsg($LOG,$PROGRAM,"Offline Nodes");
@@ -1814,21 +1815,21 @@ sub test {
 sub cds_call {
 	my($function,$command) = @_;
 	my($http,%headers,%options,$response,$content,$psr,$doc,$xpc,@nodes);
-	
+
 	# Clear out newlines, tabs and leading spaces
 	$command =~ s/\n//g;
 	$command =~ s/\t//g;
 	$command =~ s/^\s+//;
-	
+
 	# Define the HTTP header and content
 	$headers{'Content-Type'} = 'text/xml';
 	$options{'content'} = $command;
 	$options{'headers'} = \%headers;
-	
+
 	# Create a request obeject and make the call
 	$http = HTTP::Tiny->new('Content-Type' => 'text/xml');
 	$response = $http->request('GET', $CDS_URL, \%options);
-	
+
 	# Process the response
 	if(!$response->{success}) {
 		if($response->{status} == 599) {
@@ -1840,15 +1841,15 @@ sub cds_call {
 		return undef;
 	}
 	$content = $response->{content};
-	
+
 	# Change reserved XML characters
 	$content =~ s/&/&amp;/g;
-	
+
 	# There is a problem with the CDS API in that some commands append the HTML response code to the
 	# end of the response message.  This code removes any characters after the </cds:response> tag
 	$content =~ s/\n//g;
 	$content =~ s/<\/cds:response>.*/<\/cds:response>/;
-	
+
 	# Return the response from CDS if successful, or undef if CDS raised an error
 	$psr = XML::LibXML->new();
 	eval { $doc = $psr->parse_string($content); };
@@ -1879,7 +1880,7 @@ sub cds_call {
 sub cds_command {
 	my($cmd,$prm1,$prm2) = @_;
 	my($xml,$response);
-	
+
 	# Find XML for command
 	if($cmd eq 'abortdistribution') {
 		# Abort a distribution
@@ -1978,17 +1979,17 @@ COMMAND_START
 		logMsg($LOG,$PROGRAM,"Unable to find CDS command '$cmd'");
 		return;
 	}
-	
+
 	# Run command
 	$response = cds_call($cmd,$xml);
 	if(!$response) {
 		logMsg($LOG,$PROGRAM,"Unable to run CDS command '$cmd'");
 		return;
 	}
-	
+
 	# Save the response to file
 	dump_response_to_file("/tmp/cds_$cmd.xml",$response);
-	
+
 	# Return response
 	return $response;
 }
@@ -2002,12 +2003,12 @@ COMMAND_START
 # ---------------------------------------------------------------------------------------------
 sub cds_db_connect {
 	my($dsn,$dbh);
-	
+
 	$dsn = "DBI:mysql:database=$CONFIG{CDS_SQL_DATABASE};host=$CONFIG{CDS_SQL_HOST};mysql_connect_timeout=5";
 	eval {
 		$dbh = DBI->connect($dsn,$CONFIG{CDS_SQL_USERNAME},$CONFIG{CDS_SQL_PASSWORD},{RaiseError => 1});
 	};
-	
+
 	# Error raised during connection
 	if ($@) {
 		logMsg($LOG,$PROGRAM,"Can't connect to CDS Portal: ".$@);
@@ -2025,26 +2026,26 @@ sub cds_db_connect {
 # ---------------------------------------------------------------------------------------------
 sub cds_sql_content {
 	my($sql,$dbh,$sth,$ref,$id,%data);
-	
+
 	# Running distributions
 	$sql = <<SQL_CONTENT;
 SELECT	ContentID,
 		Name,
 		(SELECT Name FROM Server WHERE ServerID=Content.RepositoryID) AS 'Server'
 FROM	Content
-WHERE	Status='active' 
-AND		Type = 'managed_content' 
-AND		(SELECT COUNT(*) 
-		 FROM File 
-		 WHERE ContentID=Content.ContentID 
-		 AND Status='active') > 0 
+WHERE	Status='active'
+AND		Type = 'managed_content'
+AND		(SELECT COUNT(*)
+		 FROM File
+		 WHERE ContentID=Content.ContentID
+		 AND Status='active') > 0
 AND		RepositoryID = 154
 SQL_CONTENT
-	
+
 	# Connect to the database
 	$dbh = cds_db_connect();
 	if(!$dbh) { return; }
-	
+
 	# Run the query and load the data into a hash
 	$sth = $dbh->prepare($sql);
 	$sth->execute();
@@ -2056,10 +2057,10 @@ SQL_CONTENT
 		}
 	}
 	$sth->finish();
-	
+
 	# Disconnect from the database
 	$dbh->disconnect();
-	
+
 	# Return the data
 	return %data;
 }
@@ -2073,7 +2074,7 @@ SQL_CONTENT
 # ---------------------------------------------------------------------------------------------
 sub cds_sql_running {
 	my($sql,$dbh,$sth,$ref,$id,%data);
-	
+
 	# Running distributions
 	$sql = <<SQL_RUNNING;
 SELECT	d.DistributionID AS DistID,
@@ -2081,23 +2082,23 @@ SELECT	d.DistributionID AS DistID,
 		d.Timestamp AS Start,
 		(SELECT MAX(s.Name) FROM Action a,Server s WHERE a.DestServerID = s.ServerID AND a.DistributionID=d.DistributionID) AS Site,
 		(SELECT COUNT(*) FROM Error e WHERE e.DistributionID=d.DistributionID) AS Errors,
-		(SELECT SUM(f.Size*a.Progress)/SUM(f.Size) FROM Action a LEFT JOIN File f ON (a.ObjectID=f.FileID) WHERE a.DistributionID=d.DistributionID AND a.EventTypeID=(SELECT DISTINCT EventTypeID FROM EventType WHERE Name='transfer')) AS Progress 
+		(SELECT SUM(f.Size*a.Progress)/SUM(f.Size) FROM Action a LEFT JOIN File f ON (a.ObjectID=f.FileID) WHERE a.DistributionID=d.DistributionID AND a.EventTypeID=(SELECT DISTINCT EventTypeID FROM EventType WHERE Name='transfer')) AS Progress
 FROM	Distribution d,
-		Content c 
-WHERE	d.ContentID = c.ContentID 
+		Content c
+WHERE	d.ContentID = c.ContentID
 AND		0<(
-			SELECT	COUNT(*) 
-			FROM	Action a 
-			WHERE	a.DistributionID=d.DistributionID 
-			AND		a.Status='ready' 
+			SELECT	COUNT(*)
+			FROM	Action a
+			WHERE	a.DistributionID=d.DistributionID
+			AND		a.Status='ready'
 			AND		a.EventTypeID IN (SELECT DISTINCT EventTypeID FROM EventType WHERE Name IN ('transfer','ingest'))
 		)
 SQL_RUNNING
-	
+
 	# Connect to the database
 	$dbh = cds_db_connect();
 	if(!$dbh) { return (0, undef); }
-	
+
 	# Run the query and load the data into a hash
 	$sth = $dbh->prepare($sql);
 	$sth->execute();
@@ -2112,10 +2113,10 @@ SQL_RUNNING
 		}
 	}
 	$sth->finish();
-	
+
 	# Disconnect from the database
 	$dbh->disconnect();
-	
+
 	# Return success and the data
 	return (1, \%data);
 }
@@ -2129,26 +2130,26 @@ SQL_RUNNING
 # ---------------------------------------------------------------------------------------------
 sub cds_sql_sites {
 	my($sql,$dbh,$sth,$ref,$id,%data);
-	
+
 	# Active sites (no users)
 	$sql = <<SQL_SITES;
 SELECT	u.UserID AS ID,
 		c.Name AS Company,
 		u.Name AS Site,
-		s.Name AS Server 
-FROM	User u, 
-		Company c, 
-		Server s 
-WHERE	u.CompanyID = c.CompanyID 
-AND		u.ServerID = s.ServerID 
-AND		u.Type = 'site' 
-AND		u.Status = 'active' 
+		s.Name AS Server
+FROM	User u,
+		Company c,
+		Server s
+WHERE	u.CompanyID = c.CompanyID
+AND		u.ServerID = s.ServerID
+AND		u.Type = 'site'
+AND		u.Status = 'active'
 SQL_SITES
-	
+
 	# Connect to the database
 	$dbh = cds_db_connect();
 	if(!$dbh) { return; }
-	
+
 	# Run the query and load the data into a hash
 	$sth = $dbh->prepare($sql);
 	$sth->execute();
@@ -2161,10 +2162,10 @@ SQL_SITES
 		}
 	}
 	$sth->finish();
-	
+
 	# Disconnect from the database
 	$dbh->disconnect();
-	
+
 	# Return the data
 	return %data;
 }
@@ -2215,11 +2216,11 @@ sub dump_response_to_file {
 sub email_send {
 	my($stage,$distname,$node,$to,$body) = @_;
 	my($from,$ok,$subject,$cc,$status,$msg,%error);
-	
+
 	# Read email parameters from the configuration file
 	$cc = $CONFIG{DIST_EMAIL_CC};
 	$from = $CONFIG{DIST_EMAIL_FROM};
-	
+
 	# Build subject of email
 	if($stage eq "aborted") {
 		$subject = "Distribution of content to $node has been cancelled";
@@ -2227,7 +2228,7 @@ sub email_send {
 	else {
 		$subject = "Distribution of content to $node has $stage";
 	}
-	
+
 	# Clean non UTF8 characters from subject and body
 	($ok,$subject) = cleanNonUTF8($subject);
 	if(!$ok) {
@@ -2237,25 +2238,25 @@ sub email_send {
 	if(!$ok) {
 		logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in body of email: $body");
 	}
-	
+
 	# If TO address not set on Portal, send to default address and warn in subject
 	if(!$to) {
 		$to = $CONFIG{DIST_EMAIL_FROM};
 		$subject = "USING DEFAULT 'TO' ADDRESS: $subject";
 		logMsgPortal($LOG,$PROGRAM,'E',"Email: No [To] address for site assigned on Portal, using default email address");
 	}
-	
+
 	# Clean the TO email addresses
 	$to =~ s/\n/ /g;		# Replace new lines with spaces
 	$to =~ s/;/ /g;			# Replace semi-colons with spaces
 	$to =~ s/^\s+//;		# Remove leading whitespace
 	$to =~ s/\s+$//;		# Remove trailing whitespace
 	$to =~ s/\s+/ /g;		# Collapse internal whitespace to a single space
-	
+
 	# Replace semi-colon email address separators with spaces
 	$from =~ s/;/ /g;
 	$cc =~ s/;/ /g;
-	
+
 	# Send the email
 	($msg) = apiEmail("to='$to'","from='$from'","subject='$subject'","body='$body'","cc='$cc'");
 	($status,%error) = apiStatus($msg);
@@ -2293,7 +2294,7 @@ sub extract_distribution_data {
 	my($err,$xpc,@nodes,$key,@child,@nodelist,@files,@file,@sites,@site);
 	my($status,$msg,%error);
 	my %cds = ();
-	
+
 	# Read the response document
 	($err,$xpc) = parseDocument('string',$response);
 	if(!$xpc) {
@@ -2301,12 +2302,12 @@ sub extract_distribution_data {
 		return;
 	}
 	@nodes = $xpc->findnodes("/cds:response/cds:distributionlist/cds:distribution");
-	
+
 	# Stop if no data returned from CDS
 	if(!@nodes) {
 		return;
 	}
-	
+
 	# Loop through each distribution element
 	foreach my $node (@nodes) {
 		# Extract the distribution attributes
@@ -2314,13 +2315,13 @@ sub extract_distribution_data {
 		$cds{$key}{DIST_MODE} = $node->getAttribute('mode');
 		$cds{$key}{DIST_ENCRYPT} = $node->getAttribute('encrypt');
 		$cds{$key}{DIST_PRIORITY} = $node->getAttribute('priority');
-		
+
 		# Read distribution start and end dates. If not defined, set to null
 		@child = $node->findnodes("cds:date[\@type='start']");
 		$cds{$key}{DIST_START} = (@child) ? $child[0]->textContent : '';
 		@child = $node->findnodes("cds:date[\@type='finish']");
 		$cds{$key}{DIST_END} = (@child) ? $child[0]->textContent : '';
-		
+
 		# Extract the source of the content
 		@nodelist = $node->findnodes("cds:content");
 		$cds{$key}{CONTENT_ID} = $nodelist[0]->getAttribute('id');
@@ -2330,7 +2331,7 @@ sub extract_distribution_data {
 		$cds{$key}{CONTENT_NODEID} = $child[0]->getAttribute('id');
 		@child = $child[0]->findnodes("cds:name");
 		$cds{$key}{CONTENT_NODENAME} = $child[0]->textContent;
-		
+
 		# Extract the list of files
 		@files = ();
 		@nodelist = $node->findnodes("cds:content/cds:filelist/cds:file");
@@ -2344,7 +2345,7 @@ sub extract_distribution_data {
 			push(@files,[@file]);
 		}
 		$cds{$key}{FILES} = [@files];
-		
+
 		# Destination of content
 		@sites = ();
 		@nodelist = $node->findnodes("cds:nodelist/cds:node");
@@ -2394,7 +2395,7 @@ sub json_data {
 # ---------------------------------------------------------------------------------------------
 sub login_licence {
 	my($licence) = @_;
-	
+
 	# CDS command to be issued
 	my $cmd = <<COMMAND;
 <?xml version='1.0'?>
@@ -2412,7 +2413,7 @@ COMMAND
 # ---------------------------------------------------------------------------------------------
 sub login_user {
 	my($cmd,$response,$err,$xpc,@nodes);
-	
+
 	# CDS command to be issued
 	$cmd = <<COMMAND;
 <?xml version='1.0'?>
@@ -2428,7 +2429,7 @@ COMMAND
 		logMsgPortal($LOG,$PROGRAM,'E',"Login: Failed to login to the CDS Portal");
 		return;
 	}
-	
+
 	# Extract the session ID
 	($err,$xpc) = parseDocument('string',$response);
 	if(!$xpc) {
@@ -2440,7 +2441,7 @@ COMMAND
 		logMsgPortal($LOG,$PROGRAM,'E',"Login: Session ID could not be read from the CDS response message");
 		return;
 	}
-	
+
 	# Save the session ID
 	$SESSION = $nodes[0]->textContent;
 }
@@ -2452,7 +2453,7 @@ COMMAND
 # ---------------------------------------------------------------------------------------------
 sub logout {
 	my($cmd,$response);
-	
+
 	# CDS command to be issued
 	$cmd = <<COMMAND;
 <?xml version='1.0'?>
@@ -2481,23 +2482,23 @@ sub months_offset {
 	my($interval) = @_;
 	my($now,$adj,$time);
 	my($sec,$min,$hour,$day,$mth,$year) = localtime();
-	
+
 	# Time (HH24:MI:SS)
 	$time = substr("0".$hour,-2,2).':'.substr("0".$min,-2,2).':'.substr("0".$sec,-2,2);
-	
+
 	# Adjust month and year
 	$mth++;
 	$year += 1900;
-	
+
 	# TO date
 	$now = $year.'-'.substr("0".$mth,-2,2).'-'.substr("0".$day,-2,2).' '.$time;
-	
+
 	# FROM date
 	$mth -= $interval;
 	$year = ($mth <= 0) ? ($year-1) : $year;
 	$mth = ($mth <= 0) ? $mth+12 : $mth;
 	$adj = $year.'-'.substr("0".$mth,-2,2).'-'.substr("0".$day,-2,2).' '.$time;
-	
+
 	return ($now,$adj);
 }
 
@@ -2512,7 +2513,7 @@ sub usage {
 	my($err,$dir) = @_;
 	$err = ($err) ? $err : 0;
 	if($err == 1) {
-		
+
 		printf("
 Invalid action, must be one of:
   DISTRIBUTION ACTIONS
@@ -2549,62 +2550,62 @@ Summary :
   and scheduled on the Portal, and CDS which manages the distributions to
   each site.
 
-Usage   : 
+Usage   :
           DISTRIBUTION ACTIONS
             Create the content directories for distribution by CDS.
               $PROGRAM -a=prepare
-              
+
             Catalogue the CMS distribution node on the CDS server.  This is also run
             after new content directories have been created by the prepare action.
               $PROGRAM -a=catalogue
-              
+
             Start a distribution on CDS.
               $PROGRAM -a=start
-              
+
             Stop a distribution on CDS.
               $PROGRAM -a=stop
-              
+
             Update the Portal with the CDS node status
               $PROGRAM -a=node-status
-              
+
             Check the status of all distributions that have been started by CDS.
               $PROGRAM -a=status -from=<CCYY-MM-DD> -to=<CCYY-MM-DD>
-              
-            Set the end date for CDS batches that finished between the 'from' date and 
+
+            Set the end date for CDS batches that finished between the 'from' date and
             'to' date.  Unless explicitly stated, the default 'from' date is 1 month
             before today and the  default 'to' date is today.
               $PROGRAM -a=ended -from=<CCYY-MM-DD> -to=<CCYY-MM-DD>
-              
+
             Generate and send emails to each site listing the films that have been
             successfully loaded onto the site.
               $PROGRAM -a=notify
-              
+
             View the last 100 lines from the CDS log file.
               $PROGRAM -a=log
-              
+
           QUERIES
             Retrieve a list of completed distributions from the CDS server.
               $PROGRAM -a=complete -from=<CCYY-MM-DD> -to=<CCYY-MM-DD>
-              
+
             Retrieve a list of active distributions from the CDS server.
               $PROGRAM -a=running -from=<CCYY-MM-DD> -to=<CCYY-MM-DD>
-              
+
             Retrieve the list of catalogued content from the CDS server.
               $PROGRAM -a=content
-              
+
             Retrieve the list of node groups from the CDS server.
               $PROGRAM -a=group
               [TDB - List nodes within the group]
-              
+
             Retrieve a list of nodes from the CDS server.
               $PROGRAM -a=node
               [TBD - Group node by company and show status after name]
-              
+
           TEST
             Send test messages via the API to the CDS server.
               $PROGRAM -a=test -t='command,...'
-              
-              
+
+
   MANDATORY
     --a|action=<name>          Action to be performed against the CDS server.
 
@@ -2621,9 +2622,7 @@ Usage   :
                                log directory, otherwise the results will be written to the screen.
 		\n");
 	}
-	
+
 	# Stop in all cases
 	exit;
 }
-
-

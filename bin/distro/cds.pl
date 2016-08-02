@@ -2248,7 +2248,7 @@ sub email_send {
 
 	# Clean the TO email addresses
 	$to =~ s/\n/ /g;		# Replace new lines with spaces
-	$to =~ s/;/ /g;			# Replace semi-colons with spaces
+#	$to =~ s/;/ /g;			# Replace semi-colons with spaces
 	$to =~ s/^\s+//;		# Remove leading whitespace
 	$to =~ s/\s+$//;		# Remove trailing whitespace
 	$to =~ s/\s+/ /g;		# Collapse internal whitespace to a single space

@@ -55,7 +55,7 @@ our($FILM_ROOT,@FILMS,%STREAMS);
 if($CLASS eq 'empty') { usage(1); }
 
 # Check validity of 'class' argument
-if($CLASS ne 'uip' && $CLASS ne 'pbtv' && $CLASS ne 'bbc') { usage(2); }
+if($CLASS ne 'uip' && $CLASS ne 'pbtv' && $CLASS ne 'bbc' && $CLASS ne 'disney') { usage(2); }
 
 $CLASS =~ tr[a-z][A-Z];
 $FILM_ROOT = "$CONFIG{CS_ROOT}/$CLASS";
@@ -77,7 +77,7 @@ show_films();
 sub load_data {
 	# Initialise local variables
 	my($dh,@files,$psr,$doc,$xpc,@temp,@nodes,$node,$tmp);
-	
+
 	# Read the information from the metadata files in cache
 	opendir($dh,$FILM_ROOT);
 	@files = sort grep { $_ ne '.' and $_ ne '..' } readdir($dh);
@@ -87,7 +87,7 @@ sub load_data {
 			$psr = XML::LibXML->new();
 			$doc = $psr->parse_file("$FILM_ROOT/$file/$file.xml");
 			$xpc = XML::LibXML::XPathContext->new($doc);
-			
+
 			# Read the synopsis information for the film
 			@temp = ();
 			# [0] Asset code
@@ -146,7 +146,7 @@ sub load_data {
 				$tmp .= ($node->textContent)."\n";
 			}
 			$temp[15] = substr($tmp,0,-1);
-			
+
 			# [20+] Trailer file
 			@nodes = $xpc->findnodes("/metadata/assets/asset[\@class='trailer']");
 			foreach my $node (@nodes) {
@@ -159,7 +159,7 @@ sub load_data {
 				# Read the stream data for the film
 				read_stream($node,$temp[0],$temp[21],$temp[23]);
 			}
-			
+
 			# [30+] Film file
 			@nodes = $xpc->findnodes("/metadata/assets/asset[\@class='film']");
 			foreach my $node (@nodes) {
@@ -172,7 +172,7 @@ sub load_data {
 				# Read the stream data for the film
 				read_stream($node,$temp[0],$temp[31],$temp[33]);
 			}
-			
+
 			# Add film to the array of films
 			push(@FILMS,[@temp]);
 		}
@@ -190,7 +190,7 @@ sub load_data {
 # ---------------------------------------------------------------------------------------------
 sub play_media {
 	my($asset,$type,$video,$audio) = @_;
-	
+
 	# TEMPORARY FUDGE
 	if($CLASS eq 'UIP' || $CLASS eq 'BBC') {
 		$video = 33;
@@ -200,7 +200,7 @@ sub play_media {
 		$video = 4130;
 		$audio = 4131;
 	}
-	
+
 	# Play a transport stream asset
 	if($type eq 'transport') {
 		system("mplayer -fs -vid $video -aid $audio $asset");
@@ -225,7 +225,7 @@ sub read_stream {
 	my($node,$code,$class,$type) = @_;
 	my(@streams,@aoa,@strm);
 	my $idx = "$code-$class";
-	
+
 	# Record details of each stream within the asset
 	@streams = $node->findnodes("stream");
 	foreach my $stream (@streams) {
@@ -297,7 +297,7 @@ sub show_films {
 	$table->set_row_spacings(5);
 	$table->set_col_spacings(30);
 	$hbox1->add($table);
-	
+
 	# Image
 	$ref = $FILMS[$count-1][0];
 	if($ref) {
@@ -502,21 +502,21 @@ sub show_info {
 	my($dataref) = @_;
 	my(@data,$window,$listbox);
 	@data = @$dataref;
-	
+
 	# Create a new window for the data
 	$window = Gtk2::Window->new('toplevel');
 	$window->set_title($data[1]);
 	$window->signal_connect('delete_event' => sub { Gtk2->main_quit; });
 	$window->set_border_width(5);
 	$window->set_position('center_always');
-	
+
 	# Invoke the function that will build up and display the information
 	$listbox = &show_info_data(@data);
-	
+
 	# Show the list box
 	$window->add($listbox);
 	$window->show();
-	
+
 	# Main event loop
 	Gtk2->main;
 }
@@ -785,12 +785,12 @@ sub wrap_text {
 sub usage {
 	my($err) = @_;
 	$err = ($err) ? $err : 0;
-	
+
 	if($err == 1) {
 		logMsgPortal($LOG,$PROGRAM,'E',"The 'class' argument must be present");
 	}
 	elsif($err == 2) {
-		logMsgPortal($LOG,$PROGRAM,'E',"Argument 'class' must be 'uip', 'pbtv' or 'bbc'");
+		logMsgPortal($LOG,$PROGRAM,'E',"Argument 'class' must be 'uip', 'pbtv', 'bbc' or 'disney'");
 	}
 	elsif($err == 3) {
 		logMsgPortal($LOG,$PROGRAM,'E',"The content directory [$FILM_ROOT] does not exist");
@@ -806,22 +806,21 @@ Summary :
   on the attached content drive.  The films and trailers can be played.
 
 Usage :
-  $PROGRAM --class=<uip|pbtv|bbc> --content=<path>
-  
+  $PROGRAM --class=<uip|pbtv|bbc|disney> --content=<path>
+
   MANDATORY
   --class=bbc               Play BBC films from the Content Server.
+  --class=disney            Play Disney films from the Content Server.
   --class=pbtv              Play PlayboyTV films from the Content Server.
   --class=uip               Play UIP films from the Content Server.
-  
+
   OPTIONAL
   --log                     If set, the results from the script will be written
                             to the Airwave log directory, otherwise the results
                             will be written to the screen.
 		\n");
 	}
-	
+
 	# Stop in all cases
 	exit;
 }
-
-

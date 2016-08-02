@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 # *********************************************************************************************
 # *********************************************************************************************
-# 
+#
 #  Generate the point of sales literature for a specified content package as a PDF file.
 #  The report shows 4 films on each page and lists the synopsis information for each film
 #  in the package. One report is generated for each package in each territory, unless the
 #  territory argument is used to specify the country code of a single territory.
 #  Each report is written to the Airwave Portal.
-# 
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -66,6 +66,11 @@ our %REPORT = (
 			bbc =>  {
 					sql		=> 'showingBBC',
 					title	=> 'BBC Worldwide',
+					order	=> 'asc',
+			},
+			disney =>  {
+					sql		=> 'showingDisney',
+					title	=> 'Disney',
 					order	=> 'asc',
 			},
 			c18 =>  {
@@ -159,7 +164,7 @@ sub film_image_resize {
 	my($ref,@tags,$info,$value,%settings,$h,$w,$ratio,$wide,$size,$result);
 	my $high = 200;
 	my $image = "$assetcode-show.jpg";
-	
+
 	# Skip if file already processed or image not downloaded
 	if(!-e "$TEMP/$image") {
 		# Read ALL the image characteristics

@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 # *********************************************************************************************
 # *********************************************************************************************
-# 
+#
 #  Generate the point of sales literature for a specified content package as a PDF file.
 #  The report shows 4 films on each page and lists the synopsis information for each film
 #  in the package. One report is generated for each package in each territory, unless the
 #  territory argument is used to specify the country code of a single territory.
 #  Each report is written to the Airwave Portal.
-# 
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -54,12 +54,13 @@ GetOptions (
 if($PACKAGE eq 'empty') { usage(1); }
 
 # Check the validity of the 'package' argument
-if(!($PACKAGE eq 'all' || 
-	$PACKAGE eq 'bbc' || 
-	$PACKAGE eq 'c18' || 
-	$PACKAGE eq 'r18' || 
-	$PACKAGE eq 'new' || 
-	$PACKAGE eq 'current' || 
+if(!($PACKAGE eq 'all' ||
+	$PACKAGE eq 'bbc' ||
+	$PACKAGE eq 'disney' ||
+	$PACKAGE eq 'c18' ||
+	$PACKAGE eq 'r18' ||
+	$PACKAGE eq 'new' ||
+	$PACKAGE eq 'current' ||
 	$PACKAGE eq 'library')) { usage(2); }
 
 # If 'all' has been specified for a territory, convert to a wild card
@@ -100,6 +101,7 @@ sub main {
 
 		if($PACKAGE eq 'all') {
 			film_package($ref,$terr,'bbc');
+			film_package($ref,$terr,'disney');
 			film_package($ref,$terr,'c18');
 			film_package($ref,$terr,'r18');
 			film_package($ref,$terr,'current');
@@ -118,7 +120,7 @@ sub main {
 # ---------------------------------------------------------------------------------------------
 # Call the script that will generate a single file
 #
-# This is done in a child process because there is a memory leak issue with PDF::Create and 
+# This is done in a child process because there is a memory leak issue with PDF::Create and
 # running all reports within 1 script causes memory full issues on the Portal server
 #
 # Argument 1 : Territory reference
@@ -126,7 +128,7 @@ sub main {
 # Argument 3 : Package reference
 # ---------------------------------------------------------------------------------------------
 sub film_package {
-	my($ref,$terr,$pack,$lang,$logo,$log) = @_;
+	my($ref,$terr,$pack) = @_;
 
 	`$ROOT/showing-child.pl -code=$ref -name='$terr' -package=$pack -language=$LANGUAGE -logo=$SHOWLOGO -log=$LOG`;
 }
@@ -164,10 +166,11 @@ Summary :
 Usage :
   $PROGRAM --package=<type>
   $PROGRAM --package=<type> --territory=<code> --language=<code>
-  
+
   MANDATORY
   --package=all			Generate the UIP New, Current and Library reports in 1 batch.
   --package=bbc			Report listing the films in the BBC package.
+  --package=disney		Report listing the films in the Disney package.
   --package=current		Report listing the films in the UIP 'Current' package.
   --package=library		Report listing the films in the UIP 'Library' package.
   --package=new			Report listing the UIP films that are 'Coming Soon'.

@@ -25,7 +25,7 @@ our %API;
 $API{host}		= 'api.visualsaas.net';
 $API{port}		= 19001;
 $API{connector}	= 'airwave-live';
-$API{jwt}		= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiI5MjIyYjM0ZGY5YmM5MTczZjNiMmNmMGI5ZDJjNWU0YyJ9.sdw5U4XF1rJc06jHFbjDlHCiQ7E4mCksgyAI6PU9xZg';
+$API{jwt}		= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiI5ZWYxZGI2MWFhZDA4ZmEzZDFiZWM0MmRmNjg2OWQ5MyJ9.9U9mxco5VNhemAVbHtWdhQZafZhPFWv4X_mS0lZdM3Q';
 1;
 
 

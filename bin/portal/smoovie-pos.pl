@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # ***************************************************************************
 # ***************************************************************************
-# 
+#
 #  Generate point of sales literature for each Smoovie hotel as a PDF file
 #  and create a schedule file for the Smoovie server in text format.
 #
@@ -26,7 +26,7 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 

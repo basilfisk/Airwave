@@ -25,7 +25,7 @@ use Getopt::Long;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiDML apiData apiSelect apiStatus);
+use mods::API3Portal qw(apiDML apiData apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal parseDocument readConfig);
 
 # Program information
@@ -78,11 +78,11 @@ sub main {
 	# Initialise local variables
 	my(%films,%refunds,%alias,%currencies,@files,$file,$site,%data,$uid,$key,$filename,$fh,$siterefunds,$refunded,$line,@flds,$currency,$charge,$datetime,$date,$time,$d,$t,$y,$m,$h,$i,$techlive,$filmname,$filmcode,$id,$classic,%unknown,@keys);
 	my($status,$msg,%error);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	logMsg($LOG,$PROGRAM,"Loading Events to the Portal for period '$YYMM'");
-	
+
 	# Stop if directory does not exist on server
 	if(!-d $EVENT_DIR) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Invalid month requested. Directory does not exist");
@@ -118,7 +118,7 @@ sub main {
 		return;
 	}
 	%films = apiData($msg);
-	
+
 	# Read list of refunds
 	($msg) = apiSelect('uipTechliveRefund',"month=$YYMM");
 	($status,%error) = apiStatus($msg);
@@ -126,7 +126,7 @@ sub main {
 		logMsgPortal($LOG,$PROGRAM,'E',"No Techlive refunds found on database for $YYMM");
 	}
 	%refunds = apiData($msg);
-	
+
 	# Read list of aliases
 	# Key: Unrecognised ID
 	# Value: Valid Techlive ID
@@ -136,7 +136,7 @@ sub main {
 		logMsgPortal($LOG,$PROGRAM,'E',"No Techlive aliases found on database");
 	}
 	%alias = apiData($msg);
-	
+
 	# Read valid currency codes
 	($msg) = apiSelect('uipTechliveCurrency');
 	($status,%error) = apiStatus($msg);
@@ -145,7 +145,7 @@ sub main {
 		return;
 	}
 	%currencies = apiData($msg);
-	
+
 	# For each site, process the event and asset records
 	foreach my $file (@files) {
 		chomp $file;
@@ -155,7 +155,7 @@ sub main {
 		$key = 0;
 		$uid = "$YYMM/$file";
 		logMsg($LOG,$PROGRAM,"Site: $site");
-		
+
 		# Read the site data
 		# {techlive film ref},{DD/MM/YYYY HH24:MI},{amount},{currency}
 		$filename = "$EVENT_DIR/$file";
@@ -165,30 +165,30 @@ sub main {
 		RECORD: while($line = readline($fh)) {
 			chomp $line;
 			@flds = split(',',$line);
-			
+
 			# Check the currency code is registered on the Portal
 			if(@flds ne 4) {
 				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Record must have 4 fields {techlive film ref},{DD/MM/YYYY HH24:MI},{amount},{currency}");
 				next RECORD;
 			}
-			
+
 			# Extract currency, force to lower case, and convert STG to GBP
 			$currency = pop(@flds);
 			$currency =~ s/\s+//g;
 			$currency =~ tr[A-Z][a-z];
 			$currency = ($currency eq 'stg') ? 'gbp' : $currency;
-			
+
 			# Check the currency code is registered on the Portal
 			if(!$currencies{$currency}) {
 				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Unrecognised currency [$currency]");
 				next RECORD;
 			}
-			
+
 			# Extract the charge, change null charges to 0, convert to pence/cents
 			$charge = pop(@flds);
 			$charge = ($charge) ? $charge : 0;
 			$charge = int(100*$charge);
-			
+
 			# Extract the date/time and convert date from 'DD/MM/YYYY HH24:MI:SS' to 'DD Mon YYYY HH24:MI'
 			$datetime = pop(@flds);
 			($date,$time) = split(/ /,$datetime);
@@ -196,14 +196,14 @@ sub main {
 				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Date/time format should be 'DD/MM/YYYY HH24:MI' not [$datetime]");
 				next RECORD;
 			}
-			
+
 			# Extract day, month and year
 			($d,$m,$y) = split(/\//,$date);
 			if(!($d && $m && $y)) {
 				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Date format should be 'DD/MM/YYYY' not [$date]");
 				next RECORD;
 			}
-			
+
 			# Extract hour and minute
 			($h,$i) = split(/:/,$time);
 			if(!($h && $i)) {
@@ -211,10 +211,10 @@ sub main {
 				next RECORD;
 			}
 			$datetime = "$d $MONTHS[$m-1] $y $h:$i";
-			
+
 			# Remaining element is the Techlive film reference
 			$techlive = pop(@flds);
-			
+
 			# Use the Techlive ID from the record to find the matching content details from the Portal
 			if($films{$techlive}) {
 				$filmname = $films{$techlive}{title};
@@ -242,7 +242,7 @@ sub main {
 				logMsgPortal($LOG,$PROGRAM,'E',"$uid: Unrecognised film code [$techlive]");
 				next RECORD;
 			}
-			
+
 			# Add known films to hash for uploading
 			if($filmcode) {
 				# Skip first N non-classic films as they are allocated as refunds
@@ -256,12 +256,12 @@ sub main {
 				}
 			}
 		}
-		
+
 		# Load all films for the site
 		if($LOAD) {
 			foreach my $key (sort keys %data) {
 				($site,$filmcode,$datetime,$charge,$currency) = @{$data{$key}};
-				($msg) = apiDML('createEventTechlive',"site=$site","asset=$filmcode","start='$datetime'","charge=$charge","currency=$currency");
+				($msg) = apiDML('createEventTechlive',"site=$site","asset=$filmcode","start=$datetime","charge=$charge","currency=$currency");
 				($status,%error) = apiStatus($msg);
 				if(!$status) {
 					logMsgPortal($LOG,$PROGRAM,'E',"Event record not added: [$site][$filmcode][$datetime][$charge][$currency] [$error{CODE}] $error{MESSAGE}");
@@ -269,7 +269,7 @@ sub main {
 			}
 		}
 	}
-	
+
 	# List unknown films
 	@keys = sort keys %unknown;
 	if(@keys) {
@@ -298,7 +298,7 @@ sub main {
 sub usage {
 	my($err) = @_;
 	$err = ($err) ? $err : 0;
-	
+
 	if($err == 1) {
 		logMsgPortal($LOG,$PROGRAM,'E',"The 'yymm' argument must be present");
 	}
@@ -314,14 +314,14 @@ Summary :
 
 Usage :
   $PROGRAM --yymm=<YYMM> --site=<name>
-  
+
   MANDATORY
   --site=<name>		The site code or 'all'.
   --yymm=<YYMM>		The reporting month in YYMM format.
-  
+
   OPTIONAL
   --load			If set, the usage files will be validated and the data will be
-					uploaded to the Portal. If not set (default), the usage files will 
+					uploaded to the Portal. If not set (default), the usage files will
 					be validated but the data will not be uploaded to the Portal.
   --log				If set, the results from the script will be written to the Airwave
 					log directory, otherwise the results will be written to the screen.
@@ -329,4 +329,3 @@ Usage :
 	}
 	exit;
 }
-

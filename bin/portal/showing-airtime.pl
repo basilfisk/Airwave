@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 # *********************************************************************************************
 # *********************************************************************************************
-# 
+#
 #  Generate the point of sales literature for a specified content package as a PDF file.
 #  The report shows 4 films on each page and lists the synopsis information for each film
 #  in the package. One report is generated for each package in each territory, unless the
 #  territory argument is used to specify the country code of a single territory.
 #  Each report is written to the Airwave Portal.
-# 
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -30,7 +30,7 @@ use IO::File;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -102,7 +102,7 @@ sub main {
 	for $terrcode (sort keys %territories) {
 		$terrname = $territories{$terrcode}{name};
 		$title = $REPORT{current}{title};
-		
+
 		# Retrieve the data
 		($msg) = apiSelect($REPORT{current}{sql},"territory=$terrcode","language=$LANGUAGE");
 		($status,%error) = apiStatus($msg);
@@ -110,7 +110,7 @@ sub main {
 			logMsgPortal($LOG,$PROGRAM,'W',"There are no $title for territory '$terrcode' and language '$LANGUAGE'");
 			exit;
 		}
-	
+
 		# Print the report if there is any data
 		logMsg($LOG,$PROGRAM,"===> $terrname: $title");
 		%data = apiData($msg);
@@ -138,7 +138,7 @@ sub film_image_resize {
 	my($ref,@tags,$info,$value,%settings,$h,$w,$ratio,$wide,$size,$result);
 	my $high = 200;
 	my $image = "$assetcode-show.jpg";
-	
+
 	# Skip if file already processed or image not downloaded
 	if(!-e "$TEMP/$image") {
 		# Read ALL the image characteristics
@@ -193,12 +193,12 @@ sub film_page {
 	my($status,$msg,%error,%genre,$jacket,$image,$ok);
 	my($pdffile,$provider,$film,$duration,$cert,$title,$short,$credits,$soundtracks,$genres);
 	my %data = %$data_ref;
-	
+
 	# Force language code to upper case and form PDF file name
 	$pdffile = $terrcode.'_'.$LANGUAGE.'_'.$REPORT{$pack}{title}.'.pdf';
 	$pdffile =~ s/ /_/g;
 	$pdffile =~ tr/A-Z/a-z/;
-	
+
 	# Sort order
 	if($REPORT{$pack}{order} eq 'asc') {
 		@sorted = sort keys %data;
@@ -332,7 +332,7 @@ Summary :
 
 Usage :
   $PROGRAM --language=<code> --log
-  
+
   MANDATORY
     None
 

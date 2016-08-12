@@ -26,7 +26,7 @@ use Getopt::Long;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(logMsg logMsgPortal);
 
 # Program information

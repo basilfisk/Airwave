@@ -26,7 +26,7 @@ use XML::LibXML;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiDML apiData apiStatus);
+use mods::API3Portal qw(apiDML apiData apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal parseDocument readConfig);
 
 # Program information
@@ -138,7 +138,7 @@ sub main {
 			$curr =~ tr[A-Z][a-z];
 
 			# Insert a record
-			($msg) = apiDML('createEventAirwave',"site=$site","asset=$asset","start='$start'","charge=$charge","currency=$curr");
+			($msg) = apiDML('createEventAirwave',"site=$site","asset=$asset","start=$start","charge=$charge","currency=$curr");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
 				logMsgPortal($LOG,$PROGRAM,'E',"Event record not added: [$site][$asset][$start][$charge][$curr] [$error{CODE}] $error{MESSAGE}");
@@ -173,11 +173,11 @@ Summary :
 
 Usage :
   $PROGRAM --yymm=<YYMM> --site=<name>
-  
+
   MANDATORY
   --site=<name>		The site code or 'all'.
   --yymm=<YYMM>		The reporting month in YYMM format.
-  
+
   OPTIONAL
   --log				If set, the results from the script will be written to the Airwave
 					log directory, otherwise the results will be written to the screen.

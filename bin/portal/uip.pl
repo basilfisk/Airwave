@@ -29,7 +29,7 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::MSXML qw(msxmlCell msxmlClose msxmlColumn msxmlCreate msxmlData msxmlInitialise msxmlRow msxmlRowNumber msxmlSetParameter msxmlStyleAdd msxmlWorkbook);
 
@@ -323,7 +323,7 @@ sub schedule_a_columns {
 
 
 # ---------------------------------------------------------------------------------------------
-# Read the usage data for the Schedule A report from the Portal events 
+# Read the usage data for the Schedule A report from the Portal events
 #
 # Argument 1 : Site reference
 # Argument 2 : Site name
@@ -778,11 +778,11 @@ Summary :
 
 Usage :
   $PROGRAM --yymm=<YYMM>
-  
+
   MANDATORY
   --company=<name>	The company for whom the figures are being generated (airwave/techlive).
   --yymm=<YYMM>		The reporting month in YYMM format.
-  
+
   OPTIONAL
   --log		If set, the results from the script will be written to the Airwave
 			log directory, otherwise the results will be written to the screen.

@@ -2,10 +2,10 @@
 # *********************************************************************************************
 # *********************************************************************************************
 #
-# Ingest a single VTT sub-title file.  Load the name of the file and language contained 
+# Ingest a single VTT sub-title file.  Load the name of the file and language contained
 # within the file onto the Portal, and save a copy of the original file named as
 # {assetcode}_{language code}.vtt into the metadata directory.
-#  
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -25,7 +25,7 @@ use Data::Dumper;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiDML apiSelect apiStatus);
+use mods::API3Portal qw(apiData apiDML apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 
 # Program information
@@ -69,42 +69,42 @@ main();
 sub main {
 	my($status,$msg,%error,%films,$cid,$provider,$source,$tfile,$tdir,$res);
 	logMsg($LOG,$PROGRAM,"=================================================================================");
-	
+
 	# Load a hash containing language values
 	if(!read_languages()) {
 		return;
 	}
-	
+
 	# Check that an asset has been selected
 	if($ASSET =~ m/empty/) {
 		logMsgPortal($LOG,$PROGRAM,'E',"ERROR: 'asset' argument must have a value");
 		return;
 	}
-	
+
 	# Check that a directory has been selected
 	if($DIRECTORY =~ m/empty/) {
 		logMsgPortal($LOG,$PROGRAM,'E',"ERROR: 'directory' argument must have a value");
 		return;
 	}
-	
+
 	# Check that a file has been selected
 	if($FILENAME =~ m/empty/) {
 		logMsgPortal($LOG,$PROGRAM,'E',"ERROR: 'file' argument must have a value");
 		return;
 	}
-	
+
 	# Check that a language has been selected
 	if($LANGUAGE =~ m/empty/) {
 		logMsgPortal($LOG,$PROGRAM,'E',"ERROR: 'language' argument must have a value");
 		return;
 	}
-	
+
 	# Check language code is valid
 	if(!$LANGUAGES{$LANGUAGE}) {
 		logMsgPortal($LOG,$PROGRAM,'E',"ERROR: Invalid language code '$LANGUAGE'");
 		return;
 	}
-	
+
 	# Read the film ID from the Portal
 	($msg) = apiSelect('ingestFilm',"assetcode=$ASSET");
 	($status,%error) = apiStatus($msg);
@@ -121,30 +121,30 @@ sub main {
 	}
 	$cid = $films{$ASSET}{'content_id'};
 	$provider = $films{$ASSET}{'provider'};
-	
+
 	# Directories on Portal holding VTT files are based on provider of film
 	$source = "$ROOT/../$CONFIG{VTT_FILES}/$provider/$DIRECTORY/$FILENAME";
 	$tdir = "$ROOT/../$CONFIG{PORTAL_META}/$provider/$ASSET";
 	$tfile = "$ASSET".'_'."$LANGUAGE.vtt";
-	
+
 	# Check VTT file exists
 	if(!-f $source) {
 		logMsgPortal($LOG,$PROGRAM,'E',"There is no VTT file '$FILENAME' in '$CONFIG{VTT_FILES}/$provider/$DIRECTORY'");
 		return;
 	}
-	
+
 	# Create directory on Portal holding metadata of film if needed
 	if (!-d $tdir) {
 		system("mkdir -p $tdir");
 	}
-	
+
 	# Copy the VTT file to the metadata directory
 	$res = `cp $source $tdir/$tfile`;
 	if($res) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Error copying VTT file '$FILENAME' to '$tdir': $res");
 		return;
 	}
-	
+
 	# Add VTT file details to the Portal
 	portal_update($cid,$tfile);
 }
@@ -160,10 +160,10 @@ sub main {
 sub portal_update {
 	my($cid,$name) = @_;
 	my($langid,$msg,$status,%error,%data,$id);
-	
+
 	# Find ID of language
 	$langid = $LANGUAGES{$LANGUAGE};
-	
+
 	# Does file already exist on Portal?
 	($msg) = apiSelect('ingestVttSearch',"cid=$cid","language=$langid");
 	($status,%error) = apiStatus($msg);
@@ -171,13 +171,13 @@ sub portal_update {
 		logMsgPortal($LOG,$PROGRAM,'E',"Error reading details of VTT file for '$ASSET': $error{MESSAGE}");
 		return;
 	}
-	
+
 	# Extract the ID if a match has been found
 	%data = apiData($msg);
 	if (%data) {
 		$id = $data{$cid.'-'.$langid}{'id'};
 	}
-	
+
 	# If new file, add the file attributes to the Portal
 	if(!$id) {
 		($msg) = apiDML('ingestVttInsert',"cid=$cid","name=$name","language=$langid");
@@ -211,7 +211,7 @@ sub portal_update {
 # ---------------------------------------------------------------------------------------------
 sub read_languages {
 	my($status,$msg,%error,%data);
-	
+
 	# Read language IDs
 	($msg) = apiSelect('ingestVttLanguages');
 	($status,%error) = apiStatus($msg);
@@ -220,7 +220,7 @@ sub read_languages {
 		return 0;
 	}
 	%data = apiData($msg);
-	
+
 	# Create hash
 	foreach my $code (keys %data) {
 		$LANGUAGES{$code} = $data{$code}{'id'};
@@ -239,26 +239,26 @@ sub read_languages {
 sub usage {
 	my($err) = @_;
 	$err = ($err) ? $err : 0;
-	
+
 	printf("
 Program : $PROGRAM
 Version : v$VERSION
 Author  : Basil Fisk (c)2015 Airwave Ltd
 
 Summary :
-  Ingest a single VTT sub-title file.  Load the name of the file and language contained 
+  Ingest a single VTT sub-title file.  Load the name of the file and language contained
   within the file onto the Portal, and save a copy of the original file named as
   {assetcode}_{language code}.vtt into the metadata directory.
 
 Usage :
   $PROGRAM --asset=<code> --directory=<name> --file=<name> --language=<code>
-  
+
   MANDATORY
   --asset=<code>           The reference of a single film on the Portal.
   --directory=<code>       The name of the directory holding the VTT files on the Portal.
   --file=<code>            The name of the VTT file to be ingested.
   --language=<code>        The language of the VTT file to be ingested.
-  
+
   OPTIONAL
   --log                 If set, the results from the script will be written to the Airwave
                         log directory, otherwise the results will be written to the screen.
@@ -267,5 +267,3 @@ Usage :
 	# Quit
 	exit;
 }
-
-

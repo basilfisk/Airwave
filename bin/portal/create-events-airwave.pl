@@ -31,7 +31,7 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 
 # Program information
@@ -259,10 +259,10 @@ Summary :
 
 Usage :
   $PROGRAM --yymm=<YYMM>
-  
+
   MANDATORY
     --yymm=<YYMM>	 The reporting month in YYMM format.
-  
+
   OPTIONAL
     --s|site=<name>	Site for which the events are to be created.  The default is all sites.
     --log			If set, the results from the script will be written to the Airwave

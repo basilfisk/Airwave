@@ -34,11 +34,11 @@ case "$SERVER" in
 		if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
 		if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
 		if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
-		
+
 		# Install the configuration file
 		cp $SOURCE/admin/crontab.distro $INSTALL/etc
 		cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc
-		
+
 		# Install the scripts
 		cp $SOURCE/bin/distro/cds.pl $INSTALL
 		cp $SOURCE/bin/distro/cdsd $INSTALL
@@ -46,12 +46,12 @@ case "$SERVER" in
 		cp $SOURCE/bin/distro/encrypt.pl $INSTALL
 		cp $SOURCE/bin/menu.pl $INSTALL
 		cp $SOURCE/bin/monitor.pl $INSTALL
-		
+
 		# Install the Perl modules
 		cp $SOURCE/modules/servers/API.pm $INSTALL/mods
 		cp $SOURCE/modules/servers/Common.pm $INSTALL/mods
 		cp $SOURCE/modules/servers/TK.pm $INSTALL/mods
-		
+
 		# Change ownership and permissions
 		chown airwave:airwave -R $INSTALL
 		chmod 755 $INSTALL/*.pl
@@ -66,23 +66,23 @@ case "$SERVER" in
 		if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
 		if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
 		if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
-		
+
 		# Install the configuration files
 		cp $SOURCE/admin/crontab.prep $INSTALL/etc
 		cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc
-		
+
 		# Install the scripts
 		cp $SOURCE/bin/prep/archive.pl $INSTALL
 		cp $SOURCE/bin/prep/ingest_film.pl $INSTALL
 		cp $SOURCE/bin/prep/sync-all $INSTALL
 		cp $SOURCE/bin/prep/sync-server $INSTALL
 		cp $SOURCE/bin/menu.pl $INSTALL
-		
+
 		# Install the Perl modules
 		cp $SOURCE/modules/servers/API.pm $INSTALL/mods
 		cp $SOURCE/modules/servers/Common.pm $INSTALL/mods
 		cp $SOURCE/modules/servers/TK.pm $INSTALL/mods
-		
+
 		# Change ownership and permissions
 		chown airwave:airwave -R $INSTALL
 		chmod 755 $INSTALL/*.pl
@@ -97,7 +97,10 @@ case "$SERVER" in
 		if [ ! -d $INSTALL/log ]; then mkdir $INSTALL/log; fi
 		if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
 		if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
-		
+
+		# Clear out obsolete files
+		if [ -f $INSTALL/mods/API.pm ]; then rm $INSTALL/mods/API.pm; fi
+
 		# Install the configuration files
 		cp $SOURCE/etc/portal/airtime.conf $APACHE
 		cp $SOURCE/etc/portal/airwave-portal.conf $INSTALL/etc
@@ -107,7 +110,7 @@ case "$SERVER" in
 		cp $SOURCE/etc/portal/site-sheet.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/smoovie-barker.conf $INSTALL/etc
 		cp $SOURCE/etc/portal/smoovie-pos.conf $INSTALL/etc
-		
+
 		# Install the scripts
 		cp $SOURCE/bin/portal/command $INSTALL
 		cp $SOURCE/bin/portal/create-events-airwave.pl $INSTALL
@@ -125,13 +128,13 @@ case "$SERVER" in
 		cp $SOURCE/bin/portal/smoovie-barker.pl $INSTALL
 		cp $SOURCE/bin/portal/smoovie-pos.pl $INSTALL
 		cp $SOURCE/bin/portal/uip.pl $INSTALL
-	
+
 		# Install the Perl modules
-		cp $SOURCE/modules/portal/API.pm $INSTALL/mods
+		cp $SOURCE/modules/portal/API3Portal.pm $INSTALL/mods
 		cp $SOURCE/modules/portal/Common.pm $INSTALL/mods
 		cp $SOURCE/modules/portal/MSXML.pm $INSTALL/mods
 		cp $SOURCE/modules/portal/PDF.pm $INSTALL/mods
-		
+
 		# Change permissions
 		chmod 755 $INSTALL/*.pl
 		chmod 755 $INSTALL/command

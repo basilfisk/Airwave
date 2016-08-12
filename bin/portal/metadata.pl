@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # ***************************************************************************
 # ***************************************************************************
-# 
+#
 # This script is the interface between the distributions that are planned
 # and scheduled on the Portal, and CDS which manages the distributions to
 # each site.
@@ -26,7 +26,7 @@ use JSON::XS;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiMetadata apiSelect apiStatus);
+use mods::API3Portal qw(apiData apiMetadata apiSelect apiStatus);
 use mods::Common qw(logMsg logMsgPortal readConfig writeFile);
 
 # Program information
@@ -66,10 +66,10 @@ main();
 # ---------------------------------------------------------------------------------------------
 sub main {
 	my($msg,$status,%error,%data,$code);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
-	
+
 	# Generate metadata for all provider's films
 	if($FILM eq 'all') {
 		$msg = apiSelect('metadataFilms',"provider=$PROVIDER");
@@ -101,12 +101,12 @@ sub main {
 sub generate_meta {
 	my($filmcode) = @_;
 	my($text);
-	
+
 	# Read the JSON metadata from the Portal and create a file
 	$text = read_metadata($filmcode,'json');
 	if(!$text) { return; }
 	if(!write_metadata($filmcode,'json',$text)) { return; }
-	
+
 	# Read the XML metadata from the Portal and create a file
 	$text = read_metadata($filmcode,'xml');
 	if(!$text) { return; }
@@ -149,7 +149,7 @@ sub read_metadata {
 	my($msg,$status,%error,%meta);
 	my $name = uc($type);
 	logMsg($LOG,$PROGRAM,"Generating $name metadata for $filmcode");
-	
+
 	$msg = apiMetadata('apMetadata',$filmcode,$type);
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
@@ -186,7 +186,7 @@ sub write_metadata {
 	my $dir = "$ROOT/../$CONFIG{PORTAL_META}/$PROVIDER/$filmcode";
 	my $name = uc($type);
 	logMsg($LOG,$PROGRAM,"Writing $name metadata to Portal for $filmcode");
-	
+
 	# Check directory exists before writing
 	if (!-d $dir) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Directory $dir does not exist");
@@ -235,7 +235,7 @@ Usage :
   MANDATORY
     --f|film=<name>          Film to be processed.
     --p|provider=<name>      Content provider of the film.
-  
+
   OPTIONAL
     --log		If set, the results from the script will be written to the Airwave
 				log directory, otherwise the results will be written to the screen.
@@ -245,5 +245,3 @@ Usage :
 	# Stop in all cases
 	exit;
 }
-
-

@@ -29,7 +29,7 @@ use IO::File;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 

@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 # *********************************************************************************************
 # *********************************************************************************************
-# 
+#
 #  Generate an inventory of assets that are currently located in each site, as well as a list
 #  of the assets that are now out of licence and which should be deleted.
 #  The report is a PDF file.
-# 
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -27,7 +27,7 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -226,7 +226,7 @@ sub summary_page {
 				if(!$ok) {
 					logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
 				}
-	
+
 				# Create the film record
 				$XML->startTag('record','id'=>'new');
 				$XML->dataElement('package',$package);
@@ -254,13 +254,13 @@ sub summary_page {
 				$certificate = $films{$film}{'certificate'};
 				$languages = $films{$film}{'languages'};
 				$deleted = $films{$film}{'licence_end'};
-	
+
 				$filmname =~ s/&amp;/&/g;
 				($ok,$filmname) = cleanNonUTF8($filmname);
 				if(!$ok) {
 					logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
 				}
-	
+
 				# Create the film record
 				$XML->startTag('record','id'=>'old');
 				$XML->dataElement('package',$package);
@@ -297,7 +297,7 @@ sub current_films {
 		# Initialise the counter and the last package tracker
 		$count = 0;
 		$last = '';
-	
+
 		# Output each film
 		%films = apiData($msg);
 		foreach my $film (sort keys %films) {
@@ -307,13 +307,13 @@ sub current_films {
 			$certificate = $films{$film}{'certificate'};
 			$languages = $films{$film}{'languages'};
 			$installed = $films{$film}{'licence_start'};
-	
+
 			$filmname =~ s/&amp;/&/g;
 			($ok,$filmname) = cleanNonUTF8($filmname);
 			if(!$ok) {
 				logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
 			}
-	
+
 			# Increment the counter for packages
 			if($package eq $last) {
 				$count++;
@@ -322,7 +322,7 @@ sub current_films {
 				$count = 1;
 				$last = $package;
 			}
-	
+
 			# Create the film record
 			$XML->startTag('record','id'=>'current');
 			$XML->dataElement('count',$count);
@@ -359,7 +359,7 @@ sub obsolete_films {
 		# Initialise the counter and the last package tracker
 		$count = 0;
 		$last = '';
-	
+
 		# Output each film
 		%films = apiData($msg);
 		foreach my $film (sort keys %films) {
@@ -369,13 +369,13 @@ sub obsolete_films {
 			$certificate = $films{$film}{'certificate'};
 			$retired = $films{$film}{'licence_end'};
 			$installed = $films{$film}{'licence_start'};
-	
+
 			$filmname =~ s/&amp;/&/g;
 			($ok,$filmname) = cleanNonUTF8($filmname);
 			if(!$ok) {
 				logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $filmname");
 			}
-	
+
 			# Increment the counter for packages
 			if($provider eq $last) {
 				$count++;
@@ -384,7 +384,7 @@ sub obsolete_films {
 				$count = 1;
 				$last = $provider;
 			}
-	
+
 			# Create the film record
 			$XML->startTag('record','id'=>'obsolete');
 			$XML->dataElement('count',$count);
@@ -423,9 +423,9 @@ Usage :
   $PROGRAM
 
   OPTIONAL
-    --no|noobsolete	Prevents the pages of obsolete films from being printed.  If this 
+    --no|noobsolete	Prevents the pages of obsolete films from being printed.  If this
 					argument is not specified, the paages will be printed.
-    --nu|noupdates	Prevents the list of new and retired films from being printed on the 
+    --nu|noupdates	Prevents the list of new and retired films from being printed on the
 					summary page.  If this argument is not specified, the details will
 					be printed on the summary page.
     --s|site=<name>	Site for which the inventory is to be run.  The default is all sites.

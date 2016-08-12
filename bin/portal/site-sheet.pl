@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 # *********************************************************************************************
 # *********************************************************************************************
-# 
+#
 #  Generate a page showing all details for a named site or site(s)
 #  The report is a PDF file.
-# 
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -26,7 +26,7 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -179,7 +179,7 @@ Usage :
 
   MANDATORY
     --s|site=<name>      Site to be processed, or 'all' for all active sites.
-  
+
   OPTIONAL
     --log		If set, the results from the script will be written to the Airwave
 				log directory, otherwise the results will be written to the screen.

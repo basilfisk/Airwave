@@ -24,7 +24,7 @@ use Getopt::Long;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::MSXML qw(msxmlCell msxmlClose msxmlColumn msxmlCreate msxmlData msxmlInitialise msxmlRow msxmlRowNumber msxmlSetParameter msxmlStyleAdd msxmlWorkbook);
 
@@ -324,7 +324,7 @@ Version : v$VERSION
 Author  : Basil Fisk (c)2013 Airwave Ltd
 
 Summary :
-  Run the monthly usage report for PlayboyTV, which produces a spreadsheet in 
+  Run the monthly usage report for PlayboyTV, which produces a spreadsheet in
   MS-XML format.
 
 Usage :
@@ -332,7 +332,7 @@ Usage :
 
   MANDATORY
   --yymm=<YYMM>		The reporting month in YYMM format.
-  
+
   OPTIONAL
   --log		 If set, the results from the script will be written to the Airwave
 			 log directory, otherwise the results will be written to the screen.

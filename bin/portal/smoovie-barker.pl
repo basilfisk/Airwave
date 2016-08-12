@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 # ***************************************************************************
 # ***************************************************************************
-# 
+#
 #  Generate the background image for the barker channel for each Smoovie
 #  hotel, showing the film's large image, cast list, certificate log, title,
 #  duration and start times.
 #
 #  One file is generated for each channel/slot in PDF and JPG format.
-# 
+#
 # ***************************************************************************
 # ***************************************************************************
 
@@ -29,7 +29,7 @@ use XML::Writer;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiStatus apiSelect);
+use mods::API3Portal qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 

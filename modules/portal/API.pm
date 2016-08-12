@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # *********************************************************************************************
 # *********************************************************************************************
-# 
+#
 # Client side functions to send/receive XML messages to/from the Breato Gateway
 #
 # *********************************************************************************************
@@ -19,7 +19,7 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(apiData apiDML apiEmail apiMetadata apiStatus apiSelect);
 
 our %API;
-$API{host}		= 'apivs.visualsaas.net';
+$API{host}		= 'api.visualsaas.net';
 $API{port}		= 8822;
 $API{instance}	= 'airwave';
 $API{key}		= '8950d855b82084a3229a8048698c5ead';
@@ -75,7 +75,7 @@ sub apiData {
 # ---------------------------------------------------------------------------------------------
 sub apiDML {
 	my($call,@params) = @_;
-	
+
 	# Processing for Select and DML commands is the same
 	return apiSQL($call,@params);
 }
@@ -92,10 +92,10 @@ sub apiDML {
 sub apiEmail {
 	my(@params) = @_;
 	my($cmd,$name,$value,$response);
-	
+
 	# Build the command
 	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/msgEmail?instance=$API{instance}";
-	
+
 	# Add the parameters
 	foreach my $param (@params) {
 		# Strip out special characters
@@ -111,10 +111,10 @@ sub apiEmail {
 		# Add to command string
 		$cmd .= "&$name=$value";
 	}
-	
+
 	# Close the command
 	$cmd .= "'";
-	
+
 	# Run the command and check the return code
 	$response = `$cmd`;
 	return check_response($response,$?,$!);
@@ -156,7 +156,7 @@ sub apiMetadata {
 # ---------------------------------------------------------------------------------------------
 sub apiSelect {
 	my($call,@params) = @_;
-	
+
 	# Processing for Select and DML commands is the same
 	return apiSQL($call,@params);
 }
@@ -216,7 +216,7 @@ sub apiStatus {
 		$error{MESSAGE} = "No data returned by the Gateway";
 		return (0,%error);
 	}
-	
+
 	# If an HTML tag is present, something went wrong with the CURL call
 	if($json =~ m/HTML/i) {
 		$error{STATUS} = 0;
@@ -224,7 +224,7 @@ sub apiStatus {
 		$error{MESSAGE} = "Problem with the CURL call. Check arguments";
 		return (0,%error);
 	}
-	
+
 	# Convert JSON document to hash and check validity of JSON message returned by API
 	($hash_ref,$msg) = json_data($json);
 	if(!$hash_ref) {
@@ -262,7 +262,7 @@ sub apiStatus {
 sub check_response {
 	my($response,$result,$error) = @_;
 	my($msg);
-	
+
 	# Command failed
 	if($result == -1) {
 		$msg = 'Failed to execute: '.$error;

@@ -84,100 +84,6 @@ sub apiDML {
 
 
 # ---------------------------------------------------------------------------------------------
-# Send an email message
-#
-# Argument 1+ : Array of message parameters
-#
-# Return the JSON response
-# ---------------------------------------------------------------------------------------------
-sub apiEmail {
-	my(@params) = @_;
-	my($cmd,$name,$value,$response);
-
-	# Build the command
-#	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/msgEmail?instance=$API{instance}";
-	$cmd = "curl -s -H 'Authorization: Bearer $API{jwt}' ";
-	$cmd .= "'https://$API{host}:$API{port}/3/msgEmail?";
-	$cmd .= "{'connector':'$API{connector}'";
-
-	# Add the parameters
-	foreach my $param (@params) {
-		# Strip out special characters
-		$param =~ s/'//g;
-		$param =~ s/&/and/g;
-		$param =~ s/ /%20/g;
-		# Split out name/value pair
-		($name,$value) = split(/=/,$param);
-#		# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
-#		if(substr($value,0,1) eq '<') {
-#			$value = ' '.$value;
-#		}
-		# Add to command string
-#		$cmd .= "&$name=$value";
-		$cmd .= ",'$name':'$value'";
-	}
-
-	# Close the command
-#	$cmd .= "'";
-	$cmd .= "}";
-
-	# Run the command and check the return code
-	$response = `$cmd`;
-	return check_response($response,$?,$!);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Download a file from the Portal
-#
-# Argument 1 : Name of source file
-# Argument 2 : Path to source file
-# Argument 3 : Name of target file
-# Argument 4 : Path to target file
-#
-# Return the JSON response
-# ---------------------------------------------------------------------------------------------
-sub apiFileDownload {
-	my($sfile,$sdir,$tfile,$tdir) = @_;
-	my($cmd,$response,$msg);
-
-	# Build the command
-#	$cmd = "curl -s -u $API{key}: -F instance=$API{instance} ";
-#	$cmd .= "-F source=$sdir/$sfile -o $tdir/$tfile ";
-#	$cmd .= "https://$API{host}:$API{port}/2/fileDownload";
-	$cmd = "curl -s -H 'Authorization: Bearer $API{jwt}' ";
-	$cmd .= "'https://$API{host}:$API{port}/3/fileDownload?";
-	$cmd .= "{'connector':'$API{connector}'";
-	$cmd .= ",'source':'$sdir/$sfile'";
-
-	# Download the file
-	$response = `$cmd`;
-
-	# Check the start of the downloaded file to see if an error was returned
-	if(-f "$tdir/$tfile") {
-		$msg = `head -c 15 $tdir/$tfile`;
-		if($msg =~ /{"status"/) {
-			# Download failed
-			$msg = `cat $tdir/$tfile`;
-		}
-		else {
-			# Download succeeded
-			$msg = "Download of file [$tdir/$tfile] was successful";
-			$msg = '{"status":"1", "data": { "code":"CLI001", "text": "'.$msg.'"}}';
-		}
-	}
-	# No response from API
-	else {
-		$msg = "Couldn't read file [$tdir/$tfile]";
-		$msg = '{"status":"0", "data": { "code":"CLI002", "text": "'.$msg.'"}}';
-	}
-	return $msg;
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
 # Run a query to retrieve metadata
 #
 # Argument 1 : Function to be called
@@ -188,19 +94,15 @@ sub apiFileDownload {
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
 	my($call,$assetcode,$format) = @_;
-	my($cmd,$response);
+	my($cmd);
 
 	# Build the command
-#	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/$call?instance=$API{instance}";
-#	$cmd .= "&assetcode=$assetcode&format=$format'";
-	$cmd = "curl -s -H 'Authorization: Bearer $API{jwt}' ";
-	$cmd .= "'https://$API{host}:$API{port}/3/$call?";
-	$cmd .= "{'connector':'$API{connector}'";
-	$cmd .= ",'assetcode':'$assetcode','format':'$format'}";
+	$cmd = "https://$API{host}:$API{port}/3/$call?";
+	$cmd .= "{\"connector\":\"$API{connector}\"";
+	$cmd .= ",\"assetcode\":\"$assetcode\",\"format\":\"$format\"}";
 
-	# Run the command
-	$response = `$cmd`;
-	return check_response($response,$?,$!);
+	# Run the command and return a JSON object
+	return run_command($cmd);
 }
 
 

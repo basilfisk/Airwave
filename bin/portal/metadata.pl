@@ -150,7 +150,7 @@ sub read_metadata {
 	my $name = uc($type);
 	logMsg($LOG,$PROGRAM,"Generating $name metadata for $filmcode");
 
-	$msg = apiMetadata('apMetadata',$filmcode,$type);
+	$msg = apiMetadata('structured',$filmcode,$type);
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read $name metadata for $filmcode [$error{CODE}] $error{MESSAGE}");

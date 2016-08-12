@@ -35,6 +35,9 @@ case "$SERVER" in
 		if [ ! -d $INSTALL/mods ]; then mkdir $INSTALL/mods; fi
 		if [ ! -d $INSTALL/tmp ]; then mkdir $INSTALL/tmp; fi
 
+		# Clear out obsolete files
+		if [ -f $INSTALL/mods/API.pm ]; then rm $INSTALL/mods/API.pm; fi
+
 		# Install the configuration file
 		cp $SOURCE/admin/crontab.distro $INSTALL/etc
 		cp $SOURCE/etc/servers/airwave.conf $INSTALL/etc
@@ -44,11 +47,11 @@ case "$SERVER" in
 		cp $SOURCE/bin/distro/cdsd $INSTALL
 		cp $SOURCE/bin/distro/cdsd.pl $INSTALL
 		cp $SOURCE/bin/distro/encrypt.pl $INSTALL
+		cp $SOURCE/bin/distro/monitor.pl $INSTALL
 		cp $SOURCE/bin/menu.pl $INSTALL
-		cp $SOURCE/bin/monitor.pl $INSTALL
 
 		# Install the Perl modules
-		cp $SOURCE/modules/servers/API.pm $INSTALL/mods
+		cp $SOURCE/modules/servers/API3Distro.pm $INSTALL/mods
 		cp $SOURCE/modules/servers/Common.pm $INSTALL/mods
 		cp $SOURCE/modules/servers/TK.pm $INSTALL/mods
 

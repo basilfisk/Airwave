@@ -18,7 +18,7 @@ use LWP::UserAgent;
 package mods::API3Portal;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiStatus apiSelect);
+our @EXPORT = qw(apiData apiDML apiMetadata apiStatus apiSelect);
 
 # Credentials for the portal@airwave.tv user
 our %API;
@@ -26,6 +26,7 @@ $API{host}		= 'api.visualsaas.net';
 $API{port}		= 19001;
 $API{connector}	= 'airwave-live';
 $API{jwt}		= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiI5ZWYxZGI2MWFhZDA4ZmEzZDFiZWM0MmRmNjg2OWQ5MyJ9.9U9mxco5VNhemAVbHtWdhQZafZhPFWv4X_mS0lZdM3Q';
+
 1;
 
 
@@ -207,42 +208,6 @@ sub apiStatus {
 
 	# Return (0,%error) or (1,undef)
 	return ($status,%error);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Check the response returned from the API
-#
-# Argument 1 : Response message string
-# Argument 2 : Error number
-# Argument 3 : Error text
-#
-# Return response string or error message in JSON format
-# ---------------------------------------------------------------------------------------------
-sub check_response {
-	my($response,$result,$error) = @_;
-	my($msg);
-
-	# Command failed
-	if($result == -1) {
-		$msg = 'Failed to execute: '.$error;
-		return '{"status":"0", "data": { "code":"CLI007", "text": "'.$msg.'"}}';
-	}
-	# Command process terminated
-	elsif($result & 127) {
-		$msg = 'Child died with signal ['.($result & 127).'], '.(($result & 128) ? 'with' : 'without').' coredump';
-		return '{"status":"0", "data": { "code":"CLI008", "text": "'.$msg.'"}}';
-	}
-	# Empty response
-	elsif(!$response) {
-		$msg = 'No response from API';
-		return '{"status":"0", "data": { "code":"CLI009", "text":"'.$msg.'"}}';
-	}
-	# Response text received
-	else {
-		return $response;
-	}
 }
 
 

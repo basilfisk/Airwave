@@ -115,6 +115,7 @@ case "$SERVER" in
 		cp $SOURCE/bin/portal/command $INSTALL
 		cp $SOURCE/bin/portal/create-events-airwave.pl $INSTALL
 		cp $SOURCE/bin/portal/ingest_images.pl $INSTALL
+		cp $SOURCE/bin/portal/ingest_vtt.pl $INSTALL
 		cp $SOURCE/bin/portal/inventory.pl $INSTALL
 		cp $SOURCE/bin/portal/load-events-airwave.pl $INSTALL
 		cp $SOURCE/bin/portal/load-events-techlive.pl $INSTALL

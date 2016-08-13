@@ -24,7 +24,7 @@ use Data::Dumper;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API3Distro qw(apiData apiMetadata apiSelect apiStatus);
+use mods::API3 qw(apiData apiMetadata apiSelect apiStatus);
 use mods::Common qw(cleanNonAlpha formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
 
 # Program information

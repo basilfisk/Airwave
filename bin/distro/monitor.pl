@@ -25,7 +25,7 @@ use Getopt::Long;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API3Distro qw(apiDML apiData apiStatus);
+use mods::API3 qw(apiDML apiData apiStatus);
 use mods::Common qw(cleanString formatDateTime logMsg logMsgPortal parseDocument readConfig);
 
 # Program information

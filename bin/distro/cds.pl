@@ -39,7 +39,7 @@ $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME}=0;
 
 # Airwave modules
 use lib "$ROOT";
-use mods::API3Distro qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiSelect apiStatus);
+use mods::API3 qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiSelect apiStatus);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
 
 # Program information

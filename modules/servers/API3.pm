@@ -7,6 +7,12 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
+# Establish the root directory
+our $ROOT;
+BEGIN {
+	$ROOT = '/home/airwave/bin';
+}
+
 # Declare modules
 use strict;
 use warnings;
@@ -15,17 +21,20 @@ use JSON::XS;
 use LWP::UserAgent;
 
 # Declare the package name and export the function names
-package mods::API3Distro;
+package mods::API3;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiStatus apiSelect);
 
+# Read the configuration parameters
+our %CONFIG  = read_config("$ROOT/etc/airwave.conf");
+
 # Credentials for the distro@airwave.tv user
 our %API;
-$API{host}		= 'api.visualsaas.net';
-$API{port}		= 19001;
-$API{instance}	= 'airwave-live';
-$API{key}		= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJkaXN0cm9AYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiI5OWM2M2VlYWExM2IzNDg3NWJlYzJkYjA5YzQ0YjkxYyJ9.LONnsxjE-0659_HxIl33FOec-Fj1ElsGeaEvLLn1-s4';
+$API{host} = $CONFIG{API_HOST};
+$API{port} = $CONFIG{API_PORT};
+$API{connector} = $CONFIG{API_CONNECTOR};
+$API{jwt} = read_jwt("$ROOT/$CONFIG{API_JWT_FILE}");
 
 1;
 
@@ -314,6 +323,65 @@ sub json_data {
 	}
 
 	return ($hash_ref,undef);
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Read the values from a configuration file.  Entries in the configuration are
+# name/value pairs separated by an '=', with 1 pair/line.
+#
+# Argument 1 : URL to configuration file
+#
+# Return a hash keyed by name with the value
+# ---------------------------------------------------------------------------------------------
+sub read_config {
+	# Read argument and initialise local variables
+	my($file) = @_;
+	my($fhdl,$line,$key,$value,@array,%conf);
+
+	# Read the configuration file
+	open($fhdl,"< $file") or die "Cannot open file [$file]: $!";
+	while($line = readline($fhdl)) {
+		chomp($line);
+		# Ignore lines with comments and empty lines
+		if($line && !($line =~ m/#/)) {
+			# Extract the key and the value
+			($key,$value) = split('=',$line);
+
+			# Remove all white space from the key and leading space from the value
+			$key =~ s/\s*//g;
+			$value =~ s/^\s*//g;
+
+			# If comma separators in value string, create an array, otherwise scalar
+			if($value =~ m/,/) {
+				@array = split(',',$value);
+				$conf{$key} = [ @array ];
+			}
+			else {
+				$conf{$key} = $value;
+			}
+		}
+	}
+	return %conf;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Read the JWT for the API from a file
+#
+# Argument 1 : File holding the JWT
+#
+# Return the JWT
+# ---------------------------------------------------------------------------------------------
+sub read_jwt {
+	my($file) = @_;
+	my($fh,$line);
+	open($fh,"< $file") or die "Cannot open file [$file]: $!";
+	$line = readline($fh);
+	chomp($line);
+	return $line;
 }
 
 

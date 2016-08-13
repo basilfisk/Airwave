@@ -27,7 +27,7 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(apiData apiDML apiMetadata apiStatus apiSelect);
 
 # Read the configuration parameters
-our %CONFIG  = read_config("$ROOT/etc/airwave.conf");
+our %CONFIG  = read_config("$ROOT/etc/airwave-portal.conf");
 
 # Credentials for the portal@airwave.tv user
 our %API;

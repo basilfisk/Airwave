@@ -36,7 +36,7 @@ package mods::Common;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime
-				 formatNumber jsonData logMsg logMsgPortal md5Generate msgCache msgLog parseDocument
+				 formatNumber jsonData jsonToXML logMsg logMsgPortal md5Generate metadataJsonToXML msgCache msgLog parseDocument
 				 processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
 
 # Read the configuration parameters and check that parameters have been read
@@ -469,6 +469,18 @@ sub jsonData {
 
 
 # ---------------------------------------------------------------------------------------------
+# Convert a string in JSON format to a hash
+#
+# Argument 1 : String in JSON format
+#
+# Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
+# ---------------------------------------------------------------------------------------------
+sub jsonToXML {
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
 # Write a message to the log file (if specified) or STDOUT
 #
 # Argument 1 : Log to file (1) or standard output (0)
@@ -574,6 +586,149 @@ sub md5Generate {
 		return $md5;
 	}
 	else { return; }
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Convert content metadata in JSON format to XML
+#
+# Argument 1 : Metadata hash
+#
+# Return an XML string
+# ---------------------------------------------------------------------------------------------
+sub metadataJsonToXML {
+	my(%meta) = @_;
+	my($xml,@arr,@arr2,%attr);
+
+	# Header
+	$xml = '<?xml version="1.0" encoding="UTF-8"?>';
+	$xml .= '<metadata id="'.$filmcode.'" type="video" creator="Airwave" created="'.formatDateTime('zd/zM/ccyy zh24:mi:ss').'">';
+
+	# General
+	@arr = @{$meta{'release'}};
+	$xml .= xml_element('release',$arr[0]{'release_date'});
+	$xml .= xml_element('year',$arr[0]{'year'});
+	$xml .= xml_element('certificate',$arr[0]{'certificate'});
+	$xml .= xml_element('duration',$arr[0]{'running_time'});
+	$xml .= xml_element('imdb',$arr[0]{'imdb'});
+	$xml .= '<provider>';
+	$xml .= xml_element('name',$arr[0]{'provider'});
+	$xml .= xml_element('reference',$arr[0]{'provider_ref'});
+	$xml .= '</provider>';
+
+	# Images
+	undef %attr;
+	@arr = @{$meta{'images'}};
+	$xml .= '<images>';
+	for(my $i=0; $i<@arr; $i++) {
+		$attr{'type'} = $arr[$i]{'type'};
+		$attr{'height'} = $arr[$i]{'height'};
+		$attr{'width'} = $arr[$i]{'width'};
+		$attr{'mimetype'} = $arr[$i]{'mimetype'};
+		$xml .= xml_element_attribute('image',$arr[$i]{'name'},%attr);
+	}
+	$xml .= '</images>';
+
+	# Territories
+	undef %attr;
+	@arr = @{$meta{'territories'}};
+	$xml .= '<territories>';
+	for(my $i=0; $i<@arr; $i++) {
+		$attr{'id'} = $arr[$i]{'code'};
+		$attr{'name'} = $arr[$i]{'name'};
+		$xml .= xml_attribute('territory',%attr);
+		$xml .= xml_element('encrypted',$arr[$i]{'encrypted'});
+		$xml .= xml_element('clear',$arr[$i]{'clear'});
+		$xml .= '</territory>';
+	}
+	$xml .= '</territories>';
+
+	# Genres
+	@arr = @{$meta{'genres'}};
+	$xml .= '<genres>';
+	for(my $i=0; $i<@arr; $i++) {
+		$xml .= xml_element('genre',$arr[$i]{'name'});
+	}
+	$xml .= '</genres>';
+
+	# Languages
+	@arr = @{$meta{'synopses'}};
+	$xml .= '<languages>';
+	for(my $i=0; $i<@arr; $i++) {
+		undef %attr;
+		$attr{'name'} = $arr[$i]{'name'};
+		$attr{'id'} = $arr[$i]{'code'};
+		$xml .= xml_attribute('language',%attr);
+		$xml .= xml_element('title',$arr[$i]{'title'});
+		$xml .= xml_element('short',$arr[$i]{'short'});
+		$xml .= xml_element('full',$arr[$i]{'full'});
+		$xml .= '<credits>';
+		$xml .= '<directors>';
+		@arr2 = @{$arr[$i]{'directors'}};
+		for(my $n=0; $n<@arr2; $n++) {
+			$xml .= xml_element('director',$arr2[$n]);
+		}
+		$xml .= '</directors>';
+		$xml .= '<actors>';
+		@arr2 = @{$arr[$i]{'actors'}};
+		for(my $n=0; $n<@arr2; $n++) {
+			$xml .= xml_element('actor',$arr2[$n]);
+		}
+		$xml .= '</actors>';
+		$xml .= '</credits>';
+		$xml .= '</language>';
+	}
+	$xml .= '</languages>';
+
+	# Sub-titles
+	undef %attr;
+	@arr = @{$meta{'subtitles'}};
+	$xml .= '<subtitles>';
+	for(my $i=0; $i<@arr; $i++) {
+		$attr{'language'} = $arr[$i]{'language'};
+		$xml .= xml_element_attribute('subtitle',$arr[$i]{'filename'},%attr);
+	}
+	$xml .= '</subtitles>';
+
+	# Assets
+	@arr = @{$meta{'assets'}};
+	$xml .= '<assets>';
+	for(my $i=0; $i<@arr; $i++) {
+		undef %attr;
+		$attr{'name'} = $arr[$i]{'name'};
+		$attr{'class'} = $arr[$i]{'class'};
+		$attr{'coding'} = $arr[$i]{'coding'};
+		$attr{'type'} = $arr[$i]{'type'};
+		$attr{'quality'} = $arr[$i]{'quality'};
+		$attr{'size'} = $arr[$i]{'size'};
+		$attr{'md5'} = $arr[$i]{'md5'};
+		$attr{'program'} = '2';
+		@arr2 = @{$arr[$i]{'streams'}};
+		$attr{'streams'} = scalar(@arr2);
+		$xml .= xml_attribute('asset',%attr);
+		for(my $n=0; $n<@arr2; $n++) {
+			undef %attr;
+			$attr{'pid'} = $arr2[$n]{'pid'};
+			$attr{'coding'} = $arr2[$n]{'coding'};
+			$attr{'type'} = $arr2[$n]{'type'};
+			$xml .= xml_attribute('stream',%attr);
+			$xml .= xml_element('frame_size',$arr2[$n]{'frame_size'});
+			$xml .= xml_element('aspect_ratio',$arr2[$n]{'aspect_ratio'});
+			$xml .= xml_element('frame_rate',$arr2[$n]{'frame_rate'});
+			$xml .= xml_element('encode_rate',$arr2[$n]{'encode_rate'});
+			$xml .= xml_element('sample_rate',$arr2[$n]{'sample_rate'});
+			$xml .= xml_element('channels',$arr2[$n]{'channels'});
+			$xml .= xml_element('language',$arr2[$n]{'language'});
+			$xml .= '</stream>';
+		}
+		$xml .= '</asset>';
+	}
+	$xml .= '</assets>';
+
+	# Close the XML document and return the XML
+	$xml .= "</metadata>";
+	return $xml;
 }
 
 
@@ -1059,4 +1214,70 @@ sub writeFile {
 	print $fh $text;
 	close($fh);
 	return 1;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create an opening XML element with attributes
+#
+# Argument 1 : Element name
+# Argument 2 : Hash of attributes
+#
+# Return XML string
+# ---------------------------------------------------------------------------------------------
+sub xml_attribute {
+	my($name,%attr) = @_;
+	my($str);
+	$str = '<'.$name;
+	foreach my $id (keys %attr) {
+		$str .= ' '.$id.'="'.$attr{$id}.'"';
+	}
+	$str .= '>';
+	return $str;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create an XML element with a data value
+#
+# Argument 1 : Element name
+# Argument 2 : Element value
+#
+# Return XML string
+# ---------------------------------------------------------------------------------------------
+sub xml_element {
+	my($name,$value) = @_;
+	my $str = '';
+	if($value) {
+		$str .= '<'.$name.'>';
+		$str .= $value;
+		$str .='</'.$name.'>';
+	}
+	return $str;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create an XML element with attributes and a data value
+#
+# Argument 1 : Element name
+# Argument 2 : Element value
+# Argument 3 : Hash of attributes
+#
+# Return XML string
+# ---------------------------------------------------------------------------------------------
+sub xml_element_attribute {
+	my($name,$value,%attr) = @_;
+	my($str);
+	$str = '<'.$name;
+	foreach my $id (keys %attr) {
+		$str .= ' '.$id.'="'.$attr{$id}.'"';
+	}
+	$str .= '>';
+	$str .= $value;
+	$str .='</'.$name.'>';
+	return $str;
 }

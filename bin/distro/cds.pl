@@ -40,7 +40,7 @@ $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME}=0;
 # Airwave modules
 use lib "$ROOT";
 use mods::API3 qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiSelect apiStatus);
-use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
+use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal metadataJsonToXML parseDocument readConfig writeFile);
 
 # Program information
 our $PROGRAM = "cds.pl";
@@ -637,7 +637,7 @@ sub dist_prepare {
 		foreach my $type (sort keys %{$PACKAGES{$package}{metadata}}) {
 			if ($type eq 'json' || $type eq 'xml') {
 				# Read metadata from Portal
-				$msg = apiMetadata($filmcode,$type);
+				$msg = apiMetadata($filmcode);
 				($status,%error) = apiStatus($msg);
 				# Failed to read metadata
 				if(!$status) {
@@ -651,7 +651,7 @@ sub dist_prepare {
 						$msg = encode_json(\%meta);
 					}
 					else {
-						$msg = $meta{xml};
+						$msg = metadataJsonToXML($filmcode,%meta);
 						$msg =~ s/&quot;/"/g;
 					}
 					$file = "$distdir/$filmcode.$type";

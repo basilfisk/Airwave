@@ -102,10 +102,11 @@ sub apiDML {
 # ---------------------------------------------------------------------------------------------
 sub apiEmail {
 	my(@params) = @_;
-	my($cmd,$name,$value,$response);
+	my($cmd,$name,$value);
 
 	# Build the command
-	$cmd = "curl -s -u $API{key}: 'https://$API{host}:$API{port}/2/msgEmail?instance=$API{instance}";
+	$cmd = "https://$API{host}:$API{port}/3/msgEmail?";
+	$cmd .= "{\"connector\":\"$API{connector}\"";
 
 	# Add the parameters
 	foreach my $param (@params) {
@@ -115,20 +116,15 @@ sub apiEmail {
 		$param =~ s/ /%20/g;
 		# Split out name/value pair
 		($name,$value) = split(/=/,$param);
-#		# If value starts with a '<' add a leading space to stop curl interpreting this as a file name
-#		if(substr($value,0,1) eq '<') {
-#			$value = ' '.$value;
-#		}
 		# Add to command string
-		$cmd .= "&$name=$value";
+		$cmd .= ",\"$name\":\"$value\"";
 	}
 
 	# Close the command
-	$cmd .= "'";
+	$cmd .= "}";
 
-	# Run the command and check the return code
-	$response = `$cmd`;
-	return check_response($response,$?,$!);
+	# Run the command and return a JSON object
+	return run_command($cmd);
 }
 
 
@@ -144,6 +140,39 @@ sub apiEmail {
 # Return the JSON response
 # ---------------------------------------------------------------------------------------------
 sub apiFileDownload {
+	my($sfile,$sdir,$tfile,$tdir) = @_;
+	my($cmd,$response,$msg);
+
+	# Build the command
+	$cmd = "curl -s -H \"Authorization: Bearer $API{key}\" -o $tdir/$tfile ";
+	$cmd .= "https://$API{host}:$API{port}/3/fileDownload?";
+	$cmd .= "{\"connector\":\"$API{connector}\",\"source\":\"$sdir/$sfile\"}";
+
+	# Download the file
+	$response = `$cmd`;
+
+	# Check the start of the downloaded file to see if an error was returned
+	if(-f "$tdir/$tfile") {
+		$msg = `head -c 15 $tdir/$tfile`;
+		if($msg =~ /{"status"/) {
+			# Download failed
+			$msg = `cat $tdir/$tfile`;
+		}
+		else {
+			# Download succeeded
+			$msg = "Download of file [$tdir/$tfile] was successful";
+			$msg = '{"status":"1", "data": { "code":"CLI001", "text": "'.$msg.'"}}';
+		}
+	}
+	# No response from API
+	else {
+		$msg = "Couldn't read file [$tdir/$tfile]";
+		$msg = '{"status":"0", "data": { "code":"CLI002", "text": "'.$msg.'"}}';
+	}
+	return $msg;
+}
+
+sub ZZZapiFileDownload {
 	my($sfile,$sdir,$tfile,$tdir) = @_;
 	my($cmd,$response,$msg);
 
@@ -182,30 +211,23 @@ sub apiFileDownload {
 # Run a query to retrieve metadata
 #
 # Argument 1 : Asset reference
-# Argument 2 : Format of results (xml/json)
 #
 # If successful return (1,data) otherwise (0,JSON error)
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
-	my($assetcode,$format) = @_;
+	my($assetcode) = @_;
 	my($cmd,$json);
 
 	# Build the command
 	$cmd = "https://$API{host}:$API{port}/3/metadata?";
 	$cmd .= "{\"connector\":\"$API{connector}\"";
-	$cmd .= ",\"assetcode\":\"$assetcode\",\"format\":\"$format\"}";
+	$cmd .= ",\"assetcode\":\"$assetcode\"}";
 
 	# Run the command
 	$json = run_command($cmd);
 
-	# If JSON requested, return a JSON object
-	if($format eq 'json') {
-		return $json;
-	}
-	# If XML requested, reformat JSON to XML
-	else {
-		return json_to_xml($json);
-	}
+	# Return metadata in JSON format
+	return $json;
 }
 
 

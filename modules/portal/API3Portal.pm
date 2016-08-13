@@ -97,30 +97,23 @@ sub apiDML {
 # Run a query to retrieve metadata
 #
 # Argument 1 : Asset reference
-# Argument 2 : Format of results (xml/json)
 #
 # If successful return (1,data) otherwise (0,JSON error)
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
-	my($assetcode,$format) = @_;
+	my($assetcode) = @_;
 	my($cmd,$json);
 
 	# Build the command
 	$cmd = "https://$API{host}:$API{port}/3/metadata?";
 	$cmd .= "{\"connector\":\"$API{connector}\"";
-	$cmd .= ",\"assetcode\":\"$assetcode\",\"format\":\"$format\"}";
+	$cmd .= ",\"assetcode\":\"$assetcode\"}";
 
 	# Run the command
 	$json = run_command($cmd);
 
-	# If JSON requested, return a JSON object
-	if($format eq 'json') {
-		return $json;
-	}
-	# If XML requested, reformat JSON to XML
-	else {
-		return json_to_xml($json);
-	}
+	# Return metadata in JSON format
+	return $json;
 }
 
 
@@ -247,18 +240,6 @@ sub json_data {
 	}
 
 	return ($hash_ref,undef);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Reformat JSON to XML
-#
-# Argument 1 : JSON object to be reformatted
-# ---------------------------------------------------------------------------------------------
-sub json_to_xml {
-	my($json) = @_;
-	return $json;
 }
 
 

@@ -31,10 +31,10 @@ use XML::LibXML;
 package mods::Common;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime 
-				 formatNumber logMsg logMsgPortal md5Generate msgCache msgLog parseDocument processInfo
+our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime
+				 formatNumber logMsg logMsgPortal md5Generate metadataJsonToXML msgCache msgLog parseDocument processInfo
 				 readConfig readConfigXML validFormat validNumber wrapText writeFile);
-				 
+
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
 
@@ -169,7 +169,7 @@ sub ellipsis {
 
 # ---------------------------------------------------------------------------------------------
 # Escape special characters in the string
-# 
+#
 # Argument 1 : String to be processed
 #
 # Return the string with special characters escaped
@@ -511,7 +511,150 @@ sub md5Generate {
 
 
 # ---------------------------------------------------------------------------------------------
-# Create a hash of messages at start-up time which can then be used by the main message 
+# Convert content metadata in JSON format to XML
+#
+# Argument 1 : Metadata hash
+#
+# Return an XML string
+# ---------------------------------------------------------------------------------------------
+sub metadataJsonToXML {
+	my(%meta) = @_;
+	my($xml,@arr,@arr2,%attr);
+
+	# Header
+	$xml = '<?xml version="1.0" encoding="UTF-8"?>';
+	$xml .= '<metadata id="'.$filmcode.'" type="video" creator="Airwave" created="'.formatDateTime('zd/zM/ccyy zh24:mi:ss').'">';
+
+	# General
+	@arr = @{$meta{'release'}};
+	$xml .= xml_element('release',$arr[0]{'release_date'});
+	$xml .= xml_element('year',$arr[0]{'year'});
+	$xml .= xml_element('certificate',$arr[0]{'certificate'});
+	$xml .= xml_element('duration',$arr[0]{'running_time'});
+	$xml .= xml_element('imdb',$arr[0]{'imdb'});
+	$xml .= '<provider>';
+	$xml .= xml_element('name',$arr[0]{'provider'});
+	$xml .= xml_element('reference',$arr[0]{'provider_ref'});
+	$xml .= '</provider>';
+
+	# Images
+	undef %attr;
+	@arr = @{$meta{'images'}};
+	$xml .= '<images>';
+	for(my $i=0; $i<@arr; $i++) {
+		$attr{'type'} = $arr[$i]{'type'};
+		$attr{'height'} = $arr[$i]{'height'};
+		$attr{'width'} = $arr[$i]{'width'};
+		$attr{'mimetype'} = $arr[$i]{'mimetype'};
+		$xml .= xml_element_attribute('image',$arr[$i]{'name'},%attr);
+	}
+	$xml .= '</images>';
+
+	# Territories
+	undef %attr;
+	@arr = @{$meta{'territories'}};
+	$xml .= '<territories>';
+	for(my $i=0; $i<@arr; $i++) {
+		$attr{'id'} = $arr[$i]{'code'};
+		$attr{'name'} = $arr[$i]{'name'};
+		$xml .= xml_attribute('territory',%attr);
+		$xml .= xml_element('encrypted',$arr[$i]{'encrypted'});
+		$xml .= xml_element('clear',$arr[$i]{'clear'});
+		$xml .= '</territory>';
+	}
+	$xml .= '</territories>';
+
+	# Genres
+	@arr = @{$meta{'genres'}};
+	$xml .= '<genres>';
+	for(my $i=0; $i<@arr; $i++) {
+		$xml .= xml_element('genre',$arr[$i]{'name'});
+	}
+	$xml .= '</genres>';
+
+	# Languages
+	@arr = @{$meta{'synopses'}};
+	$xml .= '<languages>';
+	for(my $i=0; $i<@arr; $i++) {
+		undef %attr;
+		$attr{'name'} = $arr[$i]{'name'};
+		$attr{'id'} = $arr[$i]{'code'};
+		$xml .= xml_attribute('language',%attr);
+		$xml .= xml_element('title',$arr[$i]{'title'});
+		$xml .= xml_element('short',$arr[$i]{'short'});
+		$xml .= xml_element('full',$arr[$i]{'full'});
+		$xml .= '<credits>';
+		$xml .= '<directors>';
+		@arr2 = @{$arr[$i]{'directors'}};
+		for(my $n=0; $n<@arr2; $n++) {
+			$xml .= xml_element('director',$arr2[$n]);
+		}
+		$xml .= '</directors>';
+		$xml .= '<actors>';
+		@arr2 = @{$arr[$i]{'actors'}};
+		for(my $n=0; $n<@arr2; $n++) {
+			$xml .= xml_element('actor',$arr2[$n]);
+		}
+		$xml .= '</actors>';
+		$xml .= '</credits>';
+		$xml .= '</language>';
+	}
+	$xml .= '</languages>';
+
+	# Sub-titles
+	undef %attr;
+	@arr = @{$meta{'subtitles'}};
+	$xml .= '<subtitles>';
+	for(my $i=0; $i<@arr; $i++) {
+		$attr{'language'} = $arr[$i]{'language'};
+		$xml .= xml_element_attribute('subtitle',$arr[$i]{'filename'},%attr);
+	}
+	$xml .= '</subtitles>';
+
+	# Assets
+	@arr = @{$meta{'assets'}};
+	$xml .= '<assets>';
+	for(my $i=0; $i<@arr; $i++) {
+		undef %attr;
+		$attr{'name'} = $arr[$i]{'name'};
+		$attr{'class'} = $arr[$i]{'class'};
+		$attr{'coding'} = $arr[$i]{'coding'};
+		$attr{'type'} = $arr[$i]{'type'};
+		$attr{'quality'} = $arr[$i]{'quality'};
+		$attr{'size'} = $arr[$i]{'size'};
+		$attr{'md5'} = $arr[$i]{'md5'};
+		$attr{'program'} = '2';
+		@arr2 = @{$arr[$i]{'streams'}};
+		$attr{'streams'} = scalar(@arr2);
+		$xml .= xml_attribute('asset',%attr);
+		for(my $n=0; $n<@arr2; $n++) {
+			undef %attr;
+			$attr{'pid'} = $arr2[$n]{'pid'};
+			$attr{'coding'} = $arr2[$n]{'coding'};
+			$attr{'type'} = $arr2[$n]{'type'};
+			$xml .= xml_attribute('stream',%attr);
+			$xml .= xml_element('frame_size',$arr2[$n]{'frame_size'});
+			$xml .= xml_element('aspect_ratio',$arr2[$n]{'aspect_ratio'});
+			$xml .= xml_element('frame_rate',$arr2[$n]{'frame_rate'});
+			$xml .= xml_element('encode_rate',$arr2[$n]{'encode_rate'});
+			$xml .= xml_element('sample_rate',$arr2[$n]{'sample_rate'});
+			$xml .= xml_element('channels',$arr2[$n]{'channels'});
+			$xml .= xml_element('language',$arr2[$n]{'language'});
+			$xml .= '</stream>';
+		}
+		$xml .= '</asset>';
+	}
+	$xml .= '</assets>';
+
+	# Close the XML document and return the XML
+	$xml .= "</metadata>";
+	return $xml;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create a hash of messages at start-up time which can then be used by the main message
 # logging function to avoid parsing the XML each time a message is generated.
 #
 # Argument 1: Name of file holding the messages
@@ -745,7 +888,7 @@ sub processInfo {
 
 
 # ---------------------------------------------------------------------------------------------
-# Read the values from a configuration file.  Entries in the configuration are 
+# Read the values from a configuration file.  Entries in the configuration are
 # name/value pairs separated by an '=', with 1 pair/line.
 #
 # Argument 1 = URL to configuration file
@@ -983,7 +1126,7 @@ sub wrapText {
 sub writeFile {
 	my($file,$text) = @_;
 	my($fh);
-	
+
 	if(!open($fh,">$file")) {
 		print "Can't open file [$file]\n";
 		return 0;

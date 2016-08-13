@@ -227,13 +227,13 @@ sub read_metadata {
 				$xml .= xml_element('full',$arr[$i]{'full'});
 				$xml .= '<credits>';
 				$xml .= '<directors>';
-				@arr2 = $arr[$i]{'directors'};
+				@arr2 = @{$arr[$i]{'directors'}};
 				for(my $n=0; $n<@arr2; $n++) {
 					$xml .= xml_element('director',$arr2[$n]);
 				}
 				$xml .= '</directors>';
 				$xml .= '<actors>';
-				@arr2 = $arr[$i]{'actors'};
+				@arr2 = @{$arr[$i]{'actors'}};
 				for(my $n=0; $n<@arr2; $n++) {
 					$xml .= xml_element('actor',$arr2[$n]);
 				}
@@ -425,6 +425,7 @@ Usage :
 
   MANDATORY
     --f|film=<name>          Film to be processed.
+    --f|film=all             Process all films for the content provider.
     --p|provider=<name>      Content provider of the film.
 
   OPTIONAL

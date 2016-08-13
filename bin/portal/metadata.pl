@@ -163,7 +163,7 @@ sub read_metadata {
 			return encode_json(\%meta);
 		}
 		else {
-			return metadataJsonToXML(%meta);
+			return metadataJsonToXML($filmcode,%meta);
 		}
 	}
 }
@@ -200,72 +200,6 @@ sub write_metadata {
 			return 0;
 		}
 	}
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Create an opening XML element with attributes
-#
-# Argument 1 : Element name
-# Argument 2 : Hash of attributes
-#
-# Return XML string
-# ---------------------------------------------------------------------------------------------
-sub xml_attribute {
-	my($name,%attr) = @_;
-	my($str);
-	$str = '<'.$name;
-	foreach my $id (keys %attr) {
-		$str .= ' '.$id.'="'.$attr{$id}.'"';
-	}
-	$str .= '>';
-	return $str;
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Create an XML element with a data value
-#
-# Argument 1 : Element name
-# Argument 2 : Element value
-#
-# Return XML string
-# ---------------------------------------------------------------------------------------------
-sub xml_element {
-	my($name,$value) = @_;
-	my $str = '';
-	if($value) {
-		$str .= '<'.$name.'>';
-		$str .= $value;
-		$str .='</'.$name.'>';
-	}
-	return $str;
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Create an XML element with attributes and a data value
-#
-# Argument 1 : Element name
-# Argument 2 : Element value
-# Argument 3 : Hash of attributes
-#
-# Return XML string
-# ---------------------------------------------------------------------------------------------
-sub xml_element_attribute {
-	my($name,$value,%attr) = @_;
-	my($str);
-	$str = '<'.$name;
-	foreach my $id (keys %attr) {
-		$str .= ' '.$id.'="'.$attr{$id}.'"';
-	}
-	$str .= '>';
-	$str .= $value;
-	$str .='</'.$name.'>';
-	return $str;
 }
 
 

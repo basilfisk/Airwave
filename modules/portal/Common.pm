@@ -513,12 +513,13 @@ sub md5Generate {
 # ---------------------------------------------------------------------------------------------
 # Convert content metadata in JSON format to XML
 #
-# Argument 1 : Metadata hash
+# Argument 1 : Asset code
+# Argument 2 : Metadata hash
 #
 # Return an XML string
 # ---------------------------------------------------------------------------------------------
 sub metadataJsonToXML {
-	my(%meta) = @_;
+	my($filmcode,%meta) = @_;
 	my($xml,@arr,@arr2,%attr);
 
 	# Header
@@ -1134,4 +1135,70 @@ sub writeFile {
 	print $fh $text;
 	close($fh);
 	return 1;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create an opening XML element with attributes
+#
+# Argument 1 : Element name
+# Argument 2 : Hash of attributes
+#
+# Return XML string
+# ---------------------------------------------------------------------------------------------
+sub xml_attribute {
+	my($name,%attr) = @_;
+	my($str);
+	$str = '<'.$name;
+	foreach my $id (keys %attr) {
+		$str .= ' '.$id.'="'.$attr{$id}.'"';
+	}
+	$str .= '>';
+	return $str;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create an XML element with a data value
+#
+# Argument 1 : Element name
+# Argument 2 : Element value
+#
+# Return XML string
+# ---------------------------------------------------------------------------------------------
+sub xml_element {
+	my($name,$value) = @_;
+	my $str = '';
+	if($value) {
+		$str .= '<'.$name.'>';
+		$str .= $value;
+		$str .='</'.$name.'>';
+	}
+	return $str;
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Create an XML element with attributes and a data value
+#
+# Argument 1 : Element name
+# Argument 2 : Element value
+# Argument 3 : Hash of attributes
+#
+# Return XML string
+# ---------------------------------------------------------------------------------------------
+sub xml_element_attribute {
+	my($name,$value,%attr) = @_;
+	my($str);
+	$str = '<'.$name;
+	foreach my $id (keys %attr) {
+		$str .= ' '.$id.'="'.$attr{$id}.'"';
+	}
+	$str .= '>';
+	$str .= $value;
+	$str .='</'.$name.'>';
+	return $str;
 }

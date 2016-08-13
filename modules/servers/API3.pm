@@ -188,7 +188,7 @@ sub apiFileDownload {
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
 	my($assetcode,$format) = @_;
-	my($cmd);
+	my($cmd,$json);
 
 	# Build the command
 	$cmd = "https://$API{host}:$API{port}/3/metadata?";

@@ -637,7 +637,7 @@ sub dist_prepare {
 		foreach my $type (sort keys %{$PACKAGES{$package}{metadata}}) {
 			if ($type eq 'json' || $type eq 'xml') {
 				# Read metadata from Portal
-				$msg = apiMetadata('structured',$filmcode,$type);
+				$msg = apiMetadata($filmcode,$type);
 				($status,%error) = apiStatus($msg);
 				# Failed to read metadata
 				if(!$status) {

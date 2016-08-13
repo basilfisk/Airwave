@@ -116,7 +116,7 @@ sub get_file_name {
 	my($msg,$status,%error,%meta,$xml,$file,$err,$xpc,@nodes);
 
 	# Read the latest XML metadata from the Portal
-	$msg = apiMetadata('structured',$film,'xml');
+	$msg = apiMetadata($film,'xml');
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read XML metadata from Portal [$error{CODE}] $error{MESSAGE}");

@@ -195,8 +195,17 @@ sub apiMetadata {
 	$cmd .= "{\"connector\":\"$API{connector}\"";
 	$cmd .= ",\"assetcode\":\"$assetcode\",\"format\":\"$format\"}";
 
-	# Run the command and return a JSON object
-	return run_command($cmd);
+	# Run the command
+	$json = run_command($cmd);
+
+	# If JSON requested, return a JSON object
+	if($format eq 'json') {
+		return $json;
+	}
+	# If XML requested, reformat JSON to XML
+	else {
+		return json_to_xml($json);
+	}
 }
 
 

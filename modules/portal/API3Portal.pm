@@ -25,7 +25,7 @@ our %API;
 $API{host}		= 'api.visualsaas.net';
 $API{port}		= 19001;
 $API{connector}	= 'airwave-live';
-$API{jwt}		= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiI5ZWYxZGI2MWFhZDA4ZmEzZDFiZWM0MmRmNjg2OWQ5MyJ9.9U9mxco5VNhemAVbHtWdhQZafZhPFWv4X_mS0lZdM3Q';
+$API{jwt}		= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiIyNTVkZWFhMWUwYTQ0MDhhN2NmOGUzZjM5ZDdmY2NkZCJ9.98xZBYwYS3ZR0BQq7o9pasvrnqSeJAD6vVtBikMgEys';
 
 1;
 
@@ -87,23 +87,31 @@ sub apiDML {
 # ---------------------------------------------------------------------------------------------
 # Run a query to retrieve metadata
 #
-# Argument 1 : Function to be called
-# Argument 2 : Asset reference
-# Argument 3 : Format of results (xml/json)
+# Argument 1 : Asset reference
+# Argument 2 : Format of results (xml/json)
 #
 # If successful return (1,data) otherwise (0,JSON error)
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
-	my($call,$assetcode,$format) = @_;
-	my($cmd);
+	my($assetcode,$format) = @_;
+	my($cmd,$json);
 
 	# Build the command
-	$cmd = "https://$API{host}:$API{port}/3/$call?";
+	$cmd = "https://$API{host}:$API{port}/3/metadata?";
 	$cmd .= "{\"connector\":\"$API{connector}\"";
 	$cmd .= ",\"assetcode\":\"$assetcode\",\"format\":\"$format\"}";
 
-	# Run the command and return a JSON object
-	return run_command($cmd);
+	# Run the command
+	$json = run_command($cmd);
+
+	# If JSON requested, return a JSON object
+	if($format eq 'json') {
+		return $json;
+	}
+	# If XML requested, reformat JSON to XML
+	else {
+		return json_to_xml($json);
+	}
 }
 
 
@@ -230,6 +238,18 @@ sub json_data {
 	}
 
 	return ($hash_ref,undef);
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Reformat JSON to XML
+#
+# Argument 1 : JSON object to be reformatted
+# ---------------------------------------------------------------------------------------------
+sub json_to_xml {
+	my($json) = @_;
+	return $json;
 }
 
 

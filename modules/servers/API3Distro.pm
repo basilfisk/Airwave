@@ -172,18 +172,17 @@ sub apiFileDownload {
 # ---------------------------------------------------------------------------------------------
 # Run a query to retrieve metadata
 #
-# Argument 1 : Function to be called
-# Argument 2 : Asset reference
-# Argument 3 : Format of results (xml/json)
+# Argument 1 : Asset reference
+# Argument 2 : Format of results (xml/json)
 #
 # If successful return (1,data) otherwise (0,JSON error)
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
-	my($call,$assetcode,$format) = @_;
+	my($assetcode,$format) = @_;
 	my($cmd);
 
 	# Build the command
-	$cmd = "https://$API{host}:$API{port}/3/$call?";
+	$cmd = "https://$API{host}:$API{port}/3/metadata?";
 	$cmd .= "{\"connector\":\"$API{connector}\"";
 	$cmd .= ",\"assetcode\":\"$assetcode\",\"format\":\"$format\"}";
 

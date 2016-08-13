@@ -29,16 +29,16 @@ use XML::LibXML;
 
 # Airwave modules
 use lib "$ROOT";
-use mods::API qw(apiDML apiStatus);
+use mods::API3 qw(apiDML apiStatus);
 
 # Declare the package name and export the function names
 package mods::Common;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime 
-				 formatNumber jsonData logMsg logMsgPortal md5Generate msgCache msgLog parseDocument 
+our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime
+				 formatNumber jsonData logMsg logMsgPortal md5Generate msgCache msgLog parseDocument
 				 processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
-				 
+
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
 
@@ -74,7 +74,7 @@ our $SOCKET;
 # ---------------------------------------------------------------------------------------------
 sub cleanNonUTF8 {
 	my($string) = @_;
-	
+
 	my $octets = Encode::encode("iso-8859-1", $string);
 	my $output = Encode::decode("iso-8859-1", $octets);
 	return (1,$output);
@@ -82,22 +82,22 @@ sub cleanNonUTF8 {
 
 sub cleanNonUTF8_ZZZ {
 	my($string) = @_;
-	
+
 	for($string) {
 		# Assume data comes in Latin-1, but trap invalid characters
 		eval { $_ = Encode::decode( 'iso-8859-1', $_ ); };
 		if($@) { return (0,$string); }
-		
+
 		# Convert to Unicode
 		s/\xe4/ae/g;
 		s/\xf1/ny/g;
 		s/\xf6/oe/g;
 		s/\xfc/ue/g;
 		s/\xff/yu/g;
-		
+
 		$_ = Unicode::Normalize::NFD( $_ );		# Decompose to Unicode Normalization Form D
 		s/\pM//g;								# Strip combining characters
-		
+
 		# Additional normalizations
 		s/\x{00df}/ss/g;
 		s/\x{00c6}/AE/g;
@@ -106,15 +106,15 @@ sub cleanNonUTF8_ZZZ {
 		s/\x{0133}/ij/g;
 		s/\x{0152}/Oe/g;
 		s/\x{0153}/oe/g;
-		
+
 		tr/\x{00d0}\x{0110}\x{00f0}\x{0111}\x{0126}\x{0127}/DDddHh/;
 		tr/\x{0131}\x{0138}\x{013f}\x{0141}\x{0140}\x{0142}/ikLLll/;
 		tr/\x{014a}\x{0149}\x{014b}\x{00d8}\x{00f8}\x{017f}/NnnOos/;
 		tr/\x{00de}\x{0166}\x{00fe}\x{0167}/TTtt/;
-		
+
 		s/[^\0-\x80]//g;  # Clear everything else
 	}
-	
+
 	# Return cleansed string
 	return (1,$string);
 }
@@ -213,7 +213,7 @@ sub ellipsis {
 
 # ---------------------------------------------------------------------------------------------
 # Escape special characters in the string
-# 
+#
 # Argument 1 : String to be processed
 #
 # Return the string with special characters escaped
@@ -344,7 +344,7 @@ sub formatDateTime {
 sub formatNumber {
 	my($num,$fmt) = @_;
 	my($neg,$int,$flt,$bkt,@both,@format,@number,$foundz,$chr,$idx,$tmp,$str);
-	
+
 	# Return original string if no format string is passed as an argument
 	if(!$fmt) { return $num; }
 
@@ -352,31 +352,31 @@ sub formatNumber {
 #	$num = ($num eq ' ') ? 0 : $num;
 	# Return undef if the number is empty
 	if(!$num || $num eq ' ') { return undef; }
-	
+
 	# Validate the number and return original string if it is not a valid number
 	if(!validNumber($num)) { return $num; }
-	
+
 	# Determine positive/negative, integer part, float part
 	$neg = ($num < 0) ? 1 : 0;
 	$int = int(abs($num));
 	$flt = abs($num)-$int;
-	
+
 	# Ensure format string is lower case
 	$fmt =~ tr/A-Z/a-z/;
-	
+
 	# Determine whether brackets should be used for negative numbers, then remove brackets
 	$bkt = ($fmt =~ /\(/) ? 1 : 0;
 	$fmt =~ s/\(//g;
 	$fmt =~ s/\)//g;
-	
+
 	# Split format string into their integer and floating parts
 	@both = split(/\./,$fmt);
-	
+
 	# Format the integer part of the number
 	# Split format string and number into an array of 1 digit elements
 	@format = split(/ */,$both[0]);
 	@number = split(/ */,"$int");
-	
+
 	# Substitute zeros into format array
 	$foundz = 0;
 	for(my $f=0; $f<@format; $f++) {
@@ -387,7 +387,7 @@ sub formatNumber {
 			$foundz = 1;
 		}
 	}
-	
+
 	# Substitute number elements into format array
 	$idx = @number - 1;
 	for(my $f=0; $f<@format; $f++) {
@@ -409,11 +409,11 @@ sub formatNumber {
 		# Format the floating part to the correct length, then get rid of the integer part
 		$flt = sprintf("%.".length($both[1])."f",$flt);
 		$flt = (split(/\./,$flt))[1];
-		
+
 		# Split format string and number into an array of 1 digit elements
 		@format = split(/ */,$both[1]);
 		@number = split(/ */,$flt);
-		
+
 		# Substitute zeros into format array (work backwards to find last 'z')
 		$foundz = 0;
 		for(my $f=@format-1; $f>=0; $f--) {
@@ -422,24 +422,24 @@ sub formatNumber {
 				$foundz = 1;
 			}
 		}
-		
+
 		# Substitute number elements into format array
 		for(my $f=0; $f<@number; $f++) {
 			$format[$f] = $number[$f];
 		}
-		
+
 		# Turn array into a string, then remove spare n/z
 		$tmp = join('',@format);
 		$tmp =~ s/[n|z]//g;
 		$str = "$str.$tmp";
 	}
-	
+
 	# Add a negative symbol
 	if($neg) {
 		if($bkt) { $str = "($str)"; }
 		else { $str = "-$str"; }
 	}
-		
+
 	# Return the formatted number
 	return $str;
 }
@@ -478,13 +478,13 @@ sub jsonData {
 sub logMsg {
 	my($log,$prog,$msg) = @_;
 	my($file,$stamp,$fh);
-	
+
 	# Create log file name (remove extension first) and timestamp
 	$file = $prog;
 	$file =~ s/\.\w+$//;
 	$file = "$CONFIG{LOGDIR}/$file.log";
 	$stamp = formatDateTime('cczy/zm/zd zh24:mi:ss');
-	
+
 	# Write to log file if logging requested
 	if($log) {
 		if(open($fh,">>$file")) {
@@ -512,30 +512,30 @@ sub logMsg {
 sub logMsgPortal {
 	my($log,$prog,$type,$msg) = @_;
 	my($status,$result,%error,$file,$stamp,$code,$text);
-	
+
 	# Create log file name (remove extension first) and timestamp
 	$file = $prog;
 	$file =~ s/\.\w+$//;
 	$file = "$CONFIG{LOGDIR}/$file.log";
 	$stamp = formatDateTime('zd mon cczy zh24:mi:ss');
-	
+
 	# Convert type to uppercase and expand to full description
 	$type =~ tr[a-z][A-Z];
 	   if($type eq 'E') { $type = 'Error'; }
 	elsif($type eq 'I') { $type = 'Information'; }
 	elsif($type eq 'W') { $type = 'Warning'; }
-	
+
 	# Write to log file if logging requested and if log file exists
 	if($log && -f $file) {
 		logMsg($log,$prog,$msg);
-		
+
 		# Remove single and double quotes from the message
 		$msg =~ s/\'//g;
 		$msg =~ s/\"//g;
-		
+
 		# Write the message to the Portal
-		($result) = mods::API::apiDML('logMessage',"type=$type","prog=$prog","stamp='$stamp'","msg='$msg'");
-		($status,%error) = mods::API::apiStatus($result);
+		($result) = mods::API3::apiDML('logMessage',"type=$type","prog=$prog","stamp='$stamp'","msg='$msg'");
+		($status,%error) = mods::API3::apiStatus($result);
 		if(!$status) {
 			# Any problems writing to Portal should be logged
 			if(%error) {
@@ -564,7 +564,7 @@ sub logMsgPortal {
 sub md5Generate {
 	my($file) = @_;
 	my($fh,$ctx,$md5);
-	
+
 	$fh = new IO::File("<$file");
 	if($fh) {
 		$ctx = Digest::MD5->new;
@@ -579,7 +579,7 @@ sub md5Generate {
 
 
 # ---------------------------------------------------------------------------------------------
-# Create a hash of messages at start-up time which can then be used by the main message 
+# Create a hash of messages at start-up time which can then be used by the main message
 # logging function to avoid parsing the XML each time a message is generated.
 #
 # Argument 1: Name of file holding the messages
@@ -596,7 +596,7 @@ sub msgCache {
 		msgWrite($COMMON_LOG,"msgCache: Cannot open message file: $file");
 		exit;
 	}
-	
+
 	# Read the messages from file
 	@nodes = $xpc->findnodes('/messages/msg');
 	foreach my $node (@nodes) {
@@ -605,11 +605,11 @@ sub msgCache {
 		$type = $node->getAttribute('type');
 		$level = $node->getAttribute('level');
 		$text = $node->textContent;
-		
+
 		# Write to a HoA
 		$result{$code} = [($type,$level,$text)];
 	}
-	
+
 	# Return the message hash
 	return %result;
 }
@@ -635,7 +635,7 @@ sub msgLog {
 	my($log,$verbosity,$msg_ref,$opt,$code,@parameters) = @_;
 	my($type,$level,$text,$str,$group,$status,$msg,$resp);
 	my %msgs = %{$msg_ref};
-	
+
 	# Read text from the global message hash
 	if($msgs{$code}) {
 		($type,$level,$text) = @{$msgs{$code}};
@@ -646,7 +646,7 @@ sub msgLog {
 		($type,$level,$text) = (3,0,"msgLog: Error code [$code] does not exist in the message file");
 		$code = 'E301';
 	}
-	
+
 	# Skip messages if the level of verbosity if too much for configured setting
 	if($level <= $verbosity) {
 		# Substitute parameters
@@ -654,11 +654,11 @@ sub msgLog {
 			$str = "_p" . ($i + 1);
 			if(defined($parameters[$i])) { $text =~ s/$str/$parameters[$i]/g; }
 		}
-		
+
 		# Replace newline characters with spaces and remove trailing spaces
 		$text =~ s/\n/ /g;
 		$text =~ s/\s+$//;
-		
+
 		# Generate the message type and error status
 		if($type == 0) {
 			$group = 'information';
@@ -676,10 +676,10 @@ sub msgLog {
 			$group = 'common';
 			$status = 1;
 		}
-		
+
 		# Build the message
 		$msg = formatDateTime('cczy/zm/zd zh24:mi:ss')." # ".setSession('current')." # $group # $code # $text";
-		
+
 		# Return the message to the caller as a string
 		if($opt eq 'caller') {
 			return "$code: $text";
@@ -721,14 +721,14 @@ sub msgWrite {
 	my($log,$msg) = @_;
 	my($fh);
 	my $stamp = formatDateTime('cczy/zm/zd zh24:mi:ss');
-	
+
 	# Open the log file in append mode
 	if(!open($fh,">>$log")) {
 		# Can't open log file
 		print "[$stamp] Can't open log file [$log], however, this message has been reported: $msg\n";
 		return $msg;
 	}
-	
+
 	# Log the session ID
 	print $fh "[$stamp] $msg\n";
 	close($fh);
@@ -760,7 +760,7 @@ sub parseDocument {
 			return "parseDocument: No file name has been provided";
 		}
 	}
-	
+
 	# Create the parser object
 	$psr = XML::LibXML->new();
 	if(!$psr) {
@@ -799,7 +799,7 @@ sub parseDocument {
 sub processInfo {
 	# Initialise local variables
 	my(@procs,$owner,$proc);
-	
+
 	# Extract the process owner and ID from the 1st matching record
 	# Record 1 is the process running the test, 2 is the shell call to 'ps' and 3 is 'grep'
 	@procs = `ps -ef | grep $$`;
@@ -813,7 +813,7 @@ sub processInfo {
 
 
 # ---------------------------------------------------------------------------------------------
-# Read the values from a configuration file.  Entries in the configuration are 
+# Read the values from a configuration file.  Entries in the configuration are
 # name/value pairs separated by an '=', with 1 pair/line.
 #
 # Argument 1 = URL to configuration file
@@ -824,7 +824,7 @@ sub readConfig {
 	# Read argument and initialise local variables
 	my($file) = @_;
 	my($fhdl,$line,$key,$value,@array,%conf);
-	
+
 	# Read the configuration file
 	open($fhdl,"< $file") or die "Cannot open file [$file]: $!";
 	while($line = readline($fhdl)) {
@@ -833,11 +833,11 @@ sub readConfig {
 		if($line && !($line =~ m/#/)) {
 			# Extract the key and the value
 			($key,$value) = split('=',$line);
-			
+
 			# Remove all white space from the key and leading space from the value
 			$key =~ s/\s*//g;
 			$value =~ s/^\s*//g;
-			
+
 			# If comma separators in value string, create an array, otherwise scalar
 			if($value =~ m/,/) {
 				@array = split(',',$value);
@@ -960,10 +960,10 @@ sub setSession {
 # ---------------------------------------------------------------------------------------------
 sub validFormat {
 	my($value) = @_;
-	
+
 	# Quit if number to be checked is empty
 	if(!$value) { return 1; }
-	
+
 	# Replace £ and € with $ for the regex
 	$value =~ s/£/\$/g;
 	$value =~ s/€/\$/g;
@@ -1051,7 +1051,7 @@ sub wrapText {
 sub writeFile {
 	my($file,$text) = @_;
 	my($fh);
-	
+
 	if(!open($fh,">$file")) {
 		print "Can't open file [$file]\n";
 		return 0;

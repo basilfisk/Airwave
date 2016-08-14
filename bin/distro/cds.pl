@@ -268,7 +268,7 @@ sub dist_ended {
 		# Update ended date on distribution record
 		# NB: This is not the end date as logged on CDS
 		$ended = formatDateTime('zd Mon ccyy zh24:mi');
-		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
+		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended=$ended");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Ended: End date NOT updated for distribution [$distname] [$error{CODE}] $error{MESSAGE}");
@@ -541,7 +541,7 @@ sub dist_notify_update_notified {
 
 	# Update the notified date on the distribution
 	$notified = formatDateTime('zd Mon ccyy zh24:mi');
-	$msg = apiDML('cdsUpdateNotified',"id=$distid","notified='$notified'");
+	$msg = apiDML('cdsUpdateNotified',"id=$distid","notified=$notified");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Notify: Notified date NOT updated for distribution '$distname' [$error{CODE}] $error{MESSAGE}");
@@ -656,6 +656,7 @@ sub dist_prepare {
 					}
 					$file = "$distdir/$filmcode.$type";
 					writeFile($file,$msg);
+					logMsg($LOG,$PROGRAM,"Created metadata file '$file'");
 
 					# Check that file written successfully
 					if (!-f $file) {
@@ -824,7 +825,10 @@ sub dist_prepare {
 				# Check that file written successfully
 				else {
 					$file = "$distdir/$filmcode-$type.jpg";
-					if (!-f $file) {
+					if (-f $file) {
+						logMsg($LOG,$PROGRAM,"Downloaded '$type' image file '$file'");
+					}
+					else {
 						$errorfound = 1;
 						logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Image file not created '$file'");
 					}
@@ -863,7 +867,10 @@ sub dist_prepare {
 					# Check that subtitle file written successfully
 					else {
 						$file = "$distdir/$subtitle";
-						if (!-f $file) {
+						if (-f $file) {
+							logMsg($LOG,$PROGRAM,"Downloaded sub-title file '$file'");
+						}
+						else {
 							$errorfound = 1;
 							logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Sub-title file not created '$file'");
 						}
@@ -1013,7 +1020,7 @@ sub dist_prepare {
 		else {
 			# No errors found, so update the pending date on distribution record
 			$pending = formatDateTime('zd Mon ccyy zh24:mi');
-			$msg = apiDML('cdsUpdatePending',"id=$distid","pending='$pending'");
+			$msg = apiDML('cdsUpdatePending',"id=$distid","pending=$pending");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
 				logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Unable to update distribution record '$distname' with pending date/time [$error{CODE}] $error{MESSAGE}");
@@ -1306,7 +1313,7 @@ sub dist_start_new {
 		$start = convertCDSdate($cds{$cdsdistid}{Start});
 
 		# Update started date on distribution record
-		$msg = apiDML('cdsUpdateStarted',"id=$distid","started='$start'");
+		$msg = apiDML('cdsUpdateStarted',"id=$distid","started=$start");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Start: Started date NOT updated [$error{CODE}] $error{MESSAGE}");
@@ -1447,7 +1454,7 @@ sub dist_stop {
 
 		# Flag as ended on the Portal
 		$ended = formatDateTime('zd Mon ccyy zh24:mi');
-		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended='$ended'");
+		$msg = apiDML('cdsUpdateEnded',"id=$cmsid","ended=$ended");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Stop: Ended date for distribution '$distname' has not been set on Portal [$error{CODE}] $error{MESSAGE}");
@@ -2258,7 +2265,7 @@ sub email_send {
 	$cc =~ s/;/ /g;
 
 	# Send the email
-	($msg) = apiEmail("to='$to'","from='$from'","subject='$subject'","body='$body'","cc='$cc'");
+	($msg) = apiEmail("to=$to","from=$from","subject=$subject","body=$body","cc=$cc");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Email: Notification email NOT sent to '$to' for distribution '$distname' [$error{CODE}] $error{MESSAGE}");

@@ -144,42 +144,9 @@ sub apiFileDownload {
 	my($cmd,$response,$msg);
 
 	# Build the command
-	$cmd = "curl -s -H \"Authorization: Bearer $API{key}\" -o $tdir/$tfile ";
+	$cmd = "curl -s -X GET -H \"Authorization: Bearer $API{jwt}\" -o \"$tdir/$tfile\" ";
 	$cmd .= "https://$API{host}:$API{port}/3/fileDownload?";
-	$cmd .= "{\"connector\":\"$API{connector}\",\"source\":\"$sdir/$sfile\"}";
-
-	# Download the file
-	$response = `$cmd`;
-
-	# Check the start of the downloaded file to see if an error was returned
-	if(-f "$tdir/$tfile") {
-		$msg = `head -c 15 $tdir/$tfile`;
-		if($msg =~ /{"status"/) {
-			# Download failed
-			$msg = `cat $tdir/$tfile`;
-		}
-		else {
-			# Download succeeded
-			$msg = "Download of file [$tdir/$tfile] was successful";
-			$msg = '{"status":"1", "data": { "code":"CLI001", "text": "'.$msg.'"}}';
-		}
-	}
-	# No response from API
-	else {
-		$msg = "Couldn't read file [$tdir/$tfile]";
-		$msg = '{"status":"0", "data": { "code":"CLI002", "text": "'.$msg.'"}}';
-	}
-	return $msg;
-}
-
-sub ZZZapiFileDownload {
-	my($sfile,$sdir,$tfile,$tdir) = @_;
-	my($cmd,$response,$msg);
-
-	# Build the command
-	$cmd = "curl -s -u $API{key}: -F instance=$API{instance} ";
-	$cmd .= "-F source=$sdir/$sfile -o $tdir/$tfile ";
-	$cmd .= "https://$API{host}:$API{port}/2/fileDownload";
+	$cmd .= "%7B%22connector%22:%22$API{connector}%22,%22source%22:%22$sdir/$sfile%22%7D";
 
 	# Download the file
 	$response = `$cmd`;
@@ -224,10 +191,7 @@ sub apiMetadata {
 	$cmd .= ",\"assetcode\":\"$assetcode\"}";
 
 	# Run the command
-	$json = run_command($cmd);
-
-	# Return metadata in JSON format
-	return $json;
+	return run_command($cmd);
 }
 
 
@@ -264,9 +228,10 @@ sub apiSQL {
 	$cmd = "https://$API{host}:$API{port}/3/$call?";
 	$cmd .= "{\"connector\":\"$API{connector}\"";
 
-	# Add the parameters
+	# Add the parameters - replace spaces and double quotes with safe codes
 	foreach my $param (@params) {
 		$param =~ s/ /%20/g;
+		$param =~ s/"/%22/g;
 		($name,$value) = split(/=/,$param);
 		$cmd .= ",\"$name\":\"$value\"";
 	}

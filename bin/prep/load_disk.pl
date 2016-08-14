@@ -25,7 +25,7 @@ use Getopt::Long;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiSelect apiStatus);
+use mods::API3 qw(apiData apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 
 # Program information
@@ -83,7 +83,7 @@ main();
 sub main {
 	# Read argument and initialise local variables
 	my($status,$msg,%error,%films);
-	
+
 	# Start up message
 	logMsg($LOG,$PROGRAM,"=================================================================================");
 	if($ACTION eq 'copy') {
@@ -92,38 +92,38 @@ sub main {
 	else {
 		logMsg($LOG,$PROGRAM,"Films allocated to '$SITE'");
 	}
-	
+
 	# Check the validity of the 'action' argument
 	if($ACTION ne 'show' && $ACTION ne 'copy') { usage(1); }
-	
+
 	# Check that site argument is present
 	if($SITE eq 'empty') { usage(2); }
-	
+
 	# If 'action' is 'copy', check that the directories exist and at least 1 data type is selected
 	if($ACTION eq 'copy') {
 		# Must have at least 1 type of data to be copied
 		if(($DATA[0]+$DATA[1]+$DATA[2]) == 0) { usage(3); }
-		
+
 		# If the 'source' argument has not been specified then use the default
 		if($SOURCE eq 'empty') { $SOURCE = $CONFIG{CS_ROOT} }
-		
+
 		# Check that the 'target' argument is present
 		if($TARGET eq 'empty') { usage(4); }
-		
+
 		# Check source directory exists
 		if(!-d $SOURCE) { usage(5); }
-		
+
 		# Check target directory exists
 		if(!-d $TARGET) { usage(6); }
-		
+
 		# Stop if the source directory has no marker file in the root
 		if(!-f "$SOURCE/content-source-disk") { usage(7); }
 	}
-	
+
 	# Escape spaces in the directory name
 	$TARGET_ESC = $TARGET;
 	$TARGET_ESC =~ s/ /\\ /g;
-	
+
 	# Return a hash of films at the site keyed by provider and film name
 	($msg) = apiSelect('loadDisk',"site=$SITE");
 	($status,%error) = apiStatus($msg);
@@ -132,7 +132,7 @@ sub main {
 		exit;
 	}
 	%films = apiData($msg);
-	
+
 	# Show list of films or load onto disk
 	if($ACTION eq 'show') {
 		list_films(%films);
@@ -153,21 +153,21 @@ sub copy_films {
 	my(%films) = @_;
 	my($msg,$dh,$status,@files,$file,$src,$tgt,$tgtesc,$cmd,$src_enc,$src_clr);
 	my($provider,$certificate,$code,$title,$encserver);
-	
+
 	# Process each film record
 	# Encryption details are the same for each film in the site
 	foreach my $key (sort keys %films) {
 		($provider,$certificate,$code,$title,$encserver) = @{$films{$key}};
 		logMsg($LOG,$PROGRAM,"$title ($code)");
-		
+
 		# Create the directories on the target device
 		$src = "$SOURCE/$provider/$code";
 		$tgt = "$TARGET/$provider/$code";
 		$tgtesc = "$TARGET_ESC/$provider/$code";
-		
+
 		# Create directory for assets
 		if(!-d $tgt) { system("mkdir -p $tgtesc"); }
-		
+
 		# Check whether there is a source content directory for this film
 		$status = 1;
 		opendir($dh,"$src") or $status = 0;
@@ -183,21 +183,21 @@ sub copy_films {
 					logMsg($LOG,$PROGRAM," - Copying metadata...");
 					copy_file("$src/$file",$tgt);
 				}
-				
+
 				# Small image (if it exists)
 				$file = "$code-small.jpg";
 				if(-e "$src/$file") {
 					logMsg($LOG,$PROGRAM," - Copying small image...");
 					copy_file("$src/$file",$tgt);
 				}
-				
+
 				# Large image (if it exists)
 				$file = "$code-large.jpg";
 				if(-e "$src/$file") {
 					logMsg($LOG,$PROGRAM," - Copying large image...");
 					copy_file("$src/$file",$tgt);
 				}
-				
+
 				# Full image (if it exists)
 				$file = "$code-full.jpg";
 				if(-e "$src/$file") {
@@ -205,7 +205,7 @@ sub copy_films {
 					copy_file("$src/$file",$tgt);
 				}
 			}
-			
+
 			# Copy trailer to target directory
 			if($DATA[1]) {
 				$file = get_file_name("$CONFIG{CS_ROOT}/$provider",$code,'trailer');
@@ -218,7 +218,7 @@ sub copy_films {
 					copy_file("$src/$file","$tgt");
 				}
 			}
-			
+
 			# Copy film and supporting files to target directory
 			if($DATA[0]) {
 				$file = get_file_name("$CONFIG{CS_ROOT}/$provider",$code,'film');
@@ -257,7 +257,7 @@ sub copy_films {
 					}
 				}
 			}
-			
+
 			# Close the directory
 			closedir($dh);
 		}
@@ -277,7 +277,7 @@ sub copy_films {
 # ---------------------------------------------------------------------------------------------
 sub copy_file {
 	my($src,$tgt) = @_;
-	
+
 	# Only copy the file if it exists
 	if(-e $src) {
 		# Show the files to be copied
@@ -306,16 +306,16 @@ sub copy_file {
 sub get_file_name {
 	my($repo,$film,$type) = @_;
 	my($file,$psr,$doc,$xpc,@nodes);
-	
+
 	# Open and parse the XML metadata file
 	$file = "$repo/$film/$film.xml";
 	$psr = XML::LibXML->new();
 	$doc = $psr->parse_file($file);
 	$xpc = XML::LibXML::XPathContext->new($doc);
-	
+
 	# Read the film asset name
 	@nodes = $xpc->findnodes("/metadata/assets/asset[\@class='$type']");
-	
+
 	# Return asset file name or undef
 	if(@nodes) {
 		return $nodes[0]->getAttribute("name");
@@ -335,11 +335,11 @@ sub get_file_name {
 sub list_films {
 	my(%films) = @_;
 	my($provider,$certificate,$code,$title,$encserver);
-	
+
 	# Show the header
 	logMsg($LOG,$PROGRAM,sprintf("%-8s%-8s%-20s%s","Prov.","Cert.","Enc.Server","Title"));
 	logMsg($LOG,$PROGRAM,sprintf("%-8s%-8s%-20s%s","=====","=====","==========","====="));
-	
+
 	# Process each film record
 	foreach my $key (sort keys %films) {
 		($provider,$certificate,$code,$title,$encserver) = @{$films{$key}};
@@ -357,7 +357,7 @@ sub list_films {
 sub usage {
 	my($err) = @_;
 	$err = ($err) ? $err : 0;
-	
+
 	if($err == 1) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Argument 'action' must be 'show' or 'copy'");
 	}
@@ -393,13 +393,13 @@ Summary :
 
 Usage   : $PROGRAM --show --site=<siteref>
           $PROGRAM --copy --site=<siteref> -f -m -t --src=<path> --tgt=<path>
-  
+
   MANDATORY
     --copy                 Copy the films that this site has from the content repository to
                            the target directory.
     --show                 Show the films assigned to this site.
     --site=<siteref>       Site reference.
-  
+
   OPTIONAL
     --src|source=<path>    Path to the root of the content repository.
     --tgt|target=<path>    Path to the root of the target directory that the meta-data is to
@@ -412,8 +412,7 @@ Usage   : $PROGRAM --show --site=<siteref>
                            log directory, otherwise the results will be written to the screen.
 		\n");
 	}
-	
+
 	# Stop in all cases
 	exit;
 }
-

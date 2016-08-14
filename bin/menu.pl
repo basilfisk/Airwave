@@ -19,7 +19,7 @@ use warnings;
 
 # Breato modules
 use lib "$ROOT";
-use mods::API qw(apiData apiSelect apiStatus);
+use mods::API3 qw(apiData apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg readConfig);
 use mods::TK;
 

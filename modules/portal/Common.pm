@@ -29,7 +29,7 @@ use XML::LibXML;
 
 # API module
 use lib "$ROOT";
-use mods::API3 qw(apiDML apiStatus);
+use mods::API3Portal qw(apiDML apiStatus);
 
 # Declare the package name and export the function names
 package mods::Common;
@@ -470,8 +470,8 @@ sub logMsgPortal {
 		$msg =~ s/\"//g;
 
 		# Write the message to the Portal
-		($result) = mods::API3::apiDML('logMessage',"type=$type","prog=$prog","stamp=$stamp","msg=$msg");
-		($status,%error) = mods::API3::apiStatus($result);
+		($result) = mods::API3API3Portal::apiDML('logMessage',"type=$type","prog=$prog","stamp=$stamp","msg=$msg");
+		($status,%error) = mods::API3API3Portal::apiStatus($result);
 		if(!$status) {
 			# Any problems writing to Portal should be logged
 			if(%error) {

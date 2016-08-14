@@ -113,10 +113,41 @@ sub main {
 # ---------------------------------------------------------------------------------------------
 sub get_file_name {
 	my($film) = @_;
+	my($msg,$status,%error,%meta,@arr,$name);
+
+	# Read the latest metadata from the Portal (JSON format)
+	$msg = apiMetadata($film);
+	($status,%error) = apiStatus($msg);
+	if(!$status) {
+		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read metadata from Portal [$error{CODE}] $error{MESSAGE}");
+		exit;
+	}
+	%meta = apiData($msg);
+
+	# Read the name of the film asset from the assets element
+	@arr = @{$meta{'assets'}};
+	for(my $i=0; $i<@arr; $i++) {
+		if($arr[$i]{'class'} eq 'film') {
+			$name = $arr[$i]{'name'};
+		}
+	}
+
+	# Return asset file name or undef
+	if($name) {
+		return $name;
+	}
+	else {
+		logMsgPortal($LOG,$PROGRAM,'E',"Can't read film file name for '$film'");
+		exit;
+	}
+}
+
+sub ORIGINAL_get_file_name {
+	my($film) = @_;
 	my($msg,$status,%error,%meta,$xml,$file,$err,$xpc,@nodes);
 
 	# Read the latest XML metadata from the Portal
-	$msg = apiMetadata($film,'xml');
+	$msg = apiMetadata($film,'xml'); # ?????????????????????????????????????????????????
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Prepare: Could not read XML metadata from Portal [$error{CODE}] $error{MESSAGE}");

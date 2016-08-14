@@ -27,6 +27,10 @@ use IO::Socket::INET;
 use Socket;
 use XML::LibXML;
 
+# API module
+use lib "$ROOT";
+use mods::API3 qw(apiDML apiStatus);
+
 # Declare the package name and export the function names
 package mods::Common;
 require Exporter;
@@ -466,8 +470,8 @@ sub logMsgPortal {
 		$msg =~ s/\"//g;
 
 		# Write the message to the Portal
-		($result) = mods::API::apiDML('logMessage',"type=$type","prog=$prog","stamp='$stamp'","msg='$msg'");
-		($status,%error) = mods::API::apiStatus($result);
+		($result) = mods::API3::apiDML('logMessage',"type=$type","prog=$prog","stamp=$stamp","msg=$msg");
+		($status,%error) = mods::API3::apiStatus($result);
 		if(!$status) {
 			# Any problems writing to Portal should be logged
 			if(%error) {

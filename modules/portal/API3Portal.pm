@@ -102,7 +102,7 @@ sub apiDML {
 # ---------------------------------------------------------------------------------------------
 sub apiMetadata {
 	my($assetcode) = @_;
-	my($cmd,$json);
+	my($cmd);
 
 	# Build the command
 	$cmd = "https://$API{host}:$API{port}/3/metadata?";
@@ -110,10 +110,7 @@ sub apiMetadata {
 	$cmd .= ",\"assetcode\":\"$assetcode\"}";
 
 	# Run the command
-	$json = run_command($cmd);
-
-	# Return metadata in JSON format
-	return $json;
+	return run_command($cmd);
 }
 
 

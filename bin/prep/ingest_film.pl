@@ -3,7 +3,7 @@
 # *********************************************************************************************
 #
 #  Ingest the selected film or trailer file
-#  
+#
 # *********************************************************************************************
 # *********************************************************************************************
 
@@ -77,20 +77,20 @@ main();
 # ---------------------------------------------------------------------------------------------
 sub main {
 	my($status,$msg,%error,%film,$cid,$aid,$provider,$filename,$assetid,$new,$type,$file,$dh,@dirfiles);
-	
+
 	logMsg($LOG,$PROGRAM,"=================================================================================");
-	
+
 	# Check the arguments
 	if($ASSET =~ m/empty/) { error("ERROR: 'asset' must have a value"); };
 	if($ASSETTYPE !~ m/^(film|trailer)$/) { error("ERROR: 'type' must be film or trailer"); };
 	if($QUALITY !~ m/^(hd|sd)$/) { error("ERROR: 'quality' must be sd or hd"); };
 	if($FILE =~ m/empty/) { error("ERROR: 'file' must have a value"); };
-	
+
 	# Load a set of hashes containing stream information, list values and stream data
 	read_pids();
 	read_listvalues();
 	read_streams();
-	
+
 	# Read the film and asset IDs from the Portal
 	($msg) = apiSelect('ingestFilmAsset',"assetcode=$ASSET","assettype=$ASSETTYPE","quality=$QUALITY");
 	($status,%error) = apiStatus($msg);
@@ -105,21 +105,21 @@ sub main {
 	$cid = $film{$ASSET}{'content_id'};
 	$aid = $film{$ASSET}{'asset_id'};
 	$provider = $film{$ASSET}{'provider'};
-	
+
 	# Check content provider's directory exists
 	if(!-d "$CONFIG{CS_ROOT}/$provider") {
 		error("No directory for content provider [$CONFIG{CS_ROOT}/$provider]");
 	}
-	
+
 	# Setup the path to the asset in the repository
 	$REPO_DIR = "$CONFIG{CS_ROOT}/$provider/$ASSET";
-	
+
 	# File name of the asset to be ingested
 	$filename = "$CONFIG{CS_DOWNLOAD}/$FILE";
-	
+
 	# 1 if new asset, 0 if existing asset
 	$new = ($aid) ? 0 : 1;
-	
+
 	# Start up message for asset
 	$msg = ($new) ? "Loading new" : "Updating";
 	if($TEST) {
@@ -128,19 +128,19 @@ sub main {
 	else {
 		logMsg($LOG,$PROGRAM,"$msg $ASSETTYPE file for [$ASSET]");
 	}
-	
+
 	# Analyze film and load hash with data
 	$provider =~ tr[A-Z][a-z];
 	asset_analyze($provider,$filename);
-	
+
 	# Create the asset record on the Portal
 	$assetid = update_asset($cid);
-	
+
 	# Process each stream for the asset
 	foreach my $pid (sort keys %ASSETSTREAMS) {
 		update_stream($provider,$assetid,$pid);
 	}
-	
+
 	# Create Content Repository directory to hold asset files (but not in test mode)
 	if(!-d $REPO_DIR) {
 		if($TEST) {
@@ -151,7 +151,7 @@ sub main {
 			system("mkdir -p $REPO_DIR");
 		}
 	}
-	
+
 	# If existing asset is being updated, move existing asset file to trash
 	if(!$new) {
 		# Work out which files to move to trash
@@ -161,7 +161,7 @@ sub main {
 		@dirfiles = readdir($dh);
 		closedir($dh);
 		@dirfiles = grep { /$file\.$type/ } @dirfiles;
-		
+
 		# Move each file
 		foreach my $filename (@dirfiles) {
 			if($TEST) {
@@ -173,7 +173,7 @@ sub main {
 			}
 		}
 	}
-	
+
 	# Move new asset file to film directory in Repository
 	$file = "$CONFIG{CS_DOWNLOAD}/$FILE";
 	if($TEST) {
@@ -183,7 +183,7 @@ sub main {
 		logMsg($LOG,$PROGRAM,"New $ASSETTYPE file [$file] moved to [$REPO_DIR/$ASSETINFO{'FILE'}{'NAME'}]");
 		system("mv $file $REPO_DIR/$ASSETINFO{'FILE'}{'NAME'}");
 	}
-	
+
 	# Set ingest date on Portal, then generate metadata file and upload to Portal
 	update_ingest_date($cid);
 }
@@ -233,28 +233,28 @@ sub main {
 sub asset_analyze {
 	my($provider,$filename) = @_;
 	my($prefix,$fh,$line,@data,$item,$width,$height,$pid,%langs,$lang,$vpid,@apids);
-	
+
 	# Prefix for messages when run in test mode
 	$prefix = ($TEST) ? 'TEST: ' : '';
-	
+
 	# Start processing
 	logMsg($LOG,$PROGRAM,$prefix."Processing file [$filename]");
-	
+
 	# Size of file
 	$ASSETINFO{'FILE'}{'SIZE'} = -s $filename;
-	
+
 	# Log file that is being processed
 	logMsg($LOG,$PROGRAM,$prefix."Examining $ASSETTYPE file [$filename] : $ASSETINFO{'FILE'}{'SIZE'} Bytes");
-	
+
 	# Reset hash of discovered languages
 	%langs = ();
-	
+
 	# ---------------------------------------
 	# MPLAYER - Collect general information
 	# ---------------------------------------
 	# Run mplayer to extract details of active video and audio streams
 	system("mplayer -identify -frames 0 -vo null -ao null $filename 2> $MPLAY_ERR > $MPLAY_OUT");
-	
+
 	# Only transport streams are valid
 	@data = asset_read_array('TS file format detected',$MPLAY_OUT);
 	if(scalar(@data) == 4) {
@@ -263,7 +263,7 @@ sub asset_analyze {
 	else {
 		error("Only transport streams are supported");
 	}
-	
+
 	# Read video stream codec (mpeg2,h264) - stop if neither of these
 	@data = asset_read_array('PROGRAM N.',$MPLAY_OUT);
 	($item) = split('\(',$data[1]);
@@ -272,15 +272,15 @@ sub asset_analyze {
 		error("Unsupported video codec '$item'");
 	}
 	$ASSETINFO{'VIDEO'}{'CODEC'} = $item;
-	
+
 	# Check video codec matches quality selected by user
 	if(!(($item eq 'mpeg2' && $QUALITY eq 'sd') || ($item eq 'h264' && $QUALITY eq 'hd'))) {
 		error("Video codec '$item' does not match quality selected by user '$QUALITY'");
 	}
-	
+
 	# Set stream coding (mpeg2/4) based on video coded detected
 	$ASSETINFO{'STREAM'}{'CODING'} = ($ASSETINFO{'VIDEO'}{'CODEC'} eq 'h264') ? 'mpeg4' : 'mpeg2';
-	
+
 	# Read audio stream codec (mpeg1,aac) - convert mpa to mpeg1
 	@data = asset_read_array('PROGRAM N.',$MPLAY_OUT);
 	($item) = split('\(',$data[3]);
@@ -290,16 +290,16 @@ sub asset_analyze {
 		error("Unsupported audio codec '$item'");
 	}
 	$ASSETINFO{'AUDIO'}{'CODEC'} = $item;
-	
+
 	# Read program number
 	@data = asset_read_array('PROGRAM N.',$MPLAY_OUT);
 	$ASSETINFO{'FILE'}{'PROGNO'} = pop(@data);
-	
+
 	# Video framesize
 	$width = asset_read_value('ID_VIDEO_WIDTH',$MPLAY_OUT);
 	$height = asset_read_value('ID_VIDEO_HEIGHT',$MPLAY_OUT);
 	$ASSETINFO{'VIDEO'}{'FRAMESIZE'} = $width.'x'.$height;
-	
+
 	# Video aspect ratio
 	if($ASSETINFO{'STREAM'}{'CODING'} eq 'mpeg2') {
 		@data = asset_read_array('(aspect',$MPLAY_OUT);
@@ -326,14 +326,14 @@ sub asset_analyze {
 			$ASSETINFO{'VIDEO'}{'ASPECTRATIO'} = int(100*$width/$height)/100;
 		}
 	}
-	
+
 	# Video frame rate and encoding rate
 	$item = asset_read_value('ID_VIDEO_FPS',$MPLAY_OUT);
 	$ASSETINFO{'VIDEO'}{'FRAMERATE'} = int($item);
 	$item = asset_read_value('ID_VIDEO_BITRATE',$MPLAY_OUT);
 	$item = ($item) ? $item : '0';
 	$ASSETINFO{'VIDEO'}{'ENCODERATE'} = int($item/1000);
-	
+
 	# Audio encoding information is taken from the header, and is assumed to be the same for all streams!
 	$item = asset_read_value('ID_AUDIO_RATE',$MPLAY_OUT);
 	$ASSETINFO{'AUDIO'}{'SAMPLERATE'} = int($item);
@@ -342,11 +342,11 @@ sub asset_analyze {
 	$item = asset_read_value('ID_AUDIO_BITRATE',$MPLAY_OUT);
 	$item = ($item) ? $item : '0';
 	$ASSETINFO{'AUDIO'}{'ENCODERATE'} = int($item/1000);
-	
+
 	# Video PID
 	$vpid = asset_read_value('ID_VIDEO_ID',$MPLAY_OUT);
 	@apids = asset_read_value_array('ID_AUDIO_ID',$MPLAY_OUT);
-	
+
 	# ---------------------------------------
 	# MPGTX - Collect stream information
 	# ---------------------------------------
@@ -356,22 +356,22 @@ sub asset_analyze {
 		error("Cannot open file [$MPGTX_OUT]: $!");
 	}
 	close($fh);
-	
+
 	# Read transport stream details
 	@data = asset_read_array('Program N',$MPGTX_OUT);
 	$ASSETINFO{'FILE'}{'STREAMS'} = int($data[4]);
-	
+
 	# Read elementary stream details
 	for(my $i=1; $i<=$ASSETINFO{'FILE'}{'STREAMS'}; $i++) {
 		@data = asset_read_array("Stream $i",$MPGTX_OUT);
-		
+
 		# Stream PID
 		$pid = pop(@data);
 		$pid =~ s/\D//;
-		
+
 		# Stream number
 		$ASSETSTREAMS{$pid}{'NUMBER'} = $i;
-		
+
 		# PID stream type is video if it matches video PID read earlier
 		if($pid eq $vpid) {
 			$ASSETSTREAMS{$pid}{'TYPE'} = 'video';
@@ -386,7 +386,7 @@ sub asset_analyze {
 		if(!$ASSETSTREAMS{$pid}{'TYPE'}) {
 			$ASSETSTREAMS{$pid}{'TYPE'} = 'subtitle';
 		}
-		
+
 		# Reformat the information and store in a hash keyed by PID
 		if($ASSETSTREAMS{$pid}{'TYPE'} eq 'video') {
 			# Video stream data
@@ -434,10 +434,10 @@ sub asset_analyze {
 			error("Unrecognized stream type '$ASSETSTREAMS{$pid}{'TYPE'}'");
 		}
 	}
-	
+
 	# Create asset file name
 	$ASSETINFO{'FILE'}{'NAME'} = asset_filename($filename,%langs);
-	
+
 	# Generate the MD5 checksum for the file. Set to 'TEST MODE' if running in test mode
 	if($TEST) {
 		$ASSETINFO{'FILE'}{'MD5SUM'} = 'TEST MODE';
@@ -461,21 +461,21 @@ sub asset_analyze {
 sub asset_filename {
 	my($filename,%langs) = @_;
 	my $new_name = $ASSET;
-	
+
 	# Check that languages exist
 	if(!%langs) {
 		error("Error: At least 1 audio soundtrack must exist");
 	}
-	
+
 	# Add languages to the file name
 	foreach my $code (sort keys %langs) {
 		$new_name .= "_$code";
 	}
-	
+
 	# Add the suffix
 	$new_name .= ($ASSETTYPE eq 'trailer') ? "_ts_trailer" : "_ts";
 	$new_name .= ($ASSETINFO{'STREAM'}{'CODING'} eq 'mpeg2') ? ".mpg" : ".mp4";
-	
+
 	# Return the new name
 	return $new_name;
 }
@@ -494,24 +494,24 @@ sub asset_filename {
 sub asset_read_array {
 	my($string,$file) = @_;
 	my(@rows,$row,@temp,@values);
-	
+
 	# Search for the string
 	@rows = `grep '$string' $file 2>&1`;
 	if(scalar(@rows) == 0) {
 		logMsg($LOG,$PROGRAM,"No data found while searching for '$string' in [$file]");
 		return;
 	}
-	
+
 	# Process first match found
 	$row = $rows[0];
 	chomp $row;
-	
+
 	# Extract values and remove excess whitespace in the array
 	@temp = split(' ',$row);
 	foreach my $value (@temp) {
 		if($value) { push(@values,$value); }
 	}
-	
+
 	# Return the array of values
 	return @values;
 }
@@ -531,14 +531,14 @@ sub asset_read_array {
 sub asset_read_value {
 	my($string,$file) = @_;
 	my(@rows,$value,$result);
-	
+
 	# Search for the string
 	@rows = `grep '$string' $file 2>&1`;
 	if(scalar(@rows) == 0) {
 		logMsg($LOG,$PROGRAM,"No data found while searching for '$string' in [$file]");
 		return;
 	}
-	
+
 	# Process each row to find the first defined or non-zero value
 	foreach my $row (@rows) {
 		chomp $row;
@@ -547,7 +547,7 @@ sub asset_read_value {
 			$result = $value;
 		}
 	}
-	
+
 	# Return the value
 	return $result;
 }
@@ -567,14 +567,14 @@ sub asset_read_value {
 sub asset_read_value_array {
 	my($string,$file) = @_;
 	my(@rows,$value,@result);
-	
+
 	# Search for the string
 	@rows = `grep '$string' $file 2>&1`;
 	if(scalar(@rows) == 0) {
 		logMsg($LOG,$PROGRAM,"No data found while searching for '$string' in [$file]");
 		return;
 	}
-	
+
 	# Process each row to find non-zero value
 	foreach my $row (@rows) {
 		chomp $row;
@@ -583,7 +583,7 @@ sub asset_read_value_array {
 			push(@result,$value);
 		}
 	}
-	
+
 	# Return the values
 	return @result;
 }
@@ -606,7 +606,7 @@ sub error {
 # ---------------------------------------------------------------------------------------------
 sub read_listvalues {
 	my($status,$msg,%error,%data,$group,$item);
-	
+
 	# Read PIDs
 	($msg) = apiSelect('ingestListValues');
 	($status,%error) = apiStatus($msg);
@@ -614,7 +614,7 @@ sub read_listvalues {
 		error("No list values returned: $error{MESSAGE}");
 	}
 	%data = apiData($msg);
-	
+
 	# Create hash
 	foreach my $id (keys %data) {
 		$group = $data{$id}{'type'};
@@ -631,7 +631,7 @@ sub read_listvalues {
 # ---------------------------------------------------------------------------------------------
 sub read_pids {
 	my($status,$msg,%error,%data,%pids,$lang,$pid,$provider,$type,$codec);
-	
+
 	# Read PIDs
 	($msg) = apiSelect('ingestPIDs');
 	($status,%error) = apiStatus($msg);
@@ -639,7 +639,7 @@ sub read_pids {
 		error("No PIDs returned: $error{MESSAGE}");
 	}
 	%data = apiData($msg);
-	
+
 	# Load a hash for each type of stream
 	foreach my $key (keys %data) {
 		$lang = $data{$key}{'code'};
@@ -666,7 +666,7 @@ sub read_pids {
 # ---------------------------------------------------------------------------------------------
 sub read_streams {
 	my($status,$msg,%error,%data);
-	
+
 	# Read PIDs
 	($msg) = apiSelect('ingestStreams');
 	($status,%error) = apiStatus($msg);
@@ -675,7 +675,7 @@ sub read_streams {
 		return;
 	}
 	%data = apiData($msg);
-	
+
 	# Create hash
 	foreach my $key (keys %data) {
 		$STREAMS{$key} = $data{$key}{'stream_id'};
@@ -694,7 +694,7 @@ sub read_streams {
 sub update_asset {
 	my($cid) = @_;
 	my($status,$msg,%error,%data,$typ,$enc,$qty,$aid,$name,$size,$md5);
-	
+
 	# Check whether an asset record exists
 	($msg) = apiSelect('ingestAssetCheck',"contentid=$cid","type=$ASSETTYPE","encoding=$ASSETINFO{'STREAM'}{'CODING'}");
 	($status,%error) = apiStatus($msg);
@@ -702,17 +702,17 @@ sub update_asset {
 		error("Can't read asset record for content '$ASSET': $error{MESSAGE}");
 	}
 	%data = apiData($msg);
-	
-	# Get list IDs from values 
+
+	# Get list IDs from values
 	$typ = $LISTVALUES{'Asset Type'}{$ASSETTYPE};
 	$enc = $LISTVALUES{'Asset Encoding'}{$ASSETINFO{'STREAM'}{'CODING'}};
 	$qty = $LISTVALUES{'Content Quality'}{$QUALITY};
-	
+
 	# Asset details
 	$name = $ASSETINFO{'FILE'}{'NAME'};
 	$size = $ASSETINFO{'FILE'}{'SIZE'};
 	$md5 = $ASSETINFO{'FILE'}{'MD5SUM'};
-	
+
 	# Update record if asset already exists
 	if(%data) {
 		$aid = (keys %data)[0];
@@ -744,7 +744,7 @@ sub update_asset {
 			else {
 				logMsg($LOG,$PROGRAM,"Created asset record for $ASSETTYPE '$ASSET' set to '$ASSETINFO{'STREAM'}{'CODING'}'");
 			}
-			
+
 			# Find and return the ID of the asset that has just been created
 			($msg) = apiSelect('ingestAssetCheck',"contentid=$cid","type=$ASSETTYPE","encoding=$ASSETINFO{'STREAM'}{'CODING'}");
 			($status,%error) = apiStatus($msg);
@@ -755,7 +755,7 @@ sub update_asset {
 			$aid = (keys %data)[0];
 		}
 	}
-	
+
 	# Return asset ID
 	return $aid;
 }
@@ -770,7 +770,7 @@ sub update_asset {
 sub update_ingest_date {
 	my($id) = @_;
 	my($status,$msg,%error);
-	
+
 	# Skip if running in test mode
 	if($TEST) {
 		logMsg($LOG,$PROGRAM,"TEST: Updating ingestion date for '$ASSET'");
@@ -778,7 +778,7 @@ sub update_ingest_date {
 	else {
 		# Update the new release flag
 		logMsg($LOG,$PROGRAM,"Updating ingestion date for '$ASSET'");
-		($msg) = apiDML('ingestUpdateIngestDate',"id=$id","ingested='".formatDateTime('zd mon cczy')."'");
+		($msg) = apiDML('ingestUpdateIngestDate',"id=$id","ingested=".formatDateTime('zd mon cczy'));
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			error("Could not update the ingestion date for '$ASSET': $error{MESSAGE}");
@@ -801,7 +801,7 @@ sub update_ingest_date {
 sub update_stream {
 	my($provider,$assetid,$pid) = @_;
 	my($status,$msg,%error,%data,$key,$sid,$styp,$scod,$sno,$erate,$aspect,$frate,$fsize,$sample,$channel);
-	
+
 	# Skip if running in test mode
 	if(!$TEST) {
 		# Check whether an asset stream record exists
@@ -811,21 +811,21 @@ sub update_stream {
 			error("Can't read asset stream record for content '$ASSET': $error{MESSAGE}");
 		}
 		%data = apiData($msg);
-		
+
 		# If asset stream already exists, don't update
 		# If asset stream does not exist, create new asset stream record
 		if(!%data) {
 			# Get stream ID
 			$key = ($ASSETSTREAMS{$pid}{'TYPE'} eq 'video') ? "$provider-$ASSETSTREAMS{$pid}{'TYPE'}-$ASSETSTREAMS{$pid}{'CODEC'}" : "$provider-$ASSETSTREAMS{$pid}{'TYPE'}-$ASSETSTREAMS{$pid}{'CODEC'}-$ASSETSTREAMS{$pid}{'LANGUAGE'}";
 			$sid = $STREAMS{$key};
-			
-			# Get list IDs from values 
+
+			# Get list IDs from values
 			$styp = $LISTVALUES{'Stream Type'}{$ASSETSTREAMS{$pid}{'TYPE'}};
 			$scod = $LISTVALUES{'Codec'}{$ASSETSTREAMS{$pid}{'CODEC'}}; # Not currently updated as all asset streams would have to be reloaded
-			
+
 			# Stream number
 			$sno = $ASSETSTREAMS{$pid}{'NUMBER'};
-			
+
 			if($ASSETSTREAMS{$pid}{'TYPE'} eq 'video') {
 				$erate = $ASSETSTREAMS{$pid}{'ENCODERATE'};
 				$aspect = $ASSETSTREAMS{$pid}{'ASPECTRATIO'};
@@ -842,7 +842,7 @@ sub update_stream {
 			elsif($ASSETSTREAMS{$pid}{'TYPE'} eq 'subtitle') {
 				($msg) = apiDML('ingestAssetStreamInsertSubtitle',"assethasassetstream=$assetid","typehasassetstream=$sid","type=$styp","codec=$scod");
 			}
-			
+
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
 				$msg = ($ASSETSTREAMS{$pid}{'TYPE'} eq 'video') ? $ASSETSTREAMS{$pid}{'TYPE'} : "$ASSETSTREAMS{$pid}{'TYPE'} ($ASSETSTREAMS{$pid}{'LANGUAGE'})";
@@ -865,7 +865,7 @@ sub update_stream {
 sub usage {
 	my($err) = @_;
 	$err = ($err) ? $err : 0;
-	
+
 	printf("
 Program : $PROGRAM
 Version : v$VERSION
@@ -873,17 +873,17 @@ Author  : Basil Fisk (c)2013 Airwave Ltd
 
 Summary :
   Ingest the selected film or trailer file.
-  
+
 Usage :
   $PROGRAM --asset=<code>
   $PROGRAM --asset=<provider>
-  
+
   MANDATORY
   --asset=<code>        The reference of a single asset on the Portal
   --file=<name>         The name of the file to be ingested
   --quality=<code>      The quality of the asset - sd|hd
   --type=<code>         The type of asset - film|trailer
-  
+
   OPTIONAL
   --test                If set, the metadata file will be generated but not uploaded.
                         The MD5 checksum will not be generated (for speed of execution).
@@ -896,5 +896,3 @@ Usage :
 	# Quit
 	exit;
 }
-
-

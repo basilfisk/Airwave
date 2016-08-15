@@ -7,12 +7,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -27,14 +21,14 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiStatus apiSelect);
 
 # Read the configuration parameters
-our %CONFIG  = read_config("$ROOT/etc/airwave.conf");
+our %CONFIG  = read_config("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Credentials for the distro@airwave.tv user
 our %API;
 $API{host} = $CONFIG{API_HOST};
 $API{port} = $CONFIG{API_PORT};
 $API{connector} = $CONFIG{API_CONNECTOR};
-$API{jwt} = read_jwt("$ROOT/$CONFIG{API_JWT_FILE}");
+$API{jwt} = read_jwt("$ENV{'AIRWAVE_ROOT'}/$CONFIG{API_JWT_FILE}");
 
 1;
 

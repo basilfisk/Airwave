@@ -7,12 +7,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -28,8 +22,8 @@ use Socket;
 use XML::LibXML;
 
 # API module
-use lib "$ROOT";
-use mods::API3Portal qw(apiDML apiStatus);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiDML apiStatus);
 
 # Declare the package name and export the function names
 package mods::Common;
@@ -40,10 +34,10 @@ our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escape
 				 readConfig readConfigXML validFormat validNumber wrapText writeFile);
 
 # Read the configuration parameters and check that parameters have been read
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave-portal.conf");
 
 # Location of the common log file
-our $COMMON_LOG = "$ROOT/$CONFIG{COMMON_LOG}";
+our $COMMON_LOG = "$ENV{'AIRWAVE_ROOT'}/$CONFIG{COMMON_LOG}";
 
 # Session number
 our $SESSION;
@@ -470,8 +464,8 @@ sub logMsgPortal {
 		$msg =~ s/\"//g;
 
 		# Write the message to the Portal
-		($result) = mods::API3API3Portal::apiDML('logMessage',"type=$type","prog=$prog","stamp=$stamp","msg=$msg");
-		($status,%error) = mods::API3API3Portal::apiStatus($result);
+		($result) = mods::API3::apiDML('logMessage',"type=$type","prog=$prog","stamp=$stamp","msg=$msg");
+		($status,%error) = mods::API3::apiStatus($result);
 		if(!$status) {
 			# Any problems writing to Portal should be logged
 			if(%error) {

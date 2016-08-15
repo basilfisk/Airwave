@@ -158,7 +158,7 @@ sub cleanString {
 
 
 # ---------------------------------------------------------------------------------------------
-# Remove all XML reserved characters from a text string
+# Replace all XML reserved characters from a text string
 #
 # Argument 1 : Text string
 #
@@ -1232,7 +1232,7 @@ sub xml_attribute {
 	my($str);
 	$str = '<'.$name;
 	foreach my $id (keys %attr) {
-		$str .= ' '.$id.'="'.$attr{$id}.'"';
+		$str .= ' '.$id.'="'.cleanXML($attr{$id}).'"';
 	}
 	$str .= '>';
 	return $str;
@@ -1253,7 +1253,7 @@ sub xml_element {
 	my $str = '';
 	if($value) {
 		$str .= '<'.$name.'>';
-		$str .= $value;
+		$str .= cleanXML($value);
 		$str .='</'.$name.'>';
 	}
 	return $str;
@@ -1275,10 +1275,10 @@ sub xml_element_attribute {
 	my($str);
 	$str = '<'.$name;
 	foreach my $id (keys %attr) {
-		$str .= ' '.$id.'="'.$attr{$id}.'"';
+		$str .= ' '.$id.'="'.cleanXML($attr{$id}).'"';
 	}
 	$str .= '>';
-	$str .= $value;
+	$str .= cleanXML($value);
 	$str .='</'.$name.'>';
 	return $str;
 }

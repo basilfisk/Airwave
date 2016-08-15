@@ -7,12 +7,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -28,7 +22,7 @@ use Socket;
 use XML::LibXML;
 
 # API module
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::API3 qw(apiDML apiStatus);
 
 # Declare the package name and export the function names
@@ -40,10 +34,10 @@ our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escape
 				 processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
 
 # Read the configuration parameters and check that parameters have been read
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Location of the common log file
-our $COMMON_LOG = "$ROOT/$CONFIG{COMMON_LOG}";
+our $COMMON_LOG = "$ENV{'AIRWAVE_ROOT'}/$CONFIG{COMMON_LOG}";
 
 # Session number
 our $SESSION;

@@ -7,18 +7,12 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
 
 # Breato modules
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::Common qw(formatDateTime readConfig);
 
 # Program information
@@ -35,13 +29,13 @@ our $ACTION = shift(@ARGV);
 if($ACTION ne 'restart' && $ACTION ne 'start' && $ACTION ne 'stop' && $ACTION ne 'status') { usage(0); }
 
 # Read the configuration parameters and check that parameters have been read
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Global variables
 our $LOG = 1;
 our $LOGFILE = "$CONFIG{LOGDIR}/cdsd.log";
 our $PID = "/tmp/cdsd.pid";
-our $PRG = "$ROOT/cdsd.pl";
+our $PRG = "$ENV{'AIRWAVE_ROOT'}/cdsd.pl";
 
 # Start processing
 main();
@@ -112,16 +106,16 @@ sub checkProcess {
 sub output {
 	my($msg) = @_;
 	my($fh,$stamp);
-	
+
 	if($LOG) {
 		$stamp = formatDateTime('cczy/zm/zd zh24:mi:ss');
-		
+
 		# Open the log file in append mode
 		if(!open($fh,">>$LOGFILE")) {
 			# Can't open log file
 			print "[$stamp] Can't open log file [$LOGFILE], however, this message has been reported: $msg\n";
 		}
-		
+
 		# Log the session ID
 		print $fh "[$stamp] $msg\n";
 		close($fh);
@@ -140,12 +134,12 @@ sub start {
 	my $pids = checkProcess();
 	output("=================================================================================");
 	output("Starting CDSD daemon process");
-	
+
 	# Inform caller that the process is already running
 	if($pids) {
 		output("Process [$PRG] is already running: [$pids]");
 	}
-	
+
 	# Start the process in the background
 	else {
 		system("$PRG &");
@@ -164,7 +158,7 @@ sub status {
 	my $pids = checkProcess();
 	output("=================================================================================");
 	output("Checking status of CDSD daemon process");
-	
+
 	# Report whether the process is running
 	if($pids) {
 		output("Process [$PRG] is running: [$pids]");
@@ -185,7 +179,7 @@ sub stop {
 	my $pids = checkProcess();
 	output("=================================================================================");
 	output("Stopping CDSD daemon process");
-	
+
 	# If PIDs are registered, kill the processes
 	if($pids) {
 		system("kill $pids");
@@ -210,7 +204,7 @@ sub usage {
 	my($err,$value) = @_;
 	$err = ($err) ? $err : 0;
 	$value = ($value) ? $value : '';
-	
+
 	if($err == 0) {
 		print "\nThe 'action' argument must be one of 'start/stop/restart/status'\n\n";
 	}
@@ -225,7 +219,7 @@ Summary :
 
 Usage :
   $program <action>
-  
+
   MANDATORY
     start               Start the Airwave CDS Interface daemon
     stop                Stop the Airwave CDS Interface daemon
@@ -233,8 +227,7 @@ Usage :
     status              Check the current state of the Airwave CDS Interface daemon
 		\n");
 	}
-	
+
 	# Stop in all cases
 	exit;
 }
-

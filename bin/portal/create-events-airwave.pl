@@ -13,12 +13,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -30,8 +24,8 @@ use IO::File;
 use XML::Writer;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 
 # Program information
@@ -61,7 +55,7 @@ $SITECODE = ($SITECODE eq 'all') ? '*' : $SITECODE;
 our($FILE,$XML);
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Define date related variables
 my @dpm = (31,28,31,30,31,30,31,31,30,31,30,31);
@@ -70,7 +64,7 @@ our $EOM = $DAYS."/".substr($YYMM,2,2)."/".substr($YYMM,0,2); # DD/MM/YY
 our $CCYY = "20".substr($YYMM,0,2);
 
 # Directory in which events are created on the server
-our $EVENT_DIR = "$ROOT/../$CONFIG{PORTAL_STATS}/Airwave/$CCYY/$YYMM";
+our $EVENT_DIR = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_STATS}/Airwave/$CCYY/$YYMM";
 
 # Open the database connection and start processing
 main();

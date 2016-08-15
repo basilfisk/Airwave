@@ -10,18 +10,12 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
 
 # Airwave modules
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::Common qw(logMsg readConfig);
 
 # Program information
@@ -29,7 +23,7 @@ my $PROGRAM = "cdsd.pl";
 my $VERSION = "2.0";
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Set up handler for SIGTERM
 $SIG{TERM} = \&stop_daemon;
@@ -48,27 +42,27 @@ sub main {
 	# Set up a loop and wait 5 minutes between each iteration of the CDS interface calls
 	LOOP: while(1) {
 		# Encrypt films, if needed
-		`$ROOT/encrypt.pl -encrypt -append -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/encrypt.pl -encrypt -append -log`;
+
 		# Create links to files to be distributed and catalogue using CDS
-		`$ROOT/cds.pl -a=prepare -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=prepare -log`;
+
 		# Stop any distributions that have been flagged
-		`$ROOT/cds.pl -a=stop -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=stop -log`;
+
 		# Record end time of completed distributions and send email
-		`$ROOT/cds.pl -a=ended -log`;
-		`$ROOT/cds.pl -a=notify -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=ended -log`;
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=notify -log`;
+
 		# Start new distributions
-		`$ROOT/cds.pl -a=start -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=start -log`;
+
 		# Update status of running distributions
-		`$ROOT/cds.pl -a=status -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=status -log`;
+
 		# Update status of CDS nodes
-		`$ROOT/cds.pl -a=node-status -log`;
-		
+		`$ENV{'AIRWAVE_ROOT'}/cds.pl -a=node-status -log`;
+
 		# Wait before next iteration starts
 		sleep($CONFIG{CDS_INTERVAL});
 	}
@@ -83,5 +77,3 @@ sub stop_daemon {
     logMsg(1,$PROGRAM,"Caught the TERM signal, so shutting down");
 	exit;
 }
-
-

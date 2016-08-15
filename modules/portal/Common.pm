@@ -34,7 +34,7 @@ our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escape
 				 readConfig readConfigXML validFormat validNumber wrapText writeFile);
 
 # Read the configuration parameters and check that parameters have been read
-our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Location of the common log file
 our $COMMON_LOG = "$ENV{'AIRWAVE_ROOT'}/$CONFIG{COMMON_LOG}";

@@ -9,12 +9,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -24,8 +18,8 @@ use Getopt::Long;
 use Data::Dumper;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiDML apiSelect apiStatus);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiDML apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 
 # Program information
@@ -51,7 +45,7 @@ if(!GetOptions(
 	{ exit; }
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Declare and initialise global variables
 our %LANGUAGES;
@@ -123,8 +117,8 @@ sub main {
 	$provider = $films{$ASSET}{'provider'};
 
 	# Directories on Portal holding VTT files are based on provider of film
-	$source = "$ROOT/../$CONFIG{VTT_FILES}/$provider/$DIRECTORY/$FILENAME";
-	$tdir = "$ROOT/../$CONFIG{PORTAL_META}/$provider/$ASSET";
+	$source = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{VTT_FILES}/$provider/$DIRECTORY/$FILENAME";
+	$tdir = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_META}/$provider/$ASSET";
 	$tfile = "$ASSET".'_'."$LANGUAGE.vtt";
 
 	# Check VTT file exists

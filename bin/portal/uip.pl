@@ -10,12 +10,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -28,8 +22,8 @@ use XML::LibXML;
 use XML::Writer;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::MSXML qw(msxmlCell msxmlClose msxmlColumn msxmlCreate msxmlData msxmlInitialise msxmlRow msxmlRowNumber msxmlSetParameter msxmlStyleAdd msxmlWorkbook);
 
@@ -55,7 +49,7 @@ if($YYMM eq 'empty') { usage(1); }
 if($COMPANY ne 'airwave' && $COMPANY ne 'techlive') { usage(2); }
 
 # Read the configuration parameters and check that parameters have been read
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Declare global variables
 our($FILENAME,%SCHED_E_DATA,$SCHED_A_ROWS,$SHEET_SCHED_A,$SHEET_SCHED_E);
@@ -83,13 +77,13 @@ else {
 }
 
 # Make sure the directory exists
-if (!-d "$ROOT/../$CONFIG{PORTAL_UIP}/$CCYY") {
-	system("mkdir -p $ROOT/../$CONFIG{PORTAL_UIP}/$CCYY");
+if (!-d "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_UIP}/$CCYY") {
+	system("mkdir -p $ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_UIP}/$CCYY");
 }
 
 # Spreadsheet parameters
 msxmlSetParameter('NAME',$FILENAME);
-msxmlSetParameter('DIR',"$ROOT/../$CONFIG{PORTAL_UIP}/$CCYY");
+msxmlSetParameter('DIR',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_UIP}/$CCYY");
 msxmlSetParameter('AUTHOR','Basil Fisk');
 msxmlSetParameter('MARGIN_LEFT','0.75');
 msxmlSetParameter('MARGIN_RIGHT','0.75');

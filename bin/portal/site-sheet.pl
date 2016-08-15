@@ -8,12 +8,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -25,8 +19,8 @@ use IO::File;
 use XML::Writer;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -43,10 +37,10 @@ GetOptions (
 	'help'		=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Name of data file and configuration file
-our $SITECONF = "$ROOT/etc/site-sheet.conf";
+our $SITECONF = "$ENV{'AIRWAVE_ROOT'}/etc/site-sheet.conf";
 our $DATAFILE = "$CONFIG{TEMP}/site_sheet.xml";
 our $PDFDIR = "$CONFIG{TEMP}";
 our $PDFFILE = "Site\ Sheet.pdf";
@@ -145,7 +139,7 @@ sub main {
 		$fh->close();
 
 		# Generate PDF file with 1 page/site
-		$sitedir = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode";
+		$sitedir = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_INVENTORY}/$sitecode";
 		if(!-d $sitedir) { system("mkdir -p $sitedir"); }
 		pdfReport($SITECONF,$DATAFILE,"$sitedir/$PDFFILE");
 	}

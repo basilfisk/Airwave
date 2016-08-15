@@ -9,12 +9,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -25,8 +19,8 @@ use Getopt::Long;
 use JSON::XS;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiMetadata apiSelect apiStatus);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiMetadata apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal metadataJsonToXML readConfig writeFile);
 
 # Program information
@@ -52,7 +46,7 @@ if($FILM eq 'empty') { usage(1); }
 if($PROVIDER eq 'empty') { usage(2); }
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Start processing
 main();
@@ -181,7 +175,7 @@ sub read_metadata {
 # ---------------------------------------------------------------------------------------------
 sub write_metadata {
 	my($filmcode,$type,$text) = @_;
-	my $dir = "$ROOT/../$CONFIG{PORTAL_META}/$PROVIDER/$filmcode";
+	my $dir = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_META}/$PROVIDER/$filmcode";
 	my $name = uc($type);
 	logMsg($LOG,$PROGRAM,"Writing $name metadata to Portal for $filmcode");
 

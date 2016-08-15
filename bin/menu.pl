@@ -7,18 +7,12 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
 
 # Breato modules
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::API3 qw(apiData apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg readConfig);
 use mods::TK;
@@ -28,7 +22,7 @@ our $PROGRAM = "menu.pl";
 our $VERSION = "2.0";
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Determine the server the menu is running on
 our $SERVER = `hostname`;
@@ -463,7 +457,7 @@ sub ingest_film {
 		$test = (tkCheckBoxValue('di_test')) ? '-test' : '';
 
 		# Run the ingestion
-		system("$ROOT/ingest_film.pl -asset=$asset -file=$file -type=$type -quality=$quality $test -log");
+		system("$ENV{'AIRWAVE_ROOT'}/ingest_film.pl -asset=$asset -file=$file -type=$type -quality=$quality $test -log");
 
 		# Close the parameter dialog
 		tkClose('ingest_film');
@@ -564,7 +558,7 @@ sub load_disk {
 		}
 
 		# Run the script
-		system("$ROOT/load_disk.pl $args");
+		system("$ENV{'AIRWAVE_ROOT'}/load_disk.pl $args");
 
 		# Close the parameter dialog
 		tkClose('load_disk');
@@ -590,7 +584,7 @@ sub load_disk {
 # Start the CDS daemon processes
 # ---------------------------------------------------------------------------------------------
 sub cds_start {
-	system("$ROOT/cdsd start");
+	system("$ENV{'AIRWAVE_ROOT'}/cdsd start");
 	view_log("Log for the CDS Daemon processes",'cdsd.log');
 }
 
@@ -600,7 +594,7 @@ sub cds_start {
 # Status of the CDS daemon processes
 # ---------------------------------------------------------------------------------------------
 sub cds_status {
-	system("$ROOT/cdsd status");
+	system("$ENV{'AIRWAVE_ROOT'}/cdsd status");
 	view_log("Log for the CDS Daemon processes",'cdsd.log');
 }
 
@@ -610,6 +604,6 @@ sub cds_status {
 # Stop the CDS daemon processes
 # ---------------------------------------------------------------------------------------------
 sub cds_stop {
-	system("$ROOT/cdsd stop");
+	system("$ENV{'AIRWAVE_ROOT'}/cdsd stop");
 	view_log("Log for the CDS Daemon processes",'cdsd.log');
 }

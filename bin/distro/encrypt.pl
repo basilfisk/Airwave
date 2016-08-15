@@ -8,12 +8,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -23,7 +17,7 @@ use Getopt::Long;
 use Data::Dumper;
 
 # Breato modules
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::API3 qw(apiData apiMetadata apiSelect apiStatus);
 use mods::Common qw(cleanNonAlpha formatDateTime logMsg logMsgPortal parseDocument readConfig writeFile);
 
@@ -47,7 +41,7 @@ GetOptions (
 	'help'			=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Start processing
 main();

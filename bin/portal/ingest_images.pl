@@ -9,12 +9,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -26,8 +20,8 @@ use Image::ExifTool qw(:Public);
 use Data::Dumper;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiDML apiSelect apiStatus);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiDML apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 
 # Program information
@@ -47,7 +41,7 @@ if(!GetOptions(
 	{ exit; }
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Declare and initialise global variables
 our %LISTVALUES;
@@ -131,11 +125,11 @@ sub film_details {
 	# If requested film was found
 	if($cid) {
 		# Directories on Portal holding images
-		$jacket = "$ROOT/../$CONFIG{IMAGE_JACKET}/$provider";
-		$landscape = "$ROOT/../$CONFIG{IMAGE_LANDSCAPE}/$provider";
+		$jacket = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_JACKET}/$provider";
+		$landscape = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_LANDSCAPE}/$provider";
 
 		# Directory on Portal holding metadata of film; create if needed
-		$meta = "$ROOT/../$CONFIG{PORTAL_META}/$provider/$film";
+		$meta = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_META}/$provider/$film";
 		if (!-d $meta) {
 			system("mkdir -p $meta");
 		}

@@ -7,12 +7,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin/Airwave';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -22,7 +16,7 @@ use Getopt::Long;
 use Data::Dumper;
 
 # Breato modules
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::API3 qw(apiData apiDML apiSelect apiStatus);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal md5Generate parseDocument readConfig);
 
@@ -51,7 +45,7 @@ if(!GetOptions(
 	{ exit; }
 
 # Read the configuration parameters and check that parameters have been read
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Declare and initialise global variables
 our($XML,$HANDLE,%AUDIO_PIDS,%SUB_PIDS,%VIDEO_PIDS,%LISTVALUES,%STREAMS,$ERROR,$REPO_DIR);

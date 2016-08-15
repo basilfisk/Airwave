@@ -8,12 +8,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin/Airwave';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -46,7 +40,7 @@ GetOptions (
 	'help'       => sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Declare and initialise global variables
 our($FILM_ROOT,@FILMS,%STREAMS);

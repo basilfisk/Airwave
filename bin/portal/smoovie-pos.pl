@@ -8,12 +8,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Set the root directory as the home directory of the user
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -25,8 +19,8 @@ use IO::File;
 use XML::Writer;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -41,12 +35,12 @@ GetOptions (
 	'help'	=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Name of data file and configuration file
 our($FILEHANDLE,$XML);
-our $CONFFILE = "$ROOT/etc/smoovie-pos.conf";
-our $DATAFILE = "$ROOT/tmp/smoovie-pos.xml";
+our $CONFFILE = "$ENV{'AIRWAVE_ROOT'}/etc/smoovie-pos.conf";
+our $DATAFILE = "$ENV{'AIRWAVE_ROOT'}/tmp/smoovie-pos.xml";
 
 # Start processing
 main();
@@ -134,7 +128,7 @@ sub sheet_7_UIP {
 	$xml->startTag('static');
 	$xml->dataElement('title1',"Films Showing This Month");
 	$xml->dataElement('title2','All Films are Free');
-	$xml->dataElement('logo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/$sitecode.gif");
+	$xml->dataElement('logo',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/$sitecode.gif");
 	$xml->endTag('static');
 
 	# Generate dynamic section of the document
@@ -179,8 +173,8 @@ sub sheet_7_UIP {
 		$xml->startTag('record','id'=>'data');
 		$xml->dataElement('title',$title);
 		$xml->dataElement('duration',$duration);
-		$xml->dataElement('poster',"$ROOT/../$CONFIG{PORTAL_META}/$provider/$assetcode/$assetcode-small.jpg");
-		$xml->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
+		$xml->dataElement('poster',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_META}/$provider/$assetcode/$assetcode-small.jpg");
+		$xml->dataElement('certificate',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 		$xml->dataElement('summary',$short);
 		$xml->dataElement('synopsis',$full);
 		$xml->dataElement('cast',$cast_list);
@@ -197,12 +191,12 @@ sub sheet_7_UIP {
 	$fh->close();
 
 	# Generate the PDF file
-	$file = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie\ POS.pdf";
+	$file = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie\ POS.pdf";
 	pdfReport($CONFFILE,$DATAFILE,$file);
 	logMsg($LOG,$PROGRAM,"Created report '$file'");
 
 	# Generate the schedule file
-	$file = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie.txt";
+	$file = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie.txt";
 	schedule_file($file,%films);
 	logMsg($LOG,$PROGRAM,"Created schedule file '$file'");
 }

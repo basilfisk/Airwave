@@ -8,12 +8,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -23,8 +17,8 @@ use Data::Dumper;
 use Getopt::Long;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::MSXML qw(msxmlCell msxmlClose msxmlColumn msxmlCreate msxmlData msxmlInitialise msxmlRow msxmlRowNumber msxmlSetParameter msxmlStyleAdd msxmlWorkbook);
 
@@ -47,7 +41,7 @@ GetOptions (
 if($YYMM eq 'empty') { usage(1); }
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Define date related variables
 my @mmm = ('January','February','March','April','May','June','July','August','September','October','November','December');
@@ -55,14 +49,14 @@ our $CCYY = "20".substr($YYMM,0,2);
 our $PERIOD = $mmm[int(substr($YYMM,2,2))-1]." ".$CCYY;
 
 # Make sure the directory exists
-if (!-d "$ROOT/../$CONFIG{PORTAL_PBTV}/$CCYY") {
-	system("mkdir -p $ROOT/../$CONFIG{PORTAL_PBTV}/$CCYY");
+if (!-d "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_PBTV}/$CCYY") {
+	system("mkdir -p $ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_PBTV}/$CCYY");
 }
 
 # Spreadsheet parameters
 our $FILENAME = "PlayboyTV $YYMM";
 msxmlSetParameter('NAME',$FILENAME);
-msxmlSetParameter('DIR',"$ROOT/../$CONFIG{PORTAL_PBTV}/$CCYY");
+msxmlSetParameter('DIR',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_PBTV}/$CCYY");
 msxmlSetParameter('AUTHOR','Basil Fisk');
 msxmlSetParameter('MARGIN_LEFT','0.75');
 msxmlSetParameter('MARGIN_RIGHT','0.75');

@@ -11,12 +11,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -25,8 +19,8 @@ use warnings;
 use Getopt::Long;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(logMsg logMsgPortal);
 
 # Program information
@@ -130,7 +124,7 @@ sub main {
 sub film_package {
 	my($ref,$terr,$pack) = @_;
 
-	`$ROOT/showing-child.pl -code=$ref -name='$terr' -package=$pack -language=$LANGUAGE -logo=$SHOWLOGO -log=$LOG`;
+	`$ENV{'AIRWAVE_ROOT'}/showing-child.pl -code=$ref -name='$terr' -package=$pack -language=$LANGUAGE -logo=$SHOWLOGO -log=$LOG`;
 }
 
 

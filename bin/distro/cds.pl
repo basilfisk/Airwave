@@ -9,12 +9,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/home/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -38,7 +32,7 @@ use JSON::XS;
 $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME}=0;
 
 # Airwave modules
-use lib "$ROOT";
+use lib "$ENV{'AIRWAVE_ROOT'}";
 use mods::API3 qw(apiData apiDML apiEmail apiFileDownload apiMetadata apiSelect apiStatus);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal metadataJsonToXML parseDocument readConfig writeFile);
 
@@ -62,7 +56,7 @@ GetOptions (
 	'help'			=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Global variables
 our($SESSION,$CDS_URL,$CDS_USER,$CDS_PASS,%PACKAGES);

@@ -9,12 +9,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -26,8 +20,8 @@ use IO::File;
 use XML::Writer;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -48,11 +42,11 @@ GetOptions (
 	'help'				=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Name of data file and configuration file
 our($FILEHANDLE,$XML);
-our $CONFFILE = "$ROOT/etc/inventory.conf";
+our $CONFFILE = "$ENV{'AIRWAVE_ROOT'}/etc/inventory.conf";
 our $DATAFILE = "$CONFIG{TEMP}/inventory.xml";
 
 # Start processing
@@ -115,7 +109,7 @@ sub main {
 		$filename =~ s/[^a-zA-Z0-9 \.\-]//g;
 
 		# Generate PDF file with current inventory of films
-		$sitedir = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode";
+		$sitedir = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_INVENTORY}/$sitecode";
 		if(!-d $sitedir) { system("mkdir -p $sitedir"); }
 		pdfReport($CONFFILE,$DATAFILE,"$sitedir/$filename");
 	}

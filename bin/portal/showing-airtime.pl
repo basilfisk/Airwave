@@ -11,12 +11,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -29,8 +23,8 @@ use Image::ExifTool qw(:Public);
 use IO::File;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -50,7 +44,7 @@ GetOptions (
 	'help'			=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # AirTime logo and footer
 our %IMAGES;
@@ -59,8 +53,8 @@ $IMAGES{footer} = 'airtime_app_logo_thumbnail.jpg';
 
 # Location of report configuration file
 our $TEMP = "$CONFIG{TEMP}";
-our $CONFFILE = "$ROOT/etc/showing-airtime.conf";
-our $DATAFILE = "$TEMP/showing-airtime.xml";
+our $CONFFILE = "$ENV{'AIRWAVE_ROOT'}/etc/showing-airtime.conf";
+our $DATAFILE = "$ENV{'AIRWAVE_ROOT'}/showing-airtime.xml";
 
 # Report definitions
 our %REPORT = (
@@ -219,8 +213,8 @@ sub film_page {
 	$xml->dataElement('page-title1',$REPORT{$pack}{title});
 	$terrname =~ tr/a-z/A-Z/;
 	$xml->dataElement('page-title2',$terrname);
-	$xml->dataElement('airtime-header',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/$IMAGES{header}");
-	$xml->dataElement('airtime-footer',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/$IMAGES{footer}");
+	$xml->dataElement('airtime-header',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/$IMAGES{header}");
+	$xml->dataElement('airtime-footer',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/$IMAGES{footer}");
 	$xml->dataElement('timestamp',formatDateTime('zm/cczy'));
 	$xml->endTag('static');
 
@@ -251,7 +245,7 @@ sub film_page {
 		$credits =~ s/\n/\@nl\@/g;
 
 		# If image exists, create a scaled copy in the temporary directory
-		$jacket = "$ROOT/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg";
+		$jacket = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg";
 		if(-e $jacket) {
 			$image = film_image_resize($film,$jacket);
 		}
@@ -278,7 +272,7 @@ sub film_page {
 		$title =~ tr/a-z/A-Z/;
 		$xml->dataElement('title',$title);
 		$xml->dataElement('duration',$duration);
-		$xml->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
+		$xml->dataElement('certificate',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 		$xml->dataElement('summary',$short);
 		$xml->dataElement('soundtracks',$soundtracks);
 		$xml->dataElement('cast',$credits);
@@ -302,7 +296,7 @@ sub film_page {
 	}
 
 	# Generate the PDF file
-	pdfReport($CONFFILE,$DATAFILE,"$ROOT/../$CONFIG{AIRTIME_OUTPUT}/$pdffile");
+	pdfReport($CONFFILE,$DATAFILE,"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{AIRTIME_OUTPUT}/$pdffile");
 	logMsg($LOG,$PROGRAM,"Created report '$CONFIG{AIRTIME_OUTPUT}/$pdffile'");
 }
 

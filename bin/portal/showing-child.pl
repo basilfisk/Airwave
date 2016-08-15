@@ -11,12 +11,6 @@
 # *********************************************************************************************
 # *********************************************************************************************
 
-# Establish the root directory
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -28,8 +22,8 @@ use Image::ExifTool qw(:Public);
 use IO::File;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(cleanNonUTF8 formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -51,14 +45,14 @@ GetOptions (
 	'name=s'		=> \$TERRNAME);
 
 # Read the configuration parameters
-our %CONFIG  = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Airwave logo
 our $LOGO = 'Airwave_Logo.jpg';
 
 # Location of report configuration file
 our $TEMP = "$CONFIG{TEMP}";
-our $CONFFILE = "$ROOT/etc/showing.conf";
+our $CONFFILE = "$ENV{'AIRWAVE_ROOT'}/etc/showing.conf";
 our $DATAFILE = "$TEMP/showing.xml";
 
 # Report definitions
@@ -239,7 +233,7 @@ sub film_page {
 	$xml->startTag('static');
 	$xml->dataElement('page-title1',$packname);
 	$xml->dataElement('page-title2',$territory);
-	$xml->dataElement('airwave-logo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/$LOGO");
+	$xml->dataElement('airwave-logo',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/$LOGO");
 	$xml->dataElement('timestamp',formatDateTime('zm/cczy'));
 	$xml->endTag('static');
 
@@ -279,7 +273,7 @@ sub film_page {
 		$credits =~ s/\n/\@nl\@/g;
 
 		# If image exists, create a scaled copy in the temporary directory
-		$jacket = "$ROOT/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg";
+		$jacket = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_JACKET}/$provider/$film.jpg";
 		if(-e $jacket) {
 			$image = film_image_resize($film,$jacket);
 		}
@@ -310,12 +304,12 @@ sub film_page {
 		$xml->dataElement('title',$title);
 		$xml->dataElement('duration',$duration);
 		if($hdlogo eq 'HD') {
-			$xml->dataElement('hdlogo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/HD_Logo.jpg");
+			$xml->dataElement('hdlogo',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/HD_Logo.jpg");
 		}
 		else {
-			$xml->dataElement('hdlogo',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/Blank.jpg");
+			$xml->dataElement('hdlogo',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/Blank.jpg");
 		}
-		$xml->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
+		$xml->dataElement('certificate',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 		$xml->dataElement('summary',$short);
 		$xml->dataElement('synopsis',$full);
 		$xml->dataElement('soundtracks',$soundtracks);
@@ -346,6 +340,6 @@ sub film_page {
 	}
 
 	# Generate the PDF file
-	pdfReport($CONFFILE,$DATAFILE,"$ROOT/../$CONFIG{PORTAL_FILMS}/$territory/$pdffile");
+	pdfReport($CONFFILE,$DATAFILE,"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_FILMS}/$territory/$pdffile");
 	logMsg($LOG,$PROGRAM,"Created report '$CONFIG{PORTAL_FILMS}/$territory/$pdffile'");
 }

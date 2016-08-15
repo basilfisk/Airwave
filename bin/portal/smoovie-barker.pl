@@ -11,12 +11,6 @@
 # ***************************************************************************
 # ***************************************************************************
 
-# Set the root directory as the home directory of the user
-our $ROOT;
-BEGIN {
-	$ROOT = '/srv/visualsaas/instances/airwave/bin';
-}
-
 # Declare modules
 use strict;
 use warnings;
@@ -28,8 +22,8 @@ use IO::File;
 use XML::Writer;
 
 # Breato modules
-use lib "$ROOT";
-use mods::API3Portal qw(apiData apiStatus apiSelect);
+use lib "$ENV{'AIRWAVE_ROOT'}";
+use mods::API3 qw(apiData apiStatus apiSelect);
 use mods::Common qw(formatDateTime logMsg logMsgPortal readConfig);
 use mods::PDF qw(pdfReport);
 
@@ -44,12 +38,12 @@ GetOptions (
 	'help'	=> sub { usage(); } );
 
 # Read the configuration parameters
-our %CONFIG = readConfig("$ROOT/etc/airwave-portal.conf");
+our %CONFIG = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Name of data file and configuration file
 our($FILEHANDLE,$XML);
-our $CONFFILE = "$ROOT/etc/smoovie-barker.conf";
-our $DATAFILE = "$ROOT/tmp/smoovie-barker.xml";
+our $CONFFILE = "$ENV{'AIRWAVE_ROOT'}/etc/smoovie-barker.conf";
+our $DATAFILE = "$ENV{'AIRWAVE_ROOT'}/tmp/smoovie-barker.xml";
 
 # Start processing
 main();
@@ -129,10 +123,10 @@ sub main {
 			}
 
 			# Show the film image (drawn from bottom left)
-			$XML->dataElement('jacket',"$ROOT/../$CONFIG{PORTAL_META}/$provider/$assetcode/$assetcode-large.jpg");
+			$XML->dataElement('jacket',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_META}/$provider/$assetcode/$assetcode-large.jpg");
 
 			# Read the Certificate logo from the portal into the temporary directory, then add to the document
-			$XML->dataElement('certificate',"$ROOT/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
+			$XML->dataElement('certificate',"$ENV{'AIRWAVE_ROOT'}/../$CONFIG{IMAGE_TEMPLATE}/BBFC_$cert.jpg");
 
 			# Close the container for the summary data
 			$XML->endTag('record');
@@ -141,8 +135,8 @@ sub main {
 			close_file();
 
 			# Generate PDF file with current inventory of films
-			$file_pdf = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie\ Barker\ Channel$channel\ Slot$slot.pdf";
-			$file_jpg = "$ROOT/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie\ Barker\ Channel$channel\ Slot$slot.jpg";
+			$file_pdf = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie\ Barker\ Channel$channel\ Slot$slot.pdf";
+			$file_jpg = "$ENV{'AIRWAVE_ROOT'}/../$CONFIG{PORTAL_INVENTORY}/$sitecode/Smoovie\ Barker\ Channel$channel\ Slot$slot.jpg";
 			pdfReport($CONFFILE,$DATAFILE,$file_pdf);
 
 			# Convert PDF file to JPEG file

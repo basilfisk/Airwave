@@ -652,6 +652,9 @@ sub dist_prepare {
 					writeFile($file,$msg);
 					logMsg($LOG,$PROGRAM,"Created metadata file '$file'");
 
+					# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES
+					writeFile("$CONFIG{DIST_META}/$filmcode.$type",$msg);
+
 					# Check that file written successfully
 					if (!-f $file) {
 						$errorfound = 1;
@@ -744,9 +747,10 @@ sub dist_prepare {
 								else {
 									%json = %$ref;
 									# Check metadata ID
-									if($json{id}) {
-										if($json{id} ne $filmcode) {
-											$acerrors .= "$json{id} ";
+									@nodes = @{$json{release}};
+									if($nodes[0]{'asset_code'}) {
+										if($nodes[0]{'asset_code'} ne $filmcode) {
+											$acerrors .= "$nodes[0]{'asset_code'} ";
 											$acstatus = 0;
 										}
 									}
@@ -794,8 +798,6 @@ sub dist_prepare {
 						}
 					}
 				}
-				# 08/10/2015 BF TEMPORARY DEBUG : WRITE METADATA TO TEMP FILE IN ALL CASES
-				writeFile("$CONFIG{DIST_META}/$filmcode.$type",$msg);
 			}
 			else {
 				$errorfound = 1;

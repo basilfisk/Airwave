@@ -1,0 +1,1 @@
+AIRWAVE_ROOT="/srv/visualsaas/instances/airwave/bin"; export AIRWAVE_ROOT

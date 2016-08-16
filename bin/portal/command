@@ -76,7 +76,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/ingest_images.pl --film=$FILM --log"
-		$ROOT/ingest_images.pl --film=$FILM --log
+		`. $ROOT/profile; $ROOT/ingest_images.pl --film=$FILM --log`
 		;;
 	# Ingest VTT files
 	ing_vtt)
@@ -99,7 +99,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/ingest_vtt.pl --directory=$DIRECTORY --file=$FILE --lang=$LANGUAGE --asset=$ASSET --log"
-		$ROOT/ingest_vtt.pl --directory=$DIRECTORY --file=$FILE --lang=$LANGUAGE --asset=$ASSET --log
+		`. $ROOT/profile; $ROOT/ingest_vtt.pl --directory=$DIRECTORY --file=$FILE --lang=$LANGUAGE --asset=$ASSET --log`
 		;;
 	# Site inventory
 	inventory)
@@ -110,7 +110,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/inventory.pl --site=$SITE --log"
-		$ROOT/inventory.pl --site=$SITE --log
+		`. $ROOT/profile; $ROOT/inventory.pl --site=$SITE --log`
 		;;
 	# Load UIP usage data for Airwave
 	load_aw)
@@ -125,7 +125,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/load-events-airwave.pl --yymm=$YYMM --site=$SITE --log"
-		$ROOT/load-events-airwave.pl --yymm=$YYMM --site=$SITE --log
+		`. $ROOT/profile; $ROOT/load-events-airwave.pl --yymm=$YYMM --site=$SITE --log`
 		;;
 	# Load UIP usage data for Techlive
 	load_tl)
@@ -140,7 +140,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log"
-		$ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log
+		`. $ROOT/profile; $ROOT/load-events-techlive.pl --yymm=$YYMM --site=$SITE --load --log`
 		;;
 	# Generate metadata
 	metadata)
@@ -155,7 +155,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/metadata.pl --film=$FILM --provider=$PROVIDER --log"
-		$ROOT/metadata.pl --film=$FILM --provider=$PROVIDER --log
+		`. $ROOT/profile; $ROOT/metadata.pl --film=$FILM --provider=$PROVIDER --log`
 		;;
 	# PBTV returns spreadsheet
 	pbtv_sht)
@@ -166,7 +166,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/pbtv.pl --yymm=$YYMM --log"
-		$ROOT/pbtv.pl --yymm=$YYMM --log
+		`. $ROOT/profile; $ROOT/pbtv.pl --yymm=$YYMM --log`
 		;;
 	# Marketing sheets
 	showing)
@@ -181,7 +181,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/showing.pl --package=$PACKAGE --territory=$TERRITORY --log"
-		$ROOT/showing.pl --package=$PACKAGE --territory=$TERRITORY --log
+		`. $ROOT/profile; $ROOT/showing.pl --package=$PACKAGE --territory=$TERRITORY --log`
 		;;
 	# Site sheets
 	site_sheet)
@@ -192,19 +192,19 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/site_sheet.pl --site=$SITE --log"
-		$ROOT/site-sheet.pl --site=$SITE --log
+		`. $ROOT/profile; $ROOT/site-sheet.pl --site=$SITE --log`
 		;;
 	# Smoovie POS sheets
 	smoov_pos)
 		# Run the script
 		msg "Running command: $ROOT/smoovie-pos.pl --log"
-		$ROOT/smoovie-pos.pl --log
+		`. $ROOT/profile; $ROOT/smoovie-pos.pl --log`
 		;;
 	# Smoovie barker channel images
 	smoov_tmp)
 		# Run the script
 		msg "Running command: $ROOT/smoovie-barker.pl --log"
-		$ROOT/smoovie-barker.pl --log
+		`. $ROOT/profile; $ROOT/smoovie-barker.pl --log`
 		;;
 	# UIP event data for Airwave
 	uip_evt)
@@ -219,7 +219,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/create-events-airwave.pl --yymm=$YYMM --site=$SITE --log"
-		$ROOT/create-events-airwave.pl --yymm=$YYMM --site=$SITE --log
+		`. $ROOT/profile; $ROOT/create-events-airwave.pl --yymm=$YYMM --site=$SITE --log`
 		;;
 	# UIP returns spreadsheet
 	uip_sht)
@@ -234,7 +234,7 @@ case "$COMMAND" in
 		fi
 		# Run the script
 		msg "Running command: $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log"
-		$ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log
+		`. $ROOT/profile; $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log`
 		;;
 	# Unknown
 	*)

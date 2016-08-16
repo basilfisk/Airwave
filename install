@@ -130,6 +130,7 @@ case "$SERVER" in
 		cp $SOURCE/bin/portal/metadata.pl $INSTALL
 		cp $SOURCE/bin/portal/nightly-scripts $INSTALL
 		cp $SOURCE/bin/portal/pbtv.pl $INSTALL
+		cp $SOURCE/bin/portal/profile $INSTALL
 		cp $SOURCE/bin/portal/showing-airtime.pl $INSTALL
 		cp $SOURCE/bin/portal/showing-child.pl $INSTALL
 		cp $SOURCE/bin/portal/showing.pl $INSTALL

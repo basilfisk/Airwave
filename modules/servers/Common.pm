@@ -30,8 +30,8 @@ package mods::Common;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(cleanNonUTF8 cleanNonAlpha cleanString cleanXML ellipsis escapeSpecialChars formatDateTime
-				 formatNumber jsonData jsonToXML logMsg logMsgPortal md5Generate metadataJsonToXML msgCache msgLog parseDocument
-				 processInfo readConfig readConfigXML validFormat validNumber wrapText writeFile);
+				 formatNumber logMsg logMsgPortal md5Generate metadataJsonToXML msgCache msgLog parseDocument processInfo
+				 readConfig readConfigXML validFormat validNumber wrapText writeFile);
 
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
@@ -69,47 +69,7 @@ our $SOCKET;
 sub cleanNonUTF8 {
 	my($string) = @_;
 
-	my $octets = Encode::encode("iso-8859-1", $string);
-	my $output = Encode::decode("iso-8859-1", $octets);
-	return (1,$output);
-}
-
-sub cleanNonUTF8_ZZZ {
-	my($string) = @_;
-
-	for($string) {
-		# Assume data comes in Latin-1, but trap invalid characters
-		eval { $_ = Encode::decode( 'iso-8859-1', $_ ); };
-		if($@) { return (0,$string); }
-
-		# Convert to Unicode
-		s/\xe4/ae/g;
-		s/\xf1/ny/g;
-		s/\xf6/oe/g;
-		s/\xfc/ue/g;
-		s/\xff/yu/g;
-
-		$_ = Unicode::Normalize::NFD( $_ );		# Decompose to Unicode Normalization Form D
-		s/\pM//g;								# Strip combining characters
-
-		# Additional normalizations
-		s/\x{00df}/ss/g;
-		s/\x{00c6}/AE/g;
-		s/\x{00e6}/ae/g;
-		s/\x{0132}/IJ/g;
-		s/\x{0133}/ij/g;
-		s/\x{0152}/Oe/g;
-		s/\x{0153}/oe/g;
-
-		tr/\x{00d0}\x{0110}\x{00f0}\x{0111}\x{0126}\x{0127}/DDddHh/;
-		tr/\x{0131}\x{0138}\x{013f}\x{0141}\x{0140}\x{0142}/ikLLll/;
-		tr/\x{014a}\x{0149}\x{014b}\x{00d8}\x{00f8}\x{017f}/NnnOos/;
-		tr/\x{00de}\x{0166}\x{00fe}\x{0167}/TTtt/;
-
-		s/[^\0-\x80]//g;  # Clear everything else
-	}
-
-	# Return cleansed string
+	$string =~ s/[^[:ascii:]]+//g;
 	return (1,$string);
 }
 
@@ -342,8 +302,6 @@ sub formatNumber {
 	# Return original string if no format string is passed as an argument
 	if(!$fmt) { return $num; }
 
-#	# If the number is empty, force to zero
-#	$num = ($num eq ' ') ? 0 : $num;
 	# Return undef if the number is empty
 	if(!$num || $num eq ' ') { return undef; }
 
@@ -436,40 +394,6 @@ sub formatNumber {
 
 	# Return the formatted number
 	return $str;
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Convert a string in JSON format to a hash
-#
-# Argument 1 : String in JSON format
-#
-# Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
-# ---------------------------------------------------------------------------------------------
-sub jsonData {
-	my($string) = @_;
-	my($hash_ref);
-
-	# Parse the string and trap any errors
-	eval { $hash_ref = JSON::XS->new->latin1->decode($string) or die "error" };
-	if($@) {
-		return (undef,$@);
-	}
-
-	return ($hash_ref,undef);
-}
-
-
-
-# ---------------------------------------------------------------------------------------------
-# Convert a string in JSON format to a hash
-#
-# Argument 1 : String in JSON format
-#
-# Return (pointer,undef) to a hash of data if successful, or (undef,message) if errors
-# ---------------------------------------------------------------------------------------------
-sub jsonToXML {
 }
 
 

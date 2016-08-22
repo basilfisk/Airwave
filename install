@@ -141,7 +141,7 @@ case "$SERVER" in
 
 		# Install the Perl modules
 		cp $SOURCE/modules/servers/API3.pm $INSTALL/mods
-		cp $SOURCE/modules/portal/Common.pm $INSTALL/mods
+		cp $SOURCE/modules/servers/Common.pm $INSTALL/mods
 		cp $SOURCE/modules/portal/MSXML.pm $INSTALL/mods
 		cp $SOURCE/modules/portal/PDF.pm $INSTALL/mods
 

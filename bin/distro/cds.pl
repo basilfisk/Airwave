@@ -662,6 +662,7 @@ sub dist_prepare {
 					}
 
 					else {
+						$acstatus = 1;
 						# Check asset codes are correct in XML metadata file
 						if ($type eq 'xml') {
 							$file = "$distdir/$filmcode.xml";
@@ -679,7 +680,7 @@ sub dist_prepare {
 								if(@nodes) {
 									$str = $nodes[0]->getAttribute('id');
 									if($str ne $filmcode) {
-										$acerrors .= "$str ";
+										$acerrors .= "ID:$str ";
 										$acstatus = 0;
 									}
 								}
@@ -693,7 +694,7 @@ sub dist_prepare {
 									for(my $i=0; $i<@nodes; $i++) {
 										$str = $nodes[$i]->textContent;
 										if($str !~ /^$filmcode-+/) {
-											$acerrors .= "$str ";
+											$acerrors .= "Image:$str ";
 											$acstatus = 0;
 										}
 									}
@@ -708,7 +709,7 @@ sub dist_prepare {
 									for(my $i=0; $i<@nodes; $i++) {
 										$str = $nodes[$i]->getAttribute('name');
 										if($str !~ /^$filmcode\_+/) {
-											$acerrors .= "$str ";
+											$acerrors .= "Asset:$str ";
 											$acstatus = 0;
 										}
 									}
@@ -720,7 +721,7 @@ sub dist_prepare {
 								# Log summary of errors found
 								if (!$acstatus) {
 									$errorfound = 1;
-									logMsgPortal($LOG,$PROGRAM,'E',"Asset code should be '$filmcode' but the following codes have been found: $acerrors");
+									logMsgPortal($LOG,$PROGRAM,'E',"Asset code should be '$filmcode' but these have been found: $acerrors");
 								}
 							}
 						}
@@ -750,7 +751,7 @@ sub dist_prepare {
 									@nodes = @{$json{release}};
 									if($nodes[0]{'asset_code'}) {
 										if($nodes[0]{'asset_code'} ne $filmcode) {
-											$acerrors .= "$nodes[0]{'asset_code'} ";
+											$acerrors .= "ID:$nodes[0]{'asset_code'} ";
 											$acstatus = 0;
 										}
 									}
@@ -764,7 +765,7 @@ sub dist_prepare {
 										for(my $i=0; $i<@nodes; $i++) {
 											$str = $nodes[$i]{name};
 											if($str !~ /^$filmcode-+/) {
-												$acerrors .= "$str ";
+												$acerrors .= "Image:$str ";
 												$acstatus = 0;
 											}
 										}
@@ -779,7 +780,7 @@ sub dist_prepare {
 										for(my $i=0; $i<@nodes; $i++) {
 											$str = $nodes[$i]{name};
 											if($str !~ /^$filmcode\_+/) {
-												$acerrors .= "$str ";
+												$acerrors .= "Asset:$str ";
 												$acstatus = 0;
 											}
 										}
@@ -791,7 +792,7 @@ sub dist_prepare {
 									# Log summary of errors found
 									if (!$acstatus) {
 										$errorfound = 1;
-										logMsgPortal($LOG,$PROGRAM,'E',"Asset code should be '$filmcode' but the following codes have been found: $acerrors");
+										logMsgPortal($LOG,$PROGRAM,'E',"Asset code should be '$filmcode' but these have been found: $acerrors");
 									}
 								}
 							}

@@ -268,7 +268,7 @@ sub show_films {
 
 	# Create a window object
 	$window = Gtk2::Window->new;
-	$window->set_title('Breato IPTV Player');
+	$window->set_title('Breato OTT Player');
 	$window->signal_connect(destroy => sub { Gtk2->main_quit; });
 	$window->set_border_width(3);
 	$window->maximize();

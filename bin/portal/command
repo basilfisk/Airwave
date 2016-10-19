@@ -112,6 +112,21 @@ case "$COMMAND" in
 		msg "Running command: $ROOT/inventory.pl --site=$SITE --log"
 		`. $ROOT/profile; $ROOT/inventory.pl --site=$SITE --log`
 		;;
+	# Load usage data for Airtime
+	load_at)
+		# Check the arguments are correct
+		if [ "$SITE" == "" ]; then
+			msg "The 'site' argument is missing"
+			exit
+		fi
+		if [ "$YYMM" == "" ]; then
+			msg "The 'yymm' argument is missing"
+			exit
+		fi
+		# Run the script
+		msg "Running command: $ROOT/load-events-airtime.pl --yymm=$YYMM --site=$SITE --log"
+		`. $ROOT/profile; $ROOT/load-events-airtime.pl --yymm=$YYMM --site=$SITE --log`
+		;;
 	# Load UIP usage data for Airwave
 	load_aw)
 		# Check the arguments are correct

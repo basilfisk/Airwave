@@ -46,13 +46,13 @@ GetOptions (
 
 # Check that arguments are present
 if($YYMM eq 'empty') { usage(1); }
-if($COMPANY ne 'airwave' && $COMPANY ne 'techlive') { usage(2); }
+if($COMPANY ne 'airtime' && $COMPANY ne 'airwave' && $COMPANY ne 'techlive') { usage(2); }
 
 # Read the configuration parameters and check that parameters have been read
 our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Declare global variables
-our($FILENAME,%SCHED_E_DATA,$SCHED_A_ROWS,$SHEET_SCHED_A,$SHEET_SCHED_E);
+our($FILENAME,%SCHED_E_DATA,$SCHED_A_ROWS,$SHEET_SCHED_A,$SHEET_SCHED_E,%AIRTIME);
 
 # Define date related variables
 our($MONTH,$CCYY,$PERIOD,$DAYS,$MONTH_START);
@@ -65,11 +65,17 @@ $DAYS = $dpm[$MONTH-1];
 $MONTH_START = $YYMM."01";
 
 # Declare global parameters
-our $VAT = 0.2;			# Current VAT rate
-our $FIRST_ROW = 4;		# First row number for a site
+our $VAT = 0.2;					# Current VAT rate
+our $FIRST_ROW = 4;				# First row number for a site
+our %AIRTIME_CFG;
+$AIRTIME_CFG{TARIFF} = 1.8;		# pence/room/day
+$AIRTIME_CFG{GROSSRED} = 0.7;	# gross receipts reduction
 
 # Name of spreadsheet
-if($COMPANY eq 'airwave') {
+if($COMPANY eq 'airtime') {
+	$FILENAME = "UIP Schedules $YYMM Airtime";
+}
+elsif($COMPANY eq 'airwave') {
 	$FILENAME = "UIP Schedules $YYMM Airwave";
 }
 else {
@@ -117,8 +123,15 @@ sub main {
 		return;
 	}
 
+	# For Airtime, generate one sheet for hotels
+	if($COMPANY eq 'airtime') {
+		$SHEET_SCHED_A = "Schedule A $YYMM";
+		airtime_a();
+		$SHEET_SCHED_E = "Schedule E $YYMM";
+		airtime_e();
+	}
 	# For Airwave, generate a pair of sheets for hotels and a pair for ferries
-	if($COMPANY eq 'airwave') {
+	elsif($COMPANY eq 'airwave') {
 		# Run the reports for hotels
 		$SHEET_SCHED_A = "Schedule A $YYMM";
 		schedule_a('hotel');
@@ -163,9 +176,498 @@ sub main {
 
 
 # ---------------------------------------------------------------------------------------------
+# Airtime Schedule A report
+# ---------------------------------------------------------------------------------------------
+sub airtime_a {
+	my($status,$msg,%error);
+	my(%sites,$site,$plan,$terr,%sort,%events,$film,$count,$site_1st_film,$mths,$pct);
+	my $last_site = "";
+
+	logMsg($LOG,$PROGRAM,"Airtime Schedule A : $YYMM");
+
+	# Read a hash of active sites of required site type that subscribe to UIP films
+	# Hash is keyed by territory and site code
+	($msg) = apiSelect('uipSitesAirtime',"period=$MONTH_START");
+	($status,%error) = apiStatus($msg);
+	if(!$status) {
+		logMsgPortal($LOG,$PROGRAM,'E',"No sites returned from database [$error{CODE}] $error{MESSAGE}");
+		exit;
+	}
+	%sites = apiData($msg);
+
+	# Read packages for each site
+	foreach my $id (sort keys %sites) {
+		# Read the site details
+		$site = $sites{$id}{site_code};
+		$plan = $sites{$id}{plan};
+		$terr = $sites{$id}{territory};
+		$AIRTIME{$site}{territory} = $terr;
+		$AIRTIME{$site}{name} = $sites{$id}{site};
+		$AIRTIME{$site}{rooms} = $sites{$id}{rooms};
+		$AIRTIME{$site}{plans}{$plan}{charge} = $sites{$id}{charge};
+		$AIRTIME{$site}{plans}{$plan}{start} = $sites{$id}{start};
+		$AIRTIME{$site}{plans}{$plan}{end} = $sites{$id}{end};
+		$AIRTIME{$site}{plans}{$plan}{revenue_share} = $sites{$id}{revenue_share};
+	}
+
+	# Read the event data for each site
+	NEXTSITE: foreach $site (sort keys %AIRTIME) {
+		%events = airtime_a_data($site,$AIRTIME{$site}{name});
+		$terr = $AIRTIME{$site}{territory};
+		if(!%events) {
+			logMsg($LOG,$PROGRAM,"$terr: $AIRTIME{$site}{name} [$site] - NO EVENTS RETURNED");
+			next NEXTSITE;
+		}
+		$AIRTIME{$site}{events} = {%events};
+
+		# Arrange sites in territory/site name order
+		if($sort{$terr}) {
+			if(@{$sort{$terr}}[-1] ne $site) {
+				push(@{$sort{$terr}},$site);
+			}
+		}
+		else {
+			$sort{$terr} = [$site];
+		}
+	}
+
+	# Open the output file and the XML writer object
+	airtime_a_header();
+
+	# Column headings
+	airtime_a_columns();
+
+	# Process each film in each site (sorted by site)
+	foreach $terr (sort keys %sort) {
+		foreach $site (@{$sort{$terr}}) {
+			$count = keys %{$AIRTIME{$site}{events}};
+			foreach $film (sort keys %{$AIRTIME{$site}{events}}) {
+				# Flag whether this is the first film for the site - this is for report formatting only
+				$site_1st_film = 0;
+				if($last_site ne $site) {
+					$site_1st_film = 1;
+					$last_site = $site;
+					$FIRST_ROW = 1 + msxmlRowNumber();
+				}
+
+				# Store the reference (key) and film name for the Schedule E report
+				if(!$SCHED_E_DATA{$AIRTIME{$site}{events}{$film}{provider_ref}}) {
+					$SCHED_E_DATA{$AIRTIME{$site}{events}{$film}{provider_ref}} = $AIRTIME{$site}{events}{$film}{title};
+				}
+
+				# Work out the package and charges based on the age of the film
+				$mths = int($AIRTIME{$site}{events}{$film}{days})/30;
+				foreach my $pkg (keys %{$AIRTIME{$site}{plans}}) {
+					if ($mths >= int($AIRTIME{$site}{plans}{$pkg}{start}) && $mths <= int(($AIRTIME{$site}{plans}{$pkg}{end}) ? $AIRTIME{$site}{plans}{$pkg}{end} : '9999')) {
+						$pct = $AIRTIME{$site}{plans}{$pkg}{revenue_share};
+					}
+				}
+
+				# 1 row/film for the site.  Some cells are empty if they are not in the 1st row
+				airtime_a_row($site_1st_film,$terr,
+							  $AIRTIME{$site}{name},
+							  $AIRTIME{$site}{rooms},
+							  $AIRTIME{$site}{events}{$film}{views},
+							  $AIRTIME{$site}{events}{$film}{title},
+							  $AIRTIME{$site}{events}{$film}{sterling},
+							  $pct,
+							  $count);
+			}
+		}
+	}
+
+	# Report totals
+	airtime_a_totals();
+
+	# Close output file
+	airtime_a_footer();
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Airtime Schedule A column titles
+# ---------------------------------------------------------------------------------------------
+sub airtime_a_columns {
+	msxmlRow('open',35);
+	msxmlCell('A','colhead-l','Territory');
+	msxmlCell('B','colhead-l','Site');
+	msxmlCell('C','colhead-c','Rooms');
+	msxmlCell('D','colhead-c','Plays');
+	msxmlCell('E','colhead-l','Title');
+	msxmlCell('F','colhead-c','Daily Rate (pence)');
+	msxmlCell('G','colhead-c','Days');
+	msxmlCell('H','colhead-r','Daily Guarantee');
+	msxmlCell('I','colhead-r','Price to Guest');
+	msxmlCell('J','colhead-r','Gross Receipt');
+	msxmlCell('K','colhead-c','Percentage');
+	msxmlCell('L','colhead-r','Net Receipts');
+	msxmlCell('M','colhead-r','Total Net');
+	msxmlCell('N','colhead-r','Total Due');
+	msxmlCell('O','colhead-r','Total Sched E');
+	msxmlCell('P','colhead-r','70% Gross Receipts');
+	msxmlCell('Q','colhead-r','Applied MG');
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Read the usage data for the Airtime Schedule A report from the Portal events
+#
+# Argument 1 : Site reference
+# Argument 2 : Site name
+#
+# Return a hash of arrays or undef if no usage data exists for site
+#       [key]=Asset code
+#       [0]=Asset name
+#       [1]=UIP reference
+#       [2]=Release date
+#       [3]=NTR date
+#       [4]=Number of views
+#       [5]=Sterling amount
+#       [6]=Days from NTR date
+# ---------------------------------------------------------------------------------------------
+sub airtime_a_data {
+	my($site,$sitename) = @_;
+	my($status,$msg,%error);
+
+	# Read list of aggregated events for site
+	($msg) = apiSelect('uipEventsAirtime',"site=$site","monthstart=$MONTH_START");
+	($status,%error) = apiStatus($msg);
+	if(!$status) {
+		logMsgPortal($LOG,$PROGRAM,'E',"No usage data for $sitename '$site' [$error{CODE}] $error{MESSAGE}");
+		return;
+	}
+
+	# Return the hash of events for the site
+	return apiData($msg);
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Close the Airtime Schedule A report
+# ---------------------------------------------------------------------------------------------
+sub airtime_a_footer {
+	msxmlData('close');
+	msxmlWorkbook('close',$SHEET_SCHED_A);
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Open the Airtime Schedule A report
+# ---------------------------------------------------------------------------------------------
+sub airtime_a_header {
+	my($msg);
+
+	# Create the spreadsheet
+	$msg = msxmlWorkbook('open',$SHEET_SCHED_A);
+	if($msg) {
+		logMsgPortal($LOG,$PROGRAM,'E',$msg);
+		return;
+	}
+	msxmlColumn('open');
+	msxmlColumn('insert',20,1);
+	msxmlColumn('insert',30,1);
+	msxmlColumn('insert',7,2);
+	msxmlColumn('insert',30,1);
+	msxmlColumn('insert',9,13);
+	msxmlColumn('insert',20,1);
+	msxmlColumn('close');
+	msxmlData('open');
+
+	# Title row
+	msxmlRow('open',25);
+	msxmlCell('A','heading',"Schedule A Report for Airtime during $PERIOD");
+	msxmlRow('close');
+
+	# Blank row
+	msxmlRow('open');
+	msxmlCell('A','normal','');
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# 1 row/film for the site. Some cell are empty if they are not in the 1st row
+#
+# Argument  1 : 1 if this is the first film for the site, 0 otherwise
+# Argument  2 : Territory in which the site is located
+# Argument  3 : Name of the site
+# Argument  4 : Number of rooms
+# Argument  5 : Number of film plays
+# Argument  6 : Film title
+# Argument  7 : Price the guest paid for the film
+# Argument  8 : Percentage of purchase price to UIP
+# Argument  9 : Number of unique films watched in this site
+# ---------------------------------------------------------------------------------------------
+sub airtime_a_row {
+	my($site_1st_film,$territory,$site,$rooms,$plays,$title,$charge,$pct,$tot_films) = @_;
+	my($row,$ok);
+
+	# Open the row container and fetch the row number
+	msxmlRow('open');
+	$row = msxmlRowNumber();
+
+	# Set charge to 0 if null
+	if(!$charge) { $charge = 0; }
+
+	# Clean up and log invalid characters found in the film title
+	($ok,$title) = cleanNonUTF8($title);
+	if(!$ok) {
+		logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $title");
+	}
+
+	# Print the first film for the site.  This record shows both site and film data
+	if($site_1st_film) {
+		msxmlCell('A','text-l',$territory);
+		msxmlCell('B','text-l',$site);
+		msxmlCell('C','dp0',$rooms);
+		msxmlCell('D','dp0',$plays);
+		msxmlCell('E','text-l',$title);
+		msxmlCell('F','dp1',$AIRTIME_CFG{TARIFF});
+		msxmlCell('G','dp0',$DAYS);
+		msxmlCell('H','stg',"=C$row*F$row*G$row/100");
+		msxmlCell('I','stg',$charge/100);
+		msxmlCell('J','stg',"=D$row*I$row");
+		msxmlCell('K','pct',$pct/100);
+		msxmlCell('L','stg',"=(J$row/".(1+$VAT).")*K$row");
+		msxmlCell('M','stg',"=SUM(L$FIRST_ROW:L".($FIRST_ROW+$tot_films-1).")");
+		msxmlCell('N','stg',"=IF(Q$row=0,H$row,MAX(Q$row,M$row))");
+		msxmlCell('O','stg',"=IF(L$row=0,D$row*N\$$FIRST_ROW/SUM(D$FIRST_ROW:D".($FIRST_ROW+$tot_films-1)."),L$row*N\$$FIRST_ROW/M\$$FIRST_ROW)");
+		msxmlCell('P','stg',"=$AIRTIME_CFG{GROSSRED}*SUM(J$FIRST_ROW:J".($FIRST_ROW+$tot_films-1).")");
+		msxmlCell('Q','stg',"=MIN(H$row,P$row)");
+	}
+	# Print subsequent films for the site.  This record only shows film data
+	else {
+		msxmlCell('D','dp0',$plays);
+		msxmlCell('E','text-l',$title);
+		msxmlCell('I','stg',$charge/100);
+		msxmlCell('J','stg',"=D$row*I$row");
+		msxmlCell('K','pct',$pct/100);
+		msxmlCell('L','stg',"=(J$row/".(1+$VAT).")*K$row");
+		msxmlCell('O','stg',"=IF(L$row=0,D$row*N\$$FIRST_ROW/SUM(D$FIRST_ROW:D".($FIRST_ROW+$tot_films-1)."),L$row*N\$$FIRST_ROW/M\$$FIRST_ROW)");
+	}
+
+	# Close the row container
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Totals at the bottom of the Airtime Schedule A report
+# ---------------------------------------------------------------------------------------------
+sub airtime_a_totals {
+	# Read the last row number and save it as it will be used by the Schedule E report as well
+	$SCHED_A_ROWS = msxmlRowNumber();
+
+	# Open the row container
+	msxmlRow('open');
+
+	# Open the row container
+	msxmlCell('H','stg-bold',"=SUM(H4:H$SCHED_A_ROWS)");
+	msxmlCell('J','stg-bold',"=SUM(J4:J$SCHED_A_ROWS)");
+	msxmlCell('L','stg-bold',"=SUM(L4:L$SCHED_A_ROWS)");
+	msxmlCell('N','stg-bold',"=SUM(N4:N$SCHED_A_ROWS)");
+	msxmlCell('O','stg-bold',"=SUM(O4:O$SCHED_A_ROWS)");
+	msxmlCell('P','stg-bold',"=SUM(P4:P$SCHED_A_ROWS)");
+	msxmlCell('Q','stg-bold',"=SUM(Q4:Q$SCHED_A_ROWS)");
+
+	# Close the row container
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Airtime Schedule E report
+# ---------------------------------------------------------------------------------------------
+sub airtime_e {
+	my($type) = @_;
+	logMsg($LOG,$PROGRAM,"Airtime Schedule E: $YYMM");
+
+	# Open the report and create the header
+	airtime_e_header($type);
+
+	# Column headings
+	airtime_e_columns();
+
+	# Film totals for the site and keep a running total
+	foreach my $ref (sort keys %SCHED_E_DATA) {
+		airtime_e_row($SCHED_E_DATA{$ref},$ref);
+	}
+
+	# Report totals
+	airtime_e_totals();
+
+	# Close XML output file
+	airtime_e_footer();
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Airtime Schedule E column titles
+# ---------------------------------------------------------------------------------------------
+sub airtime_e_columns {
+	msxmlRow('open',29);
+	msxmlCell('A','colhead-l','Film Title');
+	msxmlCell('B','colhead-l','');
+	msxmlCell('C','colhead-c','Picture Number');
+	msxmlCell('D','colhead-r','Rental');
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Close the Airtime Schedule E report
+# ---------------------------------------------------------------------------------------------
+sub airtime_e_footer {
+	msxmlData('close');
+	msxmlWorkbook('close',$SHEET_SCHED_E);
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Open the Airtime Schedule E report and create the heading at top
+# ---------------------------------------------------------------------------------------------
+sub airtime_e_header {
+	my($name,$territory,$terr_no,$size,$msg);
+
+	# Customer name, territory name and number, and film size
+	$name = 'Airtime';
+	$territory = 'UK';
+	$terr_no = '627';
+	$size = '7';
+
+	# Create the spreadsheet
+	$msg = msxmlWorkbook('open',$SHEET_SCHED_E);
+	if($msg) {
+		logMsgPortal($LOG,$PROGRAM,'E',$msg);
+		return;
+	}
+	msxmlColumn('open');
+	msxmlColumn('insert',12,1);
+	msxmlColumn('insert',30,1);
+	msxmlColumn('insert',12,2);
+	msxmlColumn('close');
+	msxmlData('open');
+
+	# Title row
+	msxmlRow('open',25);
+	msxmlCell('A','heading',"Schedule E Report for Airtime during $PERIOD");
+	msxmlRow('close');
+
+	# Blank row
+	msxmlRow('open');
+	msxmlCell('A','normal','');
+	msxmlRow('close');
+
+	# Provider details
+	msxmlRow('open');
+	msxmlCell('A','colhead-l','Film Size');
+	msxmlCell('B','text-l',$size);
+	msxmlRow('close');
+
+	msxmlRow('open');
+	msxmlCell('A','colhead-l','Customer');
+	msxmlCell('B','text-l',$name);
+	msxmlCell('C','colhead-l','Currency');
+	msxmlCell('D','text-l','GBP');
+	msxmlRow('close');
+
+	msxmlRow('open');
+	msxmlCell('A','colhead-l','Territory');
+	msxmlCell('B','text-l',$territory);
+	msxmlCell('C','colhead-l','Year');
+	msxmlCell('D','text-l',$CCYY);
+	msxmlRow('close');
+
+	msxmlRow('open');
+	msxmlCell('A','colhead-l','Territory No.');
+	msxmlCell('B','text-l',$terr_no);
+	msxmlCell('C','colhead-l','Period');
+	msxmlCell('D','text-l',$MONTH);
+	msxmlRow('close');
+
+	# Spacer row between tables
+	msxmlRow('open');
+	msxmlCell('A','text-l','');
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# 1 row/film. Some cell are empty if they are not in the 1st row
+#
+# Argument 1 : Film title
+# Argument 2 : UIP film reference
+# ---------------------------------------------------------------------------------------------
+sub airtime_e_row {
+	my($title,$ref) = @_;
+	my($ok,$row);
+
+	# Clean up and log invalid characters found in the film title
+	($ok,$title) = cleanNonUTF8($title);
+	if(!$ok) {
+		logMsgPortal($LOG,$PROGRAM,'W',"Invalid character found in film name: $title");
+	}
+
+	# Open the container
+	msxmlRow('open');
+
+	# Read the current row number
+	$row = msxmlRowNumber();
+
+	# Trim ref to 7 characters (UIP refs will be same for 1 film with 2 encodings and we have to add a suffix to make unique)
+	$ref = substr($ref,0,7);
+
+	# Print the row
+	msxmlCell('A','text-l',$title);
+	msxmlCell('B','text-l','');
+	msxmlCell('C','text-c',$ref);
+	msxmlCell('D','dp2',"=SUMIF('$SHEET_SCHED_A'!\$E\$4:\$E\$$SCHED_A_ROWS,A$row,'$SHEET_SCHED_A'!\$O\$4:\$O\$$SCHED_A_ROWS)");
+
+	# Close the container
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Totals at the bottom of the Airtime Schedule E report
+# ---------------------------------------------------------------------------------------------
+sub airtime_e_totals {
+	# Read the last row number
+	my $row = msxmlRowNumber();
+
+	# Open the container
+	msxmlRow('open');
+
+	# Print the total amount
+	msxmlCell('D','dp2-bold',"=SUM(D9:D$row)");
+
+	# Close the container
+	msxmlRow('close');
+}
+
+
+
+# ---------------------------------------------------------------------------------------------
 # Schedule A report
 #
-# Argument 1 : hotel/ferry (Airwave) standard/classic (Techlive)
+# Argument 1 : Type of sites to be included in the report
+#				hotel		Airwave
+#				ferry		Airwave
+#				standard	Techlive
+#				classic		Techlive
 # ---------------------------------------------------------------------------------------------
 sub schedule_a {
 	my($type) = @_;
@@ -757,13 +1259,13 @@ sub usage {
 		logMsg($LOG,$PROGRAM,"The 'yymm' argument is mandatory");
 	}
 	elsif($err == 2) {
-		logMsg($LOG,$PROGRAM,"The 'company' must either be 'airwave' or 'techlive'");
+		logMsg($LOG,$PROGRAM,"The 'company' must either be one of: airtime|airwave|techlive'");
 	}
 	else {
 		printf("
 Program : $PROGRAM
 Version : v$VERSION
-Author  : Basil Fisk (c)2013 Airwave Ltd
+Author  : Basil Fisk (c)2016 Airwave Ltd
 
 Summary :
   Run the monthly usage report for UIP, which produces a spreadsheet in MS-XML format.
@@ -771,10 +1273,10 @@ Summary :
   format have been specified by UIP. The spreadsheet will be written to the Airwave Portal.
 
 Usage :
-  $PROGRAM --yymm=<YYMM>
+  $PROGRAM --yymm=<YYMM> --company=<name>
 
   MANDATORY
-  --company=<name>	The company for whom the figures are being generated (airwave/techlive).
+  --company=<name>	The company whose figures are being generated (airtime|airwave|techlive).
   --yymm=<YYMM>		The reporting month in YYMM format.
 
   OPTIONAL

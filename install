@@ -15,9 +15,14 @@ if [ "$SERVER" == "distro" ] || [ "$SERVER" == "prep" ]; then
 	ROOT=/home/airwave/install
 	SOURCE=$ROOT/Airwave
 	INSTALL=/home/airwave/bin
-else
+elif [ "$SERVER" == "vs" ]; then
 	APACHE=/etc/apache2/sites-available
 	ROOT=/root/install
+	SOURCE=$ROOT/Airwave
+	INSTALL=/srv/visualsaas/instances/airwave/bin
+else
+	APACHE=/etc/apache2/sites-available
+	ROOT=/home/bf/Drive/Software
 	SOURCE=$ROOT/Airwave
 	INSTALL=/srv/visualsaas/instances/airwave/bin
 fi
@@ -96,7 +101,7 @@ case "$SERVER" in
 		chmod 644 $INSTALL/etc/*
 		chmod 644 $INSTALL/mods/*
 		;;
-	vs)
+	*)
 		# Build the directory tree
 		if [ ! -d $INSTALL ]; then mkdir $INSTALL; fi
 		if [ ! -d $INSTALL/etc ]; then mkdir $INSTALL/etc; fi
@@ -125,6 +130,7 @@ case "$SERVER" in
 		cp $SOURCE/bin/portal/ingest_images.pl $INSTALL
 		cp $SOURCE/bin/portal/ingest_vtt.pl $INSTALL
 		cp $SOURCE/bin/portal/inventory.pl $INSTALL
+		cp $SOURCE/bin/portal/load-events-airtime.pl $INSTALL
 		cp $SOURCE/bin/portal/load-events-airwave.pl $INSTALL
 		cp $SOURCE/bin/portal/load-events-techlive.pl $INSTALL
 		cp $SOURCE/bin/portal/metadata.pl $INSTALL

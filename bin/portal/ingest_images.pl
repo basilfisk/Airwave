@@ -74,7 +74,7 @@ sub main {
 	# Start processing all films if a content provider has been specified
 	if($FILM eq 'bbc' || $FILM eq 'disney' || $FILM eq 'pbtv' || $FILM eq 'uip') {
 		# Read all active and delivered assets for selected provider
-		($msg) = apiSelect('ingestFilmsProvider',"provider=$FILM");
+		($msg) = apiSelect('ingestImageProvider',"provider=$FILM");
 		($status,%error) = apiStatus($msg);
 		if(!$status) {
 			logMsgPortal($LOG,$PROGRAM,'E',"Error reading records for [$FILM] from database: $error{MESSAGE}");
@@ -107,7 +107,7 @@ sub film_details {
 	my($status,$msg,%error,%films,$cid,$provider,$meta,$jacket,$landscape);
 
 	# Read the film ID from the Portal
-	($msg) = apiSelect('ingestFilm',"assetcode=$film");
+	($msg) = apiSelect('ingestImage',"assetcode=$film");
 	($status,%error) = apiStatus($msg);
 	if(!$status) {
 		logMsgPortal($LOG,$PROGRAM,'E',"Error reading details for [$film] from database: $error{MESSAGE}");

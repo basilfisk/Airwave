@@ -112,7 +112,9 @@ sub main {
 			($asset,$start,$charge,$currency) = split(',',$line);
 
 			# Extract the date/time and convert date from 'DD/MM/YYYY HH24:MI:SS' to 'DD Mon YYYY HH24:MI'
-			($date,$time) = split(' ',$start);
+#			($date,$time) = split(' ',$start);
+			$date = substr($start, 0, 10);
+			$time = substr($start, 11, 5);
 			if(!($date && $time)) {
 				logMsgPortal($LOG,$PROGRAM,'E',"$YYMM/$file: Date/time format should be 'DD/MM/YYYY HH24:MI' not [$start]");
 				next RECORD;

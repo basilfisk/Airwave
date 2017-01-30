@@ -543,7 +543,7 @@ sub airtime_e_header {
 	# Customer name, territory name and number, and film size
 	$name = 'Airtime';
 	$territory = 'UK';
-	$terr_no = '627';
+	$terr_no = '588';
 	$size = '7';
 
 	# Create the spreadsheet

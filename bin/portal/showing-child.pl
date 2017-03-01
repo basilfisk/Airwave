@@ -48,7 +48,7 @@ GetOptions (
 our %CONFIG  = readConfig("$ENV{'AIRWAVE_ROOT'}/etc/airwave.conf");
 
 # Airwave logo
-our $LOGO = 'Airwave_Logo.jpg';
+our $LOGO = 'techlive_logo_airwave4.jpg';
 
 # Location of report configuration file
 our $TEMP = "$CONFIG{TEMP}";

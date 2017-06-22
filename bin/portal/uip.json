@@ -1,0 +1,15 @@
+{
+	"days": [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ],
+	"months": ["January","February","March","April","May","June","July","August","September","October","November","December"],
+	"api": {
+		"host": "api.visualsaas.net",
+		"port": "19001",
+		"connector": "airwave-live",
+		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiI3N2U3OTE4NTZlMzNjNTRiNjE4NmFiMTE1YzJmZmVkYyJ9.N_z-XjoF-9jEZ77LKerB6Xk0YJIiNjXWLzaRe3m0p5o"
+	},
+	"csv": {
+		"dir": "/home/bf/Downloads",
+		"file": "airwave_event_data_all3"
+	},
+	"output": "/home/bf/Downloads"
+}

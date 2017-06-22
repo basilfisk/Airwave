@@ -1,3 +1,5 @@
+PERL INSTALLATION
+=================
 The following Perl modules must be installed from CPAN
 	Image::ExifTool
 		apt install -y libimage-exiftool-perl
@@ -9,3 +11,16 @@ The following Perl modules must be installed from CPAN
 		apt install -y libxml-libxml-perl
 	XML::Writer
 		apt install -y libxml-writer-perl
+
+
+
+PORTAL - Monitor file access
+============================
+Install
+    apt install inotify-tools
+
+Watch for any event in any file or directories under the 'airwave' directory
+    inotifywait /srv/visualsaas/instances/airwave -r -d -o /var/log/breato/airwave-watch.log
+
+Watch for specified events in any file or directores under the 'airwave' directory
+    inotifywait /srv/visualsaas/instances/airwave -r -d -o /var/log/breato/airwave-watch.log -e modify -e move -e create -e delete

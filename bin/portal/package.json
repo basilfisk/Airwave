@@ -1,0 +1,23 @@
+{
+    "name": "@basilfisk/Arwave",
+    "version": "0.0.1",
+    "description": "CMS",
+    "main": "command",
+    "dependencies": {
+        "exceljs": "latest",
+        "fs": "latest",
+        "moment": "latest",
+		"request": "latest"
+    },
+    "engines": {
+        "node": ">= 8.0.0"
+    },
+    "keywords": [
+        "VOD"
+    ],
+    "author": {
+        "name": "Basil Fisk",
+        "email": "bf@breato.com"
+    },
+    "license": "ISC"
+}

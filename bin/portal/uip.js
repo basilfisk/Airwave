@@ -3,21 +3,20 @@
 //
 // UIP Schedule A & E spreadsheet for the unified contract
 //
-// Argument 1 : Year (YY or CCYY)
-// Argument 2 : Month (MM)
+// Argument 1 : Year and month (YYMM)
 //
 // Copyright 2017 Airwave Ltd.
 //
 // *********************************************************************************************
 // *********************************************************************************************
-"use strict";
+"use strict"
 
 var	Excel = require('exceljs'),
 	fs = require('fs'),
 	moment = require('moment'),
-//	request = require('request'),
-	config = require('./uip.json'),
-	year, month, current, scheduleE = {}, sites, events;
+	request = require('request'),
+	config = require(__dirname + '/etc/uip.json'),
+	yymm, mth, current, scheduleE = {}, sites, events;
 
 // Trap any uncaught exceptions
 // Write error stack to STDERR, then exit process as state may be inconsistent
@@ -28,27 +27,25 @@ process.on('uncaughtException', function(err) {
 });
 
 // Read year and month from command line
-year = parseInt(process.argv[2]);
-year = (year > 100) ? year : 2000 + year;
-month = parseInt(process.argv[3]);
-
-// Add the report period to the configuration object
+yymm = parseInt(process.argv[2]);
 config.period = {};
-config.period.year = year;
-config.period.month = month;
+config.period.year = parseInt(yymm / 100);
+mth = yymm - (config.period.year * 100);
+config.period.month = ('0' + mth).substr(-2,2);
 
 // Check year and month
 current = new Date().getFullYear();
-if (year >= (current - 1) && year <= current) {
-	if (month >= 1 && month <= 12) {
-		main();
+if (config.period.year >= (current - 2001) && config.period.year <= (current - 2000)) {
+	if (mth >= 1 && mth <= 12) {
+		read_from_api();
+	//	read_from_csv();
 	}
 	else {
 		log("Month must be between 1 and 12");
 	}
 }
 else {
-	log("Year must be between " + (current - 1) + " and " + current);
+	log("Year must be between " + (current - 2001) + " and " + (current - 2000));
 }
 
 
@@ -74,9 +71,9 @@ function apiCall (command, prms, callback) {
 
 	// Run the call
 	auth = { 'auth': { 'bearer': config.api.jwt } };
-	request.get(call, auth, function (error, response, body) {
-		if (error) {
-			console.log('error:', error); // Print the error if one occurred
+	request.get(call, auth, function (err, response, body) {
+		if (err) {
+			log(err.message);
 		}
 		else {
 			if (body.length === 0) {
@@ -163,9 +160,9 @@ function generate (data) {
 	schedule_e_data(schE);
 
 	// Write workbook to a file in XLSX format
-	filename = config.output + '/uip_' + year + '_' + ('0' + month).substr(-2,2) + '.xlsx';
+	filename = config.output + '/' + (2000 + config.period.year) + '/UIP Unified ' + config.period.year + config.period.month + '.xlsx';
 	wb.xlsx.writeFile(filename).then(function() {
-		console.log('Spreadsheet written to: ' + filename);
+		log('Spreadsheet written to ' + filename);
 	});
 }
 
@@ -177,37 +174,108 @@ function generate (data) {
 // Argument 1 : Message text
 // ---------------------------------------------------------------------------------------------
 function log (msg) {
-	console.log(msg);
-}
+	var line;
 
+	// Build message
+	line = moment().format('YYYY-MM-DDTHH:mm:ss.SSS');
+	line = '[' + line + '] ' + msg + '\n';
 
-
-// ---------------------------------------------------------------------------------------------
-// Start processing
-// ---------------------------------------------------------------------------------------------
-function main () {
-//	main_api();
-	main_csv();
+	// Append to log file
+	fs.appendFile(config.logfile, line, function (err) {
+		if (err) {
+			console.error('[uip] Could not write log message to ' + config.logfile);
+		}
+	});
 }
 
 
 
 // ---------------------------------------------------------------------------------------------
 // Read data from Airwave CMS
+//
+//	"key": {
+//		"territory": "United Kingdom",
+//		"site" : "Athena Hotel",
+//		"rooms": 60,
+//		"title": "Big Miracle",
+//		"provider_ref": "12345678",
+//		"views": "8",
+//		"stg": "450",
+//		"charge_rate": "3.2",
+//		"type": "airtime|airwave|techlive",
+//		"ntrdate": "20/10/16"
+//		"class": "Current|Library"
+//	}
 // ---------------------------------------------------------------------------------------------
-function main_api () {
-	var yymm = (config.period.year - 2000) + ('0' + config.period.month).substr(-2,2);
+function read_from_api () {
+	var yymm = config.period.year + config.period.month;
 
 	// Run the API call then generate the spreadsheet
-	// uipEvents has not been written yet !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	apiCall('uipEvents', {month: yymm}, log);
-//	apiCall('uipEvents', {month: yymm}, generate);
+	apiCall('uipEvents', {month: yymm}, function (data) {
+		var keys, i, flds, events = {}, terr, site, film;
+
+		// Loop through each event
+		keys = Object.keys(data);
+		for (i=0; i<keys.length; i++) {
+			flds = data[keys[i]];
+
+			// Add a new territory
+			terr = flds.territory;
+			if (events[terr] === undefined) {
+				events[terr] = {};
+				events[terr].sites = {};
+			}
+
+			// Add a new site
+			site = flds.site;
+			if (events[terr].sites[site] === undefined) {
+				events[terr].sites[site] = {};
+				events[terr].sites[site].films = {};
+			}
+
+			// Number of rooms
+			events[terr].sites[site].rooms = parseInt(flds.rooms);
+
+			// Add a new film
+			film = flds.title;
+			if (events[terr].sites[site].films[film] === undefined) {
+				events[terr].sites[site].films[film] = {};
+			}
+
+			// UIP film reference
+			events[terr].sites[site].films[film].uipid = flds.provider_ref;
+
+			// Number of plays
+			events[terr].sites[site].films[film].plays = parseInt(flds.views);
+
+			// Charge to guest
+			events[terr].sites[site].films[film].guest = parseInt(flds.stg) / 100;
+
+			// UIP charge rate (p/room/day)
+			events[terr].sites[site].films[film].rate = parseFloat(flds.charge_rate);
+
+			// Site type (airtime|airwave|techlive)
+			events[terr].sites[site].films[film].type = flds.type;
+
+			// Premium film (true=50%, false=40%)
+			events[terr].sites[site].films[film].share = (flds.nominated === 'true') ? 50 : 40;
+
+			// Home Entertainment release date of film in this territory
+			events[terr].sites[site].films[film].start = flds.ntrdate;
+
+			// Library or Current
+			events[terr].sites[site].films[film].class = flds.class;
+		}
+
+		// Grenerate the spreadsheet
+		generate(events);
+	});
 }
 
 
 
 // ---------------------------------------------------------------------------------------------
-// Read data from a CSV file
+// Read data from a CSV file and convert into the format required by generate()
 //
 //  1 - 'territory'
 //  2 - 'site name'
@@ -221,12 +289,12 @@ function main_api () {
 // 10 - 'nominated (true|false)'
 // 11 - 'HE start date (DD/MM/YY)'
 // ---------------------------------------------------------------------------------------------
-function main_csv () {
-	var filename = config.csv.dir + '/' + config.csv.file;
+function read_from_csv () {
+	var filename = config.csv.dir + '/' + config.period.year + config.period.month + '.csv';
 
 	// Read records from the file
 	fs.readFile(filename, 'utf8', function (err, data) {
-		var i, n, rows, flds, fld, events = {}, terr, site, film;
+		var rows, i, flds, n, fld, events = {}, terr, site, film;
 
 		if (err) {
 			log('Invalid file name: ' + filename);
@@ -305,7 +373,7 @@ function main_csv () {
 							events[terr].sites[site].films[film].class = fld;
 							break;
 						default:
-							console.log('[' + i + '] Should not be here');
+							log('[' + i + '] Should not be here');
 					}
 				}
 			}
@@ -379,8 +447,8 @@ function schedule_a_data (sheet, data) {
 					rooms = data[terrs[t]].sites[sites[s]].rooms;
 					sheet.getCell('C'+rowID).value = rooms;
 					sheet.getCell('F'+rowID).value = film.rate;
-					sheet.getCell('G'+rowID).value = config.days[month - 1];
-					guarantee = rooms * film.rate * config.days[month - 1] / 100;
+					sheet.getCell('G'+rowID).value = config.month.days[config.period.month - 1];
+					guarantee = rooms * film.rate * config.month.days[config.period.month - 1] / 100;
 					sheet.getCell('H'+rowID).value = { formula: 'C'+rowID+'*F'+rowID+'*G'+rowID+'/100', result: guarantee };
 					totnet = sitedata.net;
 					sheet.getCell('M'+rowID).value = { formula: 'SUM(L'+sitedata.start+':L'+sitedata.end+')', result: totnet };
@@ -490,7 +558,7 @@ function schedule_a_sheet (sheet) {
 	format_column(sheet, 'class', 'center');
 
 	// Add the title row and a blank row
-	sheet.addRow({ territory: 'Schedule A for ' + config.months[month - 1] + ' ' + year });
+	sheet.addRow({ territory: 'Schedule A for ' + config.month.names[config.period.month - 1] + ' ' + config.period.year });
 	sheet.lastRow.height = 25;
 	sheet.mergeCells('A1:B1');
 	sheet.getCell('A1').font = { name: 'Arial', size: 14, bold: true };
@@ -555,7 +623,7 @@ function schedule_e_sheet (sheet) {
 	format_column(sheet, 'colD', 'right', '"£"#,##0.00');
 
 	// Add the title row and a blank row
-	sheet.addRow({ colA: 'Schedule E for ' + config.months[month - 1] + ' ' + year });
+	sheet.addRow({ colA: 'Schedule E for ' + config.month.names[config.period.month - 1] + ' ' + config.period.year });
 	sheet.lastRow.height = 25;
 	sheet.mergeCells('A1:B1');
 	sheet.getCell('A1').font = { name: 'Arial', size: 14, bold: true };
@@ -579,7 +647,7 @@ function schedule_e_sheet (sheet) {
 	sheet.getCell('D4').value = 'GBP';
 	sheet.getCell('C5').value = 'Year';
 	sheet.getCell('C5').font = { name: 'Arial', size: 8, bold: true };
-	sheet.getCell('D5').value = config.period.year;
+	sheet.getCell('D5').value = 2000 + config.period.year;
 	sheet.getCell('D5').numFmt = '0000';
 	sheet.getCell('C6').value = 'Period';
 	sheet.getCell('C6').font = { name: 'Arial', size: 8, bold: true };

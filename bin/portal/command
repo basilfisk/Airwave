@@ -248,8 +248,13 @@ case "$COMMAND" in
 			exit
 		fi
 		# Run the script
-		msg "Running command: $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log"
-		`. $ROOT/profile; $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log`
+		if [ "$COMPANY" == "unified" ]; then
+			msg "Running unified UIP report: $ROOT/uip.js $YYMM"
+			`node $ROOT/uip.js $YYMM`
+		else
+			msg "Running company UIP report: $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log"
+			`. $ROOT/profile; $ROOT/uip.pl --yymm=$YYMM --company=$COMPANY --log`
+		fi
 		;;
 	# Unknown
 	*)

@@ -19,7 +19,7 @@ use Getopt::Long;
 
 # Breato modules
 use lib "$ENV{'AIRWAVE_ROOT'}";
-use mods::API3 qw(apiDML apiData apiStatus);
+use mods::API3 qw(apiDML apiData apiSelect apiStatus);
 use mods::Common qw(formatDateTime logMsg logMsgPortal parseDocument readConfig);
 
 # Program information
@@ -68,7 +68,7 @@ main();
 # =============================================================================================
 sub main {
 	# Initialise local variables
-	my(@files,$file,$site,$filename,$fh,$line,$asset,$start,$charge,$currency,$date,$time,$d,$m,$y,$h,$i);
+	my(@files,$file,%films,$site,$filename,$fh,$line,$asset,$assetcode,$start,$charge,$currency,$date,$time,$d,$m,$y,$h,$i);
 	my($status,$msg,%error);
 
 	# Start up message
@@ -97,6 +97,15 @@ sub main {
 		}
 	}
 
+	# Read titles and codes for all films
+	($msg) = apiSelect('createEventAirtimeFilms');
+	($status,%error) = apiStatus($msg);
+	if(!$status) {
+		logMsgPortal($LOG,$PROGRAM,'E',"Error reading films from database");
+		return;
+	}
+	%films = apiData($msg);
+
 	# For each site, process the event and asset records
 	foreach $file (@files) {
 		chomp $file;
@@ -112,7 +121,6 @@ sub main {
 			($asset,$start,$charge,$currency) = split(',',$line);
 
 			# Extract the date/time and convert date from 'DD/MM/YYYY HH24:MI:SS' to 'DD Mon YYYY HH24:MI'
-#			($date,$time) = split(' ',$start);
 			$date = substr($start, 0, 10);
 			$time = substr($start, 11, 5);
 			if(!($date && $time)) {
@@ -143,11 +151,18 @@ sub main {
 			$currency =~ s/\s+//g;
 			$currency =~ tr[A-Z][a-z];
 
+			# Check the film name
+			$assetcode = $films{$asset}{'assetcode'};
+			if(!$assetcode) {
+				logMsgPortal($LOG,$PROGRAM,'E',"$YYMM/$file: Film name not recognised [$asset]");
+				next RECORD;
+			}
+
 			# Insert a record
-			($msg) = apiDML('createEventAirtime',"site=$site","asset=$asset","start=$start","charge=$charge","currency=$currency");
+			($msg) = apiDML('createEventAirtime',"site=$site","asset=$assetcode","start=$start","charge=$charge","currency=$currency");
 			($status,%error) = apiStatus($msg);
 			if(!$status) {
-				logMsgPortal($LOG,$PROGRAM,'E',"Event record not added: [$site][$asset][$start][$charge][$currency] [$error{CODE}] $error{MESSAGE}");
+				logMsgPortal($LOG,$PROGRAM,'E',"Event record not added: [$site][$assetcode][$start][$charge][$currency] [$error{CODE}] $error{MESSAGE}");
 			}
 		}
 	}

@@ -3,7 +3,7 @@
 		"host": "api.visualsaas.net",
 		"port": "19001",
 		"connector": "airwave-live",
-		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiJmYmIyODEwMDM5YzlhNzQ0Y2FkMGIxOGY5NDBlZWNkNSJ9.v-tOwrvyCU6qrNrPLlH9SOXf4MvHNK0z-91WMvlAzXM"
+		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiIxZDQ5OTdiOGU2NmFmNDg1MmJhMzNhNWJjMTFlNmQ2MCJ9.K71XKbEaTvzrgbmzqyoPeXYSOeE_zlbPliLr5F30Vh0"
 	},
 	"csv": {
 		"dir": "/srv/visualsaas/instances/airwave/temp"

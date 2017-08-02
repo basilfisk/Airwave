@@ -116,12 +116,14 @@ function format_column (sheet, id, horiz, format) {
 //				"rooms": 60,
 //				"films": {
 //					"Big Miracle": {
-//						"plays": 8,
-//						"uipid": 12345678,
-//						"rate": 4.17,
-//						"guest": 4,
-//						"share": 40,
-//						"start": "20/10/16"
+//						"plays": 8,				- Number of plays
+//						"uipid": 12345678,		- UIP film reference
+//						"rate": 4.17,			- UIP charge rate (p/room/day)
+//						"guest": 4,				- Charge to guest
+//						"share": 40,			- Premium film (true=50%, false=40%)
+//						"start": "20/10/16",	- Home Entertainment release date of film in this territory
+//						"type": "airwave",		- Contract type (airtime|airwave|techlive)
+//						"class": "Library"		- Age of film (Library|Current)
 //					},
 // ---------------------------------------------------------------------------------------------
 function generate (data) {
@@ -251,14 +253,18 @@ function read_from_api () {
 			// Charge to guest
 			events[terr].sites[site].films[film].guest = parseInt(flds.stg) / 100;
 
-			// UIP charge rate (p/room/day)
-			events[terr].sites[site].films[film].rate = parseFloat(flds.charge_rate);
-
-			// Site type (airtime|airwave|techlive)
+			// Contract type (airtime|airwave|techlive)
 			events[terr].sites[site].films[film].type = flds.type;
 
+			// Set the Hybrid|Guest to Pay flag for Airtime
+			events[terr].sites[site].films[film].hybrid = (flds.type === 'airtime') ? ((flds.charge_rate === '1') ? true : false) : false;
+
+			// UIP charge rate (p/room/day)
+			events[terr].sites[site].films[film].rate = (flds.type === 'airtime') ? 4.17 : parseFloat(flds.charge_rate);
+
 			// Premium film (true=50%, false=40%)
-			events[terr].sites[site].films[film].share = (flds.nominated === 'true') ? 50 : 40;
+//			events[terr].sites[site].films[film].share = (flds.nominated === 'true') ? 50 : 40;
+			events[terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.type === 'airtime') ? 50 : 40;
 
 			// Home Entertainment release date of film in this territory
 			events[terr].sites[site].films[film].start = flds.ntrdate;
@@ -357,7 +363,7 @@ function read_from_csv () {
 							events[terr].sites[site].films[film].rate = parseFloat(fld);
 							break;
 						case 8:
-							// Site type (not used)
+							// Contract type (airtime|airwave|techlive)
 							events[terr].sites[site].films[film].type = fld;
 							break;
 						case 9:
@@ -413,7 +419,7 @@ function schedule_a_data (sheet, data) {
 			films = Object.keys(data[terrs[t]].sites[sites[s]].films).sort();
 			for (f=0; f<films.length; f++) {
 				film = data[terrs[t]].sites[sites[s]].films[films[f]];
-				guest = (film.class === 'Current') ? film.guest : 0;
+				guest = film.guest;
 				net += film.plays * guest * film.share / 100 / 1.2;
 				plays += film.plays;
 				end++;
@@ -452,8 +458,22 @@ function schedule_a_data (sheet, data) {
 					sheet.getCell('H'+rowID).value = { formula: 'C'+rowID+'*F'+rowID+'*G'+rowID+'/100', result: guarantee };
 					totnet = sitedata.net;
 					sheet.getCell('M'+rowID).value = { formula: 'SUM(L'+sitedata.start+':L'+sitedata.end+')', result: totnet };
-					totdue = (guarantee > totnet) ? guarantee : totnet;
-					sheet.getCell('N'+rowID).value = { formula: 'MAX(H'+rowID+',M'+rowID+')', result: totdue };
+					if (film.type === 'airtime') {
+						// Hybrid
+						if (film.hybrid) {
+							totdue = totnet + guarantee;
+							sheet.getCell('N'+rowID).value = { formula: 'M'+rowID+'+H'+rowID, result: totdue };
+						}
+						// Guest to pay
+						else {
+							totdue = totnet;
+							sheet.getCell('N'+rowID).value = { formula: 'M'+rowID, result: totdue };
+						}
+					}
+					else {
+						totdue = (guarantee > totnet) ? guarantee : totnet;
+						sheet.getCell('N'+rowID).value = { formula: 'MAX(H'+rowID+',M'+rowID+')', result: totdue };
+					}
 					site = sites[s];
 
 					// Running totals
@@ -464,7 +484,7 @@ function schedule_a_data (sheet, data) {
 				// Same site, show all film related cells
 				sheet.getCell('D'+rowID).value = film.plays;
 				sheet.getCell('E'+rowID).value = films[f];
-				guest = (film.class === 'Current') ? film.guest : 0;
+				guest = film.guest;
 				sheet.getCell('I'+rowID).value = guest;
 				gross = film.plays * guest;
 				sheet.getCell('J'+rowID).value = { formula: 'D'+rowID+'*I'+rowID, result: gross };
@@ -476,6 +496,9 @@ function schedule_a_data (sheet, data) {
 				sheet.getCell('P'+rowID).value = film.start;
 				sheet.getCell('Q'+rowID).value = moment(film.start, "DD/MM/YY").add(364, 'days').format("DD/MM/YY");
 				sheet.getCell('R'+rowID).value = film.class;
+				if (film.type === 'airtime') {
+					sheet.getCell('S'+rowID).value = (film.hybrid) ? 'Airtime Hybrid' : 'Airtime Guest to Pay';
+				}
 
 				// Running totals
 				totals.gross += gross;
@@ -534,7 +557,8 @@ function schedule_a_sheet (sheet) {
 		{ key: 'schede', width: 9 },
 		{ key: 'filmstart', width: 9 },
 		{ key: 'filmend', width: 9 },
-		{ key: 'class', width: 9 }
+		{ key: 'class', width: 9 },
+		{ key: 'type', width: 15 }
 	];
 
 	// Format columns
@@ -556,6 +580,7 @@ function schedule_a_sheet (sheet) {
 	format_column(sheet, 'filmstart', 'center');
 	format_column(sheet, 'filmend', 'center');
 	format_column(sheet, 'class', 'center');
+	format_column(sheet, 'type', 'left');
 
 	// Add the title row and a blank row
 	sheet.addRow({ territory: 'Schedule A for ' + config.month.names[config.period.month - 1] + ' ' + config.period.year });
@@ -565,7 +590,7 @@ function schedule_a_sheet (sheet) {
 	sheet.addRow({ territory: ' ' });
 
 	// Column headings
-	sheet.addRow(['Territory','Site','Rooms','Plays','Title','Daily Rate (pence)','Days','Daily Guarantee','Price to Guest','Gross Receipt','Percentage','Net Receipts','Total Net','Total Due','Total Sched E','Title Start Date','Title End Date','Class']);
+	sheet.addRow(['Territory','Site','Rooms','Plays','Title','Daily Rate (pence)','Days','Daily Guarantee','Price to Guest','Gross Receipt','Percentage','Net Receipts','Total Net','Total Due','Total Sched E','Title Start Date','Title End Date','Class','']);
 	sheet.lastRow.height = 25;
 	sheet.lastRow.font = { name: 'Arial', size: 8, bold: true };
 }

@@ -23,7 +23,7 @@ var	Excel = require('exceljs'),
 process.on('uncaughtException', function(err) {
 	console.error('ERROR TRAPPED (uip)');
 	console.error(err.stack);
-	process.exit(1);
+	process.exit(-1);
 });
 
 // Read year and month from command line

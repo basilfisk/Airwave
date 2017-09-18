@@ -145,7 +145,7 @@ sub main {
 
 			# Change Null charges to 0
 			$charge = ($charge) ? $charge : 0;
-			$charge = int($charge);
+			$charge = int(100*$charge);
 
 			# Clean up currency and force to lower case
 			$currency =~ s/\s+//g;

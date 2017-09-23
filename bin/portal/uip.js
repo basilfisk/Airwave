@@ -23,7 +23,7 @@ var	Excel = require('exceljs'),
 process.on('uncaughtException', function(err) {
 	console.error('ERROR TRAPPED (uip)');
 	console.error(err.stack);
-	process.exit(-1);
+	process.exit(1);
 });
 
 // Read year and month from command line
@@ -37,8 +37,7 @@ config.period.month = ('0' + mth).substr(-2,2);
 current = new Date().getFullYear();
 if (config.period.year >= (current - 2001) && config.period.year <= (current - 2000)) {
 	if (mth >= 1 && mth <= 12) {
-		read_from_api();
-	//	read_from_csv();
+		read_event_data();
 	}
 	else {
 		log("Month must be between 1 and 12");
@@ -111,6 +110,7 @@ function format_column (sheet, id, horiz, format) {
 //
 // Argument 1 : Events object
 //	"United Kingdom": {
+//		"vat": 20,
 //		"sites" : {
 //			"Athena Hotel": {
 //				"rooms": 60,
@@ -193,10 +193,11 @@ function log (msg) {
 
 
 // ---------------------------------------------------------------------------------------------
-// Read data from Airwave CMS
+// Read event data from Airwave CMS
 //
 //	"key": {
 //		"territory": "United Kingdom",
+//		"vat": 20,
 //		"site" : "Athena Hotel",
 //		"rooms": 60,
 //		"title": "Big Miracle",
@@ -209,7 +210,7 @@ function log (msg) {
 //		"class": "Current|Library"
 //	}
 // ---------------------------------------------------------------------------------------------
-function read_from_api () {
+function read_event_data () {
 	var yymm = config.period.year + config.period.month;
 
 	// Run the API call then generate the spreadsheet
@@ -227,6 +228,9 @@ function read_from_api () {
 				events[terr] = {};
 				events[terr].sites = {};
 			}
+
+			// VAT rate
+			events[terr].vat = 1 + (((flds.vat === 'undefined' || isNaN(parseFloat(flds.vat))) ? config.vat : parseFloat(flds.vat)) / 100);
 
 			// Add a new site
 			site = flds.site;
@@ -260,11 +264,10 @@ function read_from_api () {
 			events[terr].sites[site].films[film].hybrid = (flds.type === 'airtime') ? ((flds.charge_rate === '1') ? true : false) : false;
 
 			// UIP charge rate (p/room/day)
-			events[terr].sites[site].films[film].rate = (flds.type === 'airtime') ? 4.17 : parseFloat(flds.charge_rate);
+			events[terr].sites[site].films[film].rate = (flds.type === 'airtime') ? config.uip.rate : parseFloat(flds.charge_rate);
 
 			// Premium film (true=50%, false=40%)
-//			events[terr].sites[site].films[film].share = (flds.nominated === 'true') ? 50 : 40;
-			events[terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.type === 'airtime') ? 50 : 40;
+			events[terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.type === 'airtime') ? config.uip.share.nominated : config.uip.share.standard;
 
 			// Home Entertainment release date of film in this territory
 			events[terr].sites[site].films[film].start = flds.ntrdate;
@@ -281,125 +284,13 @@ function read_from_api () {
 
 
 // ---------------------------------------------------------------------------------------------
-// Read data from a CSV file and convert into the format required by generate()
-//
-//  1 - 'territory'
-//  2 - 'site name'
-//  3 - 'rooms'
-//  4 - 'film title'
-//  5 - 'UIP ref'
-//  6 - 'plays'
-//  7 - 'guest price (p)'
-//  8 - 'charge rate (p)'
-//  9 - 'site type'
-// 10 - 'nominated (true|false)'
-// 11 - 'HE start date (DD/MM/YY)'
-// ---------------------------------------------------------------------------------------------
-function read_from_csv () {
-	var filename = config.csv.dir + '/' + config.period.year + config.period.month + '.csv';
-
-	// Read records from the file
-	fs.readFile(filename, 'utf8', function (err, data) {
-		var rows, i, flds, n, fld, events = {}, terr, site, film;
-
-		if (err) {
-			log('Invalid file name: ' + filename);
-			return;
-		}
-
-		// Create an array of event data (1/record)
-		rows = data.split(/\r?\n/);
-
-		// Loop through each event
-		for (i=0; i<rows.length; i++) {
-			// Skip if empty event
-			if (rows[i].length > 0) {
-				// Create array of event data
-				flds = rows[i].split('\',\'');
-				for (n=0; n<flds.length; n++) {
-					fld = flds[n].replace(/'/g, '');
-					switch (n) {
-						case 0:
-							// Add a new territory
-							terr = fld;
-							if (events[terr] === undefined) {
-								events[terr] = {};
-								events[terr].sites = {};
-							}
-							break;
-						case 1:
-							// Add a new site
-							site = fld;
-							if (events[terr].sites[site] === undefined) {
-								events[terr].sites[site] = {};
-								events[terr].sites[site].films = {};
-							}
-							break;
-						case 2:
-							// Number of rooms
-							events[terr].sites[site].rooms = parseInt(fld);
-							break;
-						case 3:
-							// Add a new film
-							film = fld;
-							if (events[terr].sites[site].films[film] === undefined) {
-								events[terr].sites[site].films[film] = {};
-							}
-							break;
-						case 4:
-							// UIP film reference
-							events[terr].sites[site].films[film].uipid = fld;
-							break;
-						case 5:
-							// Number of plays
-							events[terr].sites[site].films[film].plays = parseInt(fld);
-							break;
-						case 6:
-							// Charge to guest
-							events[terr].sites[site].films[film].guest = parseInt(fld) / 100;
-							break;
-						case 7:
-							// UIP charge rate (p/room/day)
-							events[terr].sites[site].films[film].rate = parseFloat(fld);
-							break;
-						case 8:
-							// Contract type (airtime|airwave|techlive)
-							events[terr].sites[site].films[film].type = fld;
-							break;
-						case 9:
-							// Premium film (true=50%, false=40%)
-							events[terr].sites[site].films[film].share = (fld === 'true') ? 50 : 40;
-							break;
-						case 10:
-							// Home Entertainment release date of film in this territory
-							events[terr].sites[site].films[film].start = fld;
-							break;
-						case 11:
-							// Library or Current
-							events[terr].sites[site].films[film].class = fld;
-							break;
-						default:
-							log('[' + i + '] Should not be here');
-					}
-				}
-			}
-		}
-
-		// Grenerate the spreadsheet
-		generate(events);
-	});
-}
-
-
-
-// ---------------------------------------------------------------------------------------------
 // Load the rows into the Schedule A sheet
 //
 // Argument 1 : Worksheet object
 // Argument 2 : Events object
 // ---------------------------------------------------------------------------------------------
 function schedule_a_data (sheet, data) {
-	var terrs, sites, sitenet = {}, key, sitedata, films, film, t, s, f, row, rooms, guarantee, guest, gross, net, totnet, totdue, schede, plays;
+	var terrs, vat, sites, sitenet = {}, key, sitedata, films, film, t, s, f, row, rooms, guarantee, guest, gross, net, totnet, totdue, schede, plays;
 	var rowID = 4, site = '', start, end = 4, totals = {};
 	totals.guarantee = 0;
 	totals.totdue = 0;
@@ -412,6 +303,7 @@ function schedule_a_data (sheet, data) {
 
 	// Aggregate the plays and total due for each site
 	for (t=0; t<terrs.length; t++) {
+		vat = data[terrs[t]].vat;
 		sites = Object.keys(data[terrs[t]].sites).sort();
 		for (s=0; s<sites.length; s++) {
 			net = plays = 0;
@@ -420,7 +312,7 @@ function schedule_a_data (sheet, data) {
 			for (f=0; f<films.length; f++) {
 				film = data[terrs[t]].sites[sites[s]].films[films[f]];
 				guest = film.guest;
-				net += film.plays * guest * film.share / 100 / 1.2;
+				net += film.plays * guest * film.share / 100 / vat;
 				plays += film.plays;
 				end++;
 			}
@@ -436,6 +328,7 @@ function schedule_a_data (sheet, data) {
 	// Sorted list of territories
 	for (t=0; t<terrs.length; t++) {
 		// Sorted list of sites within a territory
+		vat = data[terrs[t]].vat;
 		sites = Object.keys(data[terrs[t]].sites).sort();
 		for (s=0; s<sites.length; s++) {
 			sitedata = sitenet[terrs[t] + sites[s]];
@@ -489,8 +382,8 @@ function schedule_a_data (sheet, data) {
 				gross = film.plays * guest;
 				sheet.getCell('J'+rowID).value = { formula: 'D'+rowID+'*I'+rowID, result: gross };
 				sheet.getCell('K'+rowID).value = film.share / 100;
-				net = gross * film.share / 100 / 1.2;
-				sheet.getCell('L'+rowID).value = { formula: 'J'+rowID+'*K'+rowID+'/1.2', result: net };
+				net = gross * film.share / 100 / vat;
+				sheet.getCell('L'+rowID).value = { formula: 'J'+rowID+'*K'+rowID+'/'+vat, result: net };
 				schede = totdue * film.plays / sitedata.plays;
 				sheet.getCell('O'+rowID).value = { formula: 'IF(L'+rowID+'=0,D'+rowID+'*N$'+sitedata.start+'/SUM(D'+sitedata.start+':D'+sitedata.end+'),L'+rowID+'*N$'+sitedata.start+'/M$'+sitedata.start+')', result: schede };
 				sheet.getCell('P'+rowID).value = film.start;

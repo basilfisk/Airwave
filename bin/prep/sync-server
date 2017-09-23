@@ -13,7 +13,7 @@
 #
 # Mandatory arguments:
 #	-r {Name of Remote Server}
-#	-t {Content Type}				(e.g. bbc,disney,uip,pbtv)
+#	-t {Content Type}				(e.g. bbc,disney,uip,pbtv,givingtales)
 #
 # Optional arguments:
 #	--log		Log the output to file
@@ -77,12 +77,12 @@ while test $# -gt 0; do
 			shift
 			if test $# -gt 0; then
 				TYPE=$1
-				if [ "$TYPE" != "bbc" -a "$TYPE" != "disney" -a "$TYPE" != "pbtv" -a "$TYPE" != "uip" ]; then
-					echo "Invalid type specified (bbc, disney, pbtv or uip)"
+				if [ "$TYPE" != "bbc" -a "$TYPE" != "disney" -a "$TYPE" != "givingtales" -a "$TYPE" != "pbtv" -a "$TYPE" != "uip" ]; then
+					echo "Invalid type specified (bbc, disney, givingtales, pbtv or uip)"
 					exit 1
 				fi
 			else
-				echo "No type specified (bbc, disney, pbtv or uip)"
+				echo "No type specified (bbc, disney, givingtales, pbtv or uip)"
 				exit 1
 			fi
 			shift
@@ -90,8 +90,8 @@ while test $# -gt 0; do
 		# Content type
 		--type*)
 			TYPE=`echo $1 | sed -e 's/^[^=]*=//g'`
-			if [ "$TYPE" != "bbc" -a "$TYPE" != "disney" -a "$TYPE" != "pbtv" -a "$TYPE" != "uip" ]; then
-				echo "Invalid type specified (bbc, disney, pbtv or uip)"
+			if [ "$TYPE" != "bbc" -a "$TYPE" != "disney" -a "$TYPE" != "givingtales" -a "$TYPE" != "pbtv" -a "$TYPE" != "uip" ]; then
+				echo "Invalid type specified (bbc, disney, givingtales, pbtv or uip)"
 				exit 1
 			fi
 			shift
@@ -193,10 +193,11 @@ case $LOCAL in
 				RSA=$PREP_RSA
 				TGT=/srv/Content
 				case $TYPE in
-					bbc)  	SRC=airwave@$PREP_HOST:/srv/Content/BBC;;
-					disney) SRC=airwave@$PREP_HOST:/srv/Content/Disney;;
-					pbtv) 	SRC=airwave@$PREP_HOST:/srv/Content/PBTV;;
-					uip)  	SRC=airwave@$PREP_HOST:/srv/Content/UIP;;
+					bbc)		 SRC=airwave@$PREP_HOST:/srv/Content/BBC;;
+					disney)		 SRC=airwave@$PREP_HOST:/srv/Content/Disney;;
+					givingtales) SRC=airwave@$PREP_HOST:/srv/Content/GivingTales;;
+					pbtv) 		 SRC=airwave@$PREP_HOST:/srv/Content/PBTV;;
+					uip)  		 SRC=airwave@$PREP_HOST:/srv/Content/UIP;;
 				esac
 				;;
 			*)
@@ -212,10 +213,11 @@ case $LOCAL in
 				RSA=$DISTRO_RSA
 				TGT=airwave@$DISTRO_HOST:/srv/Content
 				case $TYPE in
-					bbc)  	SRC=/srv/Content/BBC;;
-					disney) SRC=/srv/Content/Disney;;
-					pbtv) 	SRC=/srv/Content/PBTV;;
-					uip)  	SRC=/srv/Content/UIP;;
+					bbc)  		 SRC=/srv/Content/BBC;;
+					disney)		 SRC=/srv/Content/Disney;;
+					givingtales) SRC=/srv/Content/GivingTales;;
+					pbtv) 		 SRC=/srv/Content/PBTV;;
+					uip)  		 SRC=/srv/Content/UIP;;
 				esac
 				;;
 			evorio)
@@ -224,20 +226,22 @@ case $LOCAL in
 				RSA=$EVORIO_RSA
 				TGT=airwave@$EVORIO_HOST:/home/airwave/Archive
 				case $TYPE in
-					bbc)  	SRC=/srv/Content/BBC;;
-					disney) SRC=/srv/Content/Disney;;
-					pbtv) 	SRC=/srv/Content/PBTV;;
-					uip)  	SRC=/srv/Content/UIP;;
+					bbc)  		 SRC=/srv/Content/BBC;;
+					disney) 	 SRC=/srv/Content/Disney;;
+					givingtales) SRC=/srv/Content/GivingTales;;
+					pbtv)	 	 SRC=/srv/Content/PBTV;;
+					uip)  		 SRC=/srv/Content/UIP;;
 				esac
 				;;
 			usb)
 				logmsg "Synchronising '$TYPE' from $LOCAL to $REMOTE"
 				TGT=airwave@$EVORIO_HOST:/home/airwave/Archive
 				case $TYPE in
-					bbc)  	SRC=/media/Archive2/BBC;;
-					disney) SRC=/media/Archive2/Disney;;
-					pbtv) 	SRC=/media/Archive2/PBTV;;
-					uip)  	SRC=/media/Archive2/UIP;;
+					bbc)  		 SRC=/media/Archive2/BBC;;
+					disney) 	 SRC=/media/Archive2/Disney;;
+					givingtales) SRC=/media/Archive2/GivingTales;;
+					pbtv) 		 SRC=/media/Archive2/PBTV;;
+					uip)  		 SRC=/media/Archive2/UIP;;
 				esac
 				;;
 			*)

@@ -36,7 +36,7 @@ our %LISTVALUES;
 read_listvalues();
 our(%PBTV,%UIP);
 our @COMPANY = ('Airwave','Techlive');
-our @PROVIDER = ('BBC','Disney','PBTV','UIP');
+our @PROVIDER = ('BBC','Disney','Giving Tales','PBTV','UIP');
 our %TOPLEFT = (
 		'x'		=> 20,
 		'y'		=> 20,

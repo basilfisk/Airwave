@@ -1,0 +1,17 @@
+{
+	"api": {
+		"host": "api.visualsaas.net",
+		"port": "19001",
+		"connector": "airwave-live",
+		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3IiOiJwb3J0YWxAYWlyd2F2ZS50diIsImlwcyI6WyIqIl0sInBhY2thZ2UiOiIxZDQ5OTdiOGU2NmFmNDg1MmJhMzNhNWJjMTFlNmQ2MCJ9.K71XKbEaTvzrgbmzqyoPeXYSOeE_zlbPliLr5F30Vh0"
+	},
+	"csv": {
+		"dir": "/srv/visualsaas/instances/airwave/temp"
+	},
+	"logfile": "/srv/visualsaas/instances/airwave/bin/log/uip.log",
+	"month": {
+		"days": [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ],
+		"names": ["January","February","March","April","May","June","July","August","September","October","November","December"]
+	},
+	"output": "/srv/visualsaas/instances/airwave/data/financial/uip"
+}

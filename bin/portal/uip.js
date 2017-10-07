@@ -88,6 +88,35 @@ function apiCall (command, prms, callback) {
 
 
 // ---------------------------------------------------------------------------------------------
+// Create the workbook
+//
+// Argument 1 : Events object
+// ---------------------------------------------------------------------------------------------
+function create_wb (events) {
+	var wb, filename;
+
+	// Create an empty workbook
+	wb = new Excel.Workbook();
+
+	// Set workbook properties
+	wb.creator = 'Basil Fisk';
+	wb.created = new Date();
+
+	// Generate a pair of sheets for each reporting category
+	generate('Ferry', 1, wb, events['ferry']);
+	generate('Other', 7, wb, events['other']);
+
+	// Write workbook to a file in XLSX format
+	filename = config.output + '/' + (2000 + config.period.year) + '/UIP Unified ' + config.period.year + config.period.month + '.xlsx';
+//	filename = '/srv/visualsaas/instances/airwave/temp/uip-' + config.period.year + config.period.month + '.xlsx';
+	wb.xlsx.writeFile(filename).then(function() {
+		log('Spreadsheet written to ' + filename);
+	});
+}
+
+
+
+// ---------------------------------------------------------------------------------------------
 // Format columns
 //
 // Argument 1 : Worksheet object
@@ -106,9 +135,12 @@ function format_column (sheet, id, horiz, format) {
 
 
 // ---------------------------------------------------------------------------------------------
-// Generate the spreadsheet
+// Generate a pair of spreadsheets (Schedule A & E) for one class of reporting
 //
-// Argument 1 : Events object
+// Argument 1 : Ferry/Other
+// Argument 2 : Film size
+// Argument 3 : Workbook reference
+// Argument 4 : Events object
 //	"United Kingdom": {
 //		"vat": 20,
 //		"sites" : {
@@ -122,23 +154,16 @@ function format_column (sheet, id, horiz, format) {
 //						"guest": 4,				- Charge to guest
 //						"share": 40,			- Premium film (true=50%, false=40%)
 //						"start": "20/10/16",	- Home Entertainment release date of film in this territory
-//						"type": "airwave",		- Contract type (airtime|airwave|techlive)
+//						"company": "airwave",	- Company (airtime|airwave|techlive)
 //						"class": "Library"		- Age of film (Library|Current)
 //					},
 // ---------------------------------------------------------------------------------------------
-function generate (data) {
-	var wb, schA, schE, margins, filename;
-
-	// Create an empty workbook
-	wb = new Excel.Workbook();
-
-	// Set workbook properties
-	wb.creator = 'Basil Fisk';
-	wb.created = new Date();
+function generate (name, size, wb, data) {
+	var schA, schE, margins;
 
 	// Add the worksheets
-	schA = wb.addWorksheet('Schedule A');
-	schE = wb.addWorksheet('Schedule E');
+	schA = wb.addWorksheet('Schedule A - ' + name);
+	schE = wb.addWorksheet('Schedule E - ' + name);
 
 	// Adjust page settings
 	margins = {
@@ -158,14 +183,8 @@ function generate (data) {
 	schedule_a_data(schA, data);
 
 	// Create the Schedule E sheet and load data
-	schedule_e_sheet(schE);
+	schedule_e_sheet(schE, size);
 	schedule_e_data(schE);
-
-	// Write workbook to a file in XLSX format
-	filename = config.output + '/' + (2000 + config.period.year) + '/UIP Unified ' + config.period.year + config.period.month + '.xlsx';
-	wb.xlsx.writeFile(filename).then(function() {
-		log('Spreadsheet written to ' + filename);
-	});
 }
 
 
@@ -205,9 +224,10 @@ function log (msg) {
 //		"views": "8",
 //		"stg": "450",
 //		"charge_rate": "3.2",
-//		"type": "airtime|airwave|techlive",
+//		"company": "airtime|airwave|techlive",
 //		"ntrdate": "20/10/16"
 //		"class": "Current|Library"
+//		"ferry": "true|false"
 //	}
 // ---------------------------------------------------------------------------------------------
 function read_event_data () {
@@ -215,69 +235,77 @@ function read_event_data () {
 
 	// Run the API call then generate the spreadsheet
 	apiCall('uipEvents', {month: yymm}, function (data) {
-		var keys, i, flds, events = {}, terr, site, film;
+		var events = {}, keys, i, flds, type, terr, site, film;
+
+		// Initialise data for the 2 types of report
+		events = {
+			'ferry': {},
+			'other': {}
+		};
 
 		// Loop through each event
 		keys = Object.keys(data);
 		for (i=0; i<keys.length; i++) {
 			flds = data[keys[i]];
+			type = (flds.ferry) ? 'ferry' : 'other';
 
 			// Add a new territory
 			terr = flds.territory;
-			if (events[terr] === undefined) {
-				events[terr] = {};
-				events[terr].sites = {};
+			if (events[type][terr] === undefined) {
+				events[type][terr] = {};
+				events[type][terr].sites = {};
+				events[type][terr].ferry = flds.ferry;
 			}
 
 			// VAT rate
-			events[terr].vat = 1 + (((flds.vat === 'undefined' || isNaN(parseFloat(flds.vat))) ? config.vat : parseFloat(flds.vat)) / 100);
+			events[type][terr].vat = 1 + (((flds.vat === 'undefined' || isNaN(parseFloat(flds.vat))) ? config.vat : parseFloat(flds.vat)) / 100);
 
 			// Add a new site
 			site = flds.site;
-			if (events[terr].sites[site] === undefined) {
-				events[terr].sites[site] = {};
-				events[terr].sites[site].films = {};
+			if (events[type][terr].sites[site] === undefined) {
+				events[type][terr].sites[site] = {};
+				events[type][terr].sites[site].films = {};
 			}
 
 			// Number of rooms
-			events[terr].sites[site].rooms = parseInt(flds.rooms);
+			events[type][terr].sites[site].rooms = parseInt(flds.rooms);
 
 			// Add a new film
 			film = flds.title;
-			if (events[terr].sites[site].films[film] === undefined) {
-				events[terr].sites[site].films[film] = {};
+			if (events[type][terr].sites[site].films[film] === undefined) {
+				events[type][terr].sites[site].films[film] = {};
 			}
 
 			// UIP film reference
-			events[terr].sites[site].films[film].uipid = flds.provider_ref;
+			events[type][terr].sites[site].films[film].uipid = flds.provider_ref;
 
 			// Number of plays
-			events[terr].sites[site].films[film].plays = parseInt(flds.views);
+			events[type][terr].sites[site].films[film].plays = parseInt(flds.views);
 
 			// Charge to guest
-			events[terr].sites[site].films[film].guest = parseInt(flds.stg) / 100;
+			events[type][terr].sites[site].films[film].guest = parseInt(flds.stg) / 100;
 
-			// Contract type (airtime|airwave|techlive)
-			events[terr].sites[site].films[film].type = flds.type;
+			// Company (airtime|airwave|techlive)
+			events[type][terr].sites[site].films[film].company = flds.company;
 
 			// Set the Hybrid|Guest to Pay flag for Airtime
-			events[terr].sites[site].films[film].hybrid = (flds.type === 'airtime') ? ((flds.charge_rate === '1') ? true : false) : false;
+			events[type][terr].sites[site].films[film].hybrid = (flds.company === 'airtime') ? ((flds.charge_rate === '1') ? true : false) : false;
 
 			// UIP charge rate (p/room/day)
-			events[terr].sites[site].films[film].rate = (flds.type === 'airtime') ? config.uip.rate : parseFloat(flds.charge_rate);
+			events[type][terr].sites[site].films[film].rate = (flds.company === 'airtime') ? config.uip.rate : parseFloat(flds.charge_rate);
 
 			// Premium film (true=50%, false=40%)
-			events[terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.type === 'airtime') ? config.uip.share.nominated : config.uip.share.standard;
+			events[type][terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.company === 'airtime') ? config.uip.share.nominated : config.uip.share.standard;
 
 			// Home Entertainment release date of film in this territory
-			events[terr].sites[site].films[film].start = flds.ntrdate;
+			events[type][terr].sites[site].films[film].start = flds.ntrdate;
 
 			// Library or Current
-			events[terr].sites[site].films[film].class = flds.class;
+			events[type][terr].sites[site].films[film].class = flds.class;
 		}
 
-		// Grenerate the spreadsheet
-		generate(events);
+		// Generate the workbook
+		create_wb(events);
 	});
 }
 
@@ -290,13 +318,14 @@ function read_event_data () {
 // Argument 2 : Events object
 // ---------------------------------------------------------------------------------------------
 function schedule_a_data (sheet, data) {
-	var terrs, vat, sites, sitenet = {}, key, sitedata, films, film, t, s, f, row, rooms, guarantee, guest, gross, net, totnet, totdue, schede, plays;
-	var rowID = 4, site = '', start, end = 4, totals = {};
+	var terrs, vat, sites, sitenet = {}, key, sitedata, films, film, t, s, f, row, rooms, guarantee, guest, gross, net, totnet, totdue, plays;
+	var rowID = 4, site = '', start, end = 4, schede = 0, totals = {};
 	totals.guarantee = 0;
 	totals.totdue = 0;
 	totals.gross = 0;
 	totals.net = 0;
 	totals.schede = 0;
+	scheduleE = {};
 
 	// Sorted list of territories
 	terrs = Object.keys(data).sort();
@@ -351,7 +380,7 @@ function schedule_a_data (sheet, data) {
 					sheet.getCell('H'+rowID).value = { formula: 'C'+rowID+'*F'+rowID+'*G'+rowID+'/100', result: guarantee };
 					totnet = sitedata.net;
 					sheet.getCell('M'+rowID).value = { formula: 'SUM(L'+sitedata.start+':L'+sitedata.end+')', result: totnet };
-					if (film.type === 'airtime') {
+					if (film.company === 'airtime') {
 						// Hybrid
 						if (film.hybrid) {
 							totdue = totnet + guarantee;
@@ -389,7 +418,7 @@ function schedule_a_data (sheet, data) {
 				sheet.getCell('P'+rowID).value = film.start;
 				sheet.getCell('Q'+rowID).value = moment(film.start, "DD/MM/YY").add(364, 'days').format("DD/MM/YY");
 				sheet.getCell('R'+rowID).value = film.class;
-				if (film.type === 'airtime') {
+				if (film.company === 'airtime') {
 					sheet.getCell('S'+rowID).value = (film.hybrid) ? 'Airtime Hybrid' : 'Airtime Guest to Pay';
 				}
 
@@ -451,7 +480,7 @@ function schedule_a_sheet (sheet) {
 		{ key: 'filmstart', width: 9 },
 		{ key: 'filmend', width: 9 },
 		{ key: 'class', width: 9 },
-		{ key: 'type', width: 15 }
+		{ key: 'company', width: 15 }
 	];
 
 	// Format columns
@@ -473,7 +502,7 @@ function schedule_a_sheet (sheet) {
 	format_column(sheet, 'filmstart', 'center');
 	format_column(sheet, 'filmend', 'center');
 	format_column(sheet, 'class', 'center');
-	format_column(sheet, 'type', 'left');
+	format_column(sheet, 'company', 'left');
 
 	// Add the title row and a blank row
 	sheet.addRow({ territory: 'Schedule A for ' + config.month.names[config.period.month - 1] + ' ' + config.period.year });
@@ -524,8 +553,9 @@ function schedule_e_data (sheet) {
 // Create the Schedule E sheet
 //
 // Argument 1 : Worksheet object
+// Argument 2 : Film size
 // ---------------------------------------------------------------------------------------------
-function schedule_e_sheet (sheet) {
+function schedule_e_sheet (sheet, size) {
 	// Initialise columns
 	sheet.columns = [
 		{ key: 'colA', width: 12 },
@@ -550,7 +580,7 @@ function schedule_e_sheet (sheet) {
 	// Add the customer data header
 	sheet.getCell('A3').value = 'Film Size';
 	sheet.getCell('A3').font = { name: 'Arial', size: 8, bold: true };
-	sheet.getCell('B3').value = '7';
+	sheet.getCell('B3').value = size;
 	sheet.getCell('A4').value = 'Customer';
 	sheet.getCell('A4').font = { name: 'Arial', size: 8, bold: true };
 	sheet.getCell('B4').value = 'Airwave';

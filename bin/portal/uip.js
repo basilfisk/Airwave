@@ -225,6 +225,7 @@ function log (msg) {
 //		"stg": "450",
 //		"charge_rate": "3.2",
 //		"company": "airtime|airwave|techlive",
+//		"nominated": "true|false"
 //		"ntrdate": "20/10/16"
 //		"class": "Current|Library"
 //		"ferry": "true|false"
@@ -289,13 +290,13 @@ function read_event_data () {
 			events[type][terr].sites[site].films[film].company = flds.company;
 
 			// Set the Hybrid|Guest to Pay flag for Airtime
-			events[type][terr].sites[site].films[film].hybrid = (flds.company === 'airtime') ? ((flds.charge_rate === '1') ? true : false) : false;
+			events[type][terr].sites[site].films[film].hybrid = (flds.company.match(/airtime/i)) ? ((flds.charge_rate === '1') ? true : false) : false;
 
 			// UIP charge rate (p/room/day)
-			events[type][terr].sites[site].films[film].rate = (flds.company === 'airtime') ? config.uip.rate : parseFloat(flds.charge_rate);
+			events[type][terr].sites[site].films[film].rate = (flds.company.match(/airtime/i)) ? config.uip.rate : parseFloat(flds.charge_rate);
 
 			// Premium film (true=50%, false=40%)
-			events[type][terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.company === 'airtime') ? config.uip.share.nominated : config.uip.share.standard;
+			events[type][terr].sites[site].films[film].share = (flds.nominated === 'true' || flds.company.match(/airtime/i)) ? config.uip.share.nominated : config.uip.share.standard;
 
 			// Home Entertainment release date of film in this territory
 			events[type][terr].sites[site].films[film].start = flds.ntrdate;
@@ -380,7 +381,7 @@ function schedule_a_data (sheet, data) {
 					sheet.getCell('H'+rowID).value = { formula: 'C'+rowID+'*F'+rowID+'*G'+rowID+'/100', result: guarantee };
 					totnet = sitedata.net;
 					sheet.getCell('M'+rowID).value = { formula: 'SUM(L'+sitedata.start+':L'+sitedata.end+')', result: totnet };
-					if (film.company === 'airtime') {
+					if (film.company.match(/airtime/i)) {
 						// Hybrid
 						if (film.hybrid) {
 							totdue = totnet + guarantee;
@@ -418,7 +419,7 @@ function schedule_a_data (sheet, data) {
 				sheet.getCell('P'+rowID).value = film.start;
 				sheet.getCell('Q'+rowID).value = moment(film.start, "DD/MM/YY").add(364, 'days').format("DD/MM/YY");
 				sheet.getCell('R'+rowID).value = film.class;
-				if (film.company === 'airtime') {
+				if (film.company.match(/airtime/i)) {
 					sheet.getCell('S'+rowID).value = (film.hybrid) ? 'Airtime Hybrid' : 'Airtime Guest to Pay';
 				}
 

@@ -103,11 +103,11 @@ function create_wb (events) {
 	wb.created = new Date();
 
 	// Generate a pair of sheets for each reporting category
-	generate('Ferry', 1, wb, events['ferry']);
-	generate('Other', 7, wb, events['other']);
+	generate('Ferry', wb, events['ferry']);
+	generate('Other', wb, events['other']);
 
 	// Write workbook to a file in XLSX format
-	filename = config.output + '/' + (2000 + config.period.year) + '/UIP Unified ' + config.period.year + config.period.month + '.xlsx';
+	filename = config.file.output + '/' + (2000 + config.period.year) + '/UIP Unified ' + config.period.year + config.period.month + '.xlsx';
 //	filename = '/srv/visualsaas/instances/airwave/temp/uip-' + config.period.year + config.period.month + '.xlsx';
 	wb.xlsx.writeFile(filename).then(function() {
 		log('Spreadsheet written to ' + filename);
@@ -138,9 +138,8 @@ function format_column (sheet, id, horiz, format) {
 // Generate a pair of spreadsheets (Schedule A & E) for one class of reporting
 //
 // Argument 1 : Ferry/Other
-// Argument 2 : Film size
-// Argument 3 : Workbook reference
-// Argument 4 : Events object
+// Argument 2 : Workbook reference
+// Argument 3 : Events object
 //	"United Kingdom": {
 //		"vat": 20,
 //		"sites" : {
@@ -158,7 +157,7 @@ function format_column (sheet, id, horiz, format) {
 //						"class": "Library"		- Age of film (Library|Current)
 //					},
 // ---------------------------------------------------------------------------------------------
-function generate (name, size, wb, data) {
+function generate (name, wb, data) {
 	var schA, schE, margins;
 
 	// Add the worksheets
@@ -183,7 +182,7 @@ function generate (name, size, wb, data) {
 	schedule_a_data(schA, data);
 
 	// Create the Schedule E sheet and load data
-	schedule_e_sheet(schE, size);
+	schedule_e_sheet(schE, name);
 	schedule_e_data(schE);
 }
 
@@ -202,9 +201,9 @@ function log (msg) {
 	line = '[' + line + '] ' + msg + '\n';
 
 	// Append to log file
-	fs.appendFile(config.logfile, line, function (err) {
+	fs.appendFile(config.file.log, line, function (err) {
 		if (err) {
-			console.error('[uip] Could not write log message to ' + config.logfile);
+			console.error('[uip] Could not write log message to ' + config.file.log);
 		}
 	});
 }
@@ -554,9 +553,9 @@ function schedule_e_data (sheet) {
 // Create the Schedule E sheet
 //
 // Argument 1 : Worksheet object
-// Argument 2 : Film size
+// Argument 2 : Type of worksheet (Ferry|Other)
 // ---------------------------------------------------------------------------------------------
-function schedule_e_sheet (sheet, size) {
+function schedule_e_sheet (sheet, type) {
 	// Initialise columns
 	sheet.columns = [
 		{ key: 'colA', width: 12 },
@@ -581,16 +580,16 @@ function schedule_e_sheet (sheet, size) {
 	// Add the customer data header
 	sheet.getCell('A3').value = 'Film Size';
 	sheet.getCell('A3').font = { name: 'Arial', size: 8, bold: true };
-	sheet.getCell('B3').value = size;
+	sheet.getCell('B3').value = config.layout.size[type];
 	sheet.getCell('A4').value = 'Customer';
 	sheet.getCell('A4').font = { name: 'Arial', size: 8, bold: true };
-	sheet.getCell('B4').value = 'Airwave';
+	sheet.getCell('B4').value = config.layout.customer;
 	sheet.getCell('A5').value = 'Territory';
 	sheet.getCell('A5').font = { name: 'Arial', size: 8, bold: true };
 	sheet.getCell('B5').value = 'UK';
 	sheet.getCell('A6').value = 'Territory No.';
 	sheet.getCell('A6').font = { name: 'Arial', size: 8, bold: true };
-	sheet.getCell('B6').value = '627';
+	sheet.getCell('B6').value = config.layout.territory;
 	sheet.getCell('C4').value = 'Currency';
 	sheet.getCell('C4').font = { name: 'Arial', size: 8, bold: true };
 	sheet.getCell('D4').value = 'GBP';

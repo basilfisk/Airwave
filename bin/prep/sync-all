@@ -13,14 +13,16 @@ if [ `hostname` == "prep" ]; then
 	# From the Preparation server, synchronise content to the Distribution server
 	./sync-server -r distro -t bbc --log
 	./sync-server -r distro -t disney --log
-	./sync-server -r distro -t pbtv --log
-	./sync-server -r distro -t uip --log
 	./sync-server -r distro -t givingtales --log
+	./sync-server -r distro -t pbtv --log
+	./sync-server -r distro -t tvf --log
+	./sync-server -r distro -t uip --log
 
 	# From the Preparation server, synchronise content to the Archive server at Evorio
 	# PBTV films are not archived as they are only licenced for 1 year
 	./sync-server -r evorio -t bbc --log
 	./sync-server -r evorio -t disney --log
-	./sync-server -r evorio -t uip --log
 	./sync-server -r evorio -t givingtales --log
+	./sync-server -r evorio -t tvf --log
+	./sync-server -r evorio -t uip --log
 fi

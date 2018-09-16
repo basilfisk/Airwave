@@ -34,7 +34,7 @@ our $LOG = 1;
 # Set up global variables
 our %LISTVALUES;
 read_listvalues();
-our @PROVIDER = ('BBC','Disney','Giving Tales','PBTV','TVF','UIP');
+our @PROVIDER = ('BBC','Disney','GFC','Giving Tales','PBTV','TVF','UIP');
 our %TOPLEFT = (
 		'x'		=> 20,
 		'y'		=> 20,

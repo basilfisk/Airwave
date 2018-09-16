@@ -1,0 +1,91 @@
+Security
+========
+vi /etc/ssh/sshd_config
+	Port 15428
+service ssh restart
+
+
+
+Installation of Software
+========================
+Apache
+	apt-get update
+	apt-get install apache2
+	a2enmod ssl
+PHP
+	apt-get install php5
+	apt-get install php-pear
+	apt-get install php5-curl
+	apt-get install php5-gd
+	apt-get install php5-idn
+	apt-get install php5-imagick ?????????????
+	apt-get install php5-imap
+	apt-get install php5-mcrypt
+	apt-get install php5-memcache
+	apt-get install php5-ming ?????????????
+	apt-get install php5-mysql
+	apt-get install php5-ps
+	apt-get install php5-pspell
+	apt-get install php5-recode
+	apt-get install php5-snmp
+	apt-get install php5-tidy
+	apt-get install php5-xmlrpc
+	apt-get install php5-xsl
+MySQL [password=Gr3g0ry12]
+	apt-get install mysql-server
+	ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+	apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+	aa-status
+
+
+
+Backup of CDS MySQL database on cdsp.6thsight.com
+=================================================
+mysqldump --user=root --password=\!3lbb1w --all-databases > all.sql
+mysqldump --user=root --password=\!3lbb1w --databases cds_airwave > airwave.sql
+
+
+
+Installation of CDS on VS
+=========================
+Software
+	Copy software from cdsp.6thsight.com into /root/cds
+		scp -P 22 -r rexcell@cdsp.6thsight.com:/xxxx /root/cds
+	Load CDS software into /root/cds
+	Run the installation script
+		/root/cds/install
+	Enable 32bit software to run
+		dpkg --add-architecture i386
+		apt-get update
+		apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386
+	Add support for OpenSSL 0.9.8
+x		wget -O libssl.deb http://ftp.de.debian.org/debian/pool/main/o/openssl/libssl0.9.8_0.9.8o-4squeeze14_amd64.deb
+x		dpkg -i libssl.deb
+Change Database Password for root User
+	service mysql stop
+	service mysql start
+	mysql
+		SET PASSWORD FOR 'root'@'localhost' = PASSWORD('Gr3g0ry12');
+	service mysql stop
+	service mysql start
+	mysql --user=root --password=Gr3g0ry12 [TEST]
+Load Airwave Database
+	Copy cds.sql from cdsp.6thsight.com into /root/cds/db
+		scp -P 22 -r rexcell@cdsp.6thsight.com:/home/rexcell/airwave.sql /root/cds/db/airwave.sql
+	mysql --user=root --password=Gr3g0ry12 < /root/cds/db/airwave.sql
+	show databases;
+	use {database};
+	show tables;
+	desc {table};
+Create an Airwave User for the CDS Web Site
+	Username/password stored in /var/www/vhosts/cdsp.6thsight.com/airwave/config.inc
+		define('SQLUSERNAME','cds_airwave');
+		define('SQLPASSWORD','74b808bb3665647905ea6bd1b169b37c');
+	mysql --user=root --password=Gr3g0ry12
+		flush privileges;
+		CREATE USER 'cds_airwave'@'localhost' IDENTIFIED BY '74b808bb3665647905ea6bd1b169b37c';
+		GRANT ALL on cds_airwave.* to 'cds_airwave'@'localhost';
+	mysql --user=cds_airwave --password=74b808bb3665647905ea6bd1b169b37c [TEST]
+	Test CDS login using: basil@airwave.tv / A1rwav3
+
+

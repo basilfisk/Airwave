@@ -1,0 +1,85 @@
+#!/bin/bash
+SRC=/root/cds
+
+# Configuration files
+DIR=/etc/airship
+test ! -d $DIR && mkdir $DIR
+cp $SRC/$DIR/* $DIR
+
+# Cron files
+DIR=/etc/cron.d
+cp $SRC/$DIR/* $DIR
+
+# Init files
+DIR=/etc/init.d
+cp $SRC/$DIR/* $DIR
+
+# Startup files
+SRC0=../init.d/airship
+SRC1=../init.d/airship-update
+LINK0=K92airship
+LINK1=K93airship-update
+DIR=/etc/rc0.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+DIR=/etc/rc1.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+DIR=/etc/rc6.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+LINK0=S92airship
+LINK1=S93airship-update
+DIR=/etc/rc2.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+DIR=/etc/rc3.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+DIR=/etc/rc4.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+DIR=/etc/rc5.d
+rm $DIR/$LINK0 $DIR/$LINK1
+ln -s $SRC0 $DIR/$LINK0
+ln -s $SRC1 $DIR/$LINK1
+
+# Apache2
+DIR=/etc/apache2/sites-available
+cp $SRC/$DIR/cdsp.6thsight.com.conf $DIR
+DIR=/etc/apache2/ssl.crt
+test ! -d $DIR && mkdir $DIR
+cp $SRC/$DIR/* $DIR
+DIR=/etc/apache2/ssl.csr
+test ! -d $DIR && mkdir $DIR
+cp $SRC/$DIR/* $DIR
+DIR=/etc/apache2/ssl.key
+test ! -d $DIR && mkdir $DIR
+cp $SRC/$DIR/* $DIR
+test ! -f /etc/apache2/sites-enabled/cdsp.6thsight.com.conf && a2ensite cdsp.6thsight.com.conf
+
+# Executable files
+DIR=/usr/bin
+cp $SRC/$DIR/* $DIR
+
+# Help files
+DIR=/usr/share/doc/airship
+test ! -d $DIR && mkdir $DIR
+cp $SRC/$DIR/* $DIR
+DIR=/usr/share/man/man1
+cp $SRC/$DIR/* $DIR
+DIR=/usr/share/man/man5
+cp $SRC/$DIR/* $DIR
+
+# Web site
+DIR=/var/www
+cp -R $SRC/$DIR/* $DIR
+
+# Start Apache
+service apache2 restart

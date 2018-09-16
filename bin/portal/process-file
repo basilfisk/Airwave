@@ -1,0 +1,125 @@
+#!/bin/bash
+# ***************************************************************************
+# ***************************************************************************
+#
+# Run a script when a file is created in a directory being monitored
+# For each type of script, there is a directory in which the data files to
+# be processed are created.  Supported scripts are:
+#   eventsAirtime
+#   eventsAirwave
+#   eventsTechlive
+#   ingestImage
+#   ingestVtt
+#
+# Files are named according to the parameter values required by the script
+# For example, the Airtime events loading script:
+#   The monitored directory would be named
+#       $MONITOR/eventsAirtime
+#   The data files to be processed would be named
+#       {site}-{yymm}
+#       grandjersey-1701
+#
+# The main directories are:
+#   MONITOR: Root directory under which the sub-directories for each
+#            processing script are monitored
+#   SUCCESS: Directory holding data files which were successfully processed
+#            {script}-{file name}
+#            eventsAirtime-grandjersey-1701
+#   FAILURE: Directory holding data files which failed during processing
+#            along with a log file describing the error
+#            {script}-{file name}
+#            eventsAirtime-grandjersey-1701
+#            eventsAirtime-grandjersey-1701.error
+#
+# ***************************************************************************
+# ***************************************************************************
+
+# Directory to be monitored, and directories to be used for success/failure
+ROOT="/home/bf/Temp/process"
+MONITOR="$ROOT/pending"
+SUCCESS="$ROOT/success"
+FAILURE="$ROOT/failure"
+
+# Directory containing scripts
+BIN="/home/bf/Temp/process"
+
+# Run the script
+# Arguments
+#   1: Name of directory in which the file was created that triggered the event
+#   2: File that was created
+function prepare_script {
+    # Read file name from argument
+    DIRECTORY=$1
+    FILENAME=$2
+
+    # Split target directory and take last element as script name
+    DIRS=(${DIRECTORY//\// })
+    SCRIPT=${DIRS[-1]}
+
+    # Make file name into an array using -
+    PRMS=(${FILENAME//-/ })
+
+    # Read name of script and validate
+    case $SCRIPT in
+        "eventsAirtime")
+            ARGS=("--site=${PRMS[0]}" "--yymm=${PRMS[1]}")
+            run_script;;
+        "eventsAirwave")
+            ARGS=("--site=${PRMS[0]}" "--yymm=${PRMS[1]}")
+            run_script;;
+        "eventsTechlive")
+            ARGS=("--site=${PRMS[0]}" "--yymm=${PRMS[1]}")
+            run_script;;
+        "ingestImage")
+            ARGS=("--film=${PRMS[0]}")
+            run_script;;
+        "ingestVtt")
+            ARGS=("--film=${PRMS[0]}" "--lang=${PRMS[1]}")
+            run_script;;
+        *)  trap_error $FILENAME "Unrecognised script: ${SCRIPT}.pl";;
+    esac
+}
+
+# Run the script to process the file
+# Perl script must print "" for success or a failure message to STDOUT
+# Required variables
+#   ARGS:     Array of arguments for the Perl script
+#   FILENAME: Name of file to be processed by the Perl script
+#   SCRIPT:   Name of script being run
+function run_script {
+    RESULT=$(perl $BIN/${SCRIPT}.pl ${ARGS[@]})
+    if [ "$RESULT" == "" ]; then
+        mv $MONITOR/$SCRIPT/$FILENAME $SUCCESS/$SCRIPT-$FILENAME
+    else
+        trap_error $FILENAME "$RESULT"
+    fi
+}
+
+# Handle errors by moving file to failure directory and adding a log file
+# Arguments
+#   1: Name of file being processed
+#   2: Error message to be logged
+# Required variables
+#   SCRIPT: Name of script being run
+function trap_error {
+    FILE=$1
+    TEXT=$2
+    mv $MONITOR/$SCRIPT/$FILE $FAILURE/$SCRIPT-$FILE
+    echo $TEXT > $FAILURE/$SCRIPT-$FILE.error
+}
+
+# Trigger at the end of file creation
+# inotifywait passes 3 names to STDOUT
+#   1: Name of directory in which the file was created that triggered the event
+#   2: Command that triggered the event
+#   3: File that was created
+inotifywait ${MONITOR} -r -m -q -e close_write |
+while read DIR ACTION FILE
+do
+    # Check that a file name is present
+    if [ "$FILE" == "" ]; then
+        trap_error $FILE "File name is missing from inotifywait STDOUT"
+    else
+        prepare_script $DIR $FILE
+    fi
+done
